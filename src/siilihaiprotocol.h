@@ -16,6 +16,7 @@
 #include <QHash>
 #include <QList>
 #include "forumparser.h"
+#include "httppost.h"
 
 class SiilihaiProtocol : public QObject {
 	Q_OBJECT
@@ -35,10 +36,9 @@ public slots:
 signals:
 	void loginFinished(bool success);
 	void listParsersFinished(QList <ForumParser> parsers);
-	void getParserFinished(ForumParser parser);
 	void subscribeForumFinished(bool success);
+	void getParserFinished(ForumParser parser);
 private:
-	QByteArray setPostParameters(QNetworkRequest *req, QHash<QString, QString> params);
 	QString clientKey;
 	QNetworkAccessManager nam;
 	QString baseUrl;

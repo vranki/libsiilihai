@@ -169,6 +169,7 @@ bool ParserDatabase::storeParser(const ForumParser &p) {
 		qDebug() << "Adding parser failed: " << query.lastError().text();
 		return false;
 	}
+	qDebug() << "Parser stored";
 	return true;
 }
 

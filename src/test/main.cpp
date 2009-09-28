@@ -9,6 +9,6 @@ int main(int argc, char *argv[])
     LibSiilihaiTests tests;
     QTimer::singleShot(1, &tests, SLOT(runTests()));
     QTimer::singleShot(10000, &a, SLOT(quit()));
- //   tests.connect(&tests, SIGNAL(testsFinished()), &a, SLOT(quit()));
+    tests.connect(&tests, SIGNAL(testsFinished()), &a, SLOT(quit()));
     return a.exec();
 }

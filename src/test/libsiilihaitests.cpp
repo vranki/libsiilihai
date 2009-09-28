@@ -1,44 +1,67 @@
 #include "libsiilihaitests.h"
 
-LibSiilihaiTests::LibSiilihaiTests(QObject *parent) : QObject(parent), 	pdb(this), fdb(this)
- {
+LibSiilihaiTests::LibSiilihaiTests(QObject *parent) :
+	QObject(parent), fdb(parent), pdb(parent), fses(parent) {
 }
 
 LibSiilihaiTests::~LibSiilihaiTests() {
 }
 
-void  LibSiilihaiTests::runParserEngineTests() {
+void LibSiilihaiTests::runParserEngineTests() {
 	ParserEngine pe(this);
 	ForumParser fp;
 
 }
 
-void  LibSiilihaiTests::runProtocolTests() {
+void LibSiilihaiTests::runProtocolTests() {
 	protocol.setBaseURL("http://localhost:8000/");
-	connect(&protocol, SIGNAL(loginFinished(bool)), this, SLOT(loginFinished(bool)));
+	connect(&protocol, SIGNAL(loginFinished(bool)), this,
+			SLOT(loginFinished(bool)));
 	protocol.login("keijjo", "keijjo");
+	qDebug("Logging in..");
 }
 
 void LibSiilihaiTests::loginFinished(bool success) {
 	qDebug() << "Login success:" << success;
-	connect(&protocol, SIGNAL(listParsersFinished(QList <ForumParser>)), this, SLOT(listParsersFinished(QList <ForumParser>)));
+	connect(&protocol, SIGNAL(listParsersFinished(QList <ForumParser>)), this,
+			SLOT(listParsersFinished(QList <ForumParser>)));
 	protocol.listParsers();
 }
 
-void LibSiilihaiTests::listParsersFinished(QList <ForumParser> parsers) {
+void LibSiilihaiTests::listParsersFinished(QList<ForumParser> parsers) {
 	qDebug() << "RX parsers" << parsers.size();
-	if(parsers.size()>0) {
-		connect(&protocol, SIGNAL(getParserFinished(ForumParser)), this, SLOT(getParserFinished(ForumParser)));
+	if (parsers.size() > 0) {
+		connect(&protocol, SIGNAL(getParserFinished(ForumParser)), this,
+				SLOT(getParserFinished(ForumParser)));
 		protocol.getParser(parsers[0].id);
 	}
 }
 
 void LibSiilihaiTests::getParserFinished(ForumParser parser) {
-	qDebug() << "RX parser "<< parser.toString() << " which seems sane:" << parser.isSane();
+	qDebug() << "RX parser " << parser.toString() << " which seems sane:"
+			<< parser.isSane();
 	qDebug() << "Storing parser success: " << pdb.storeParser(parser);
 	qDebug() << "List parsers returns: " << pdb.listParsers().size();
-	qDebug() << "Deleting parser. ";
-	pdb.deleteParser(pdb.listParsers().at(0).id);
+	// qDebug() << "Deleting parser. ";
+	// pdb.deleteParser(pdb.listParsers().at(0).id);
+	runForumSession();
+}
+
+void LibSiilihaiTests::runForumSession() {
+	qDebug() << "runForumSession() ";
+	fp = pdb.listParsers().at(0);
+	QVERIFY(fp.id > 0);
+	if (fdb.listSubscriptions().size() == 0) {
+		fsub.parser = fp.id;
+		fsub.name = fp.parser_name;
+		fsub.latest_threads = 10;
+		fsub.latest_messages = 10;
+		fsub.username = QString::null;
+		fdb.addForum(fsub);
+	}
+	fsub = fdb.listSubscriptions()[0];
+	fses.initialize(fp, fsub);
+	fses.listGroups();
 }
 
 void LibSiilihaiTests::runTests() {
@@ -51,8 +74,6 @@ void LibSiilihaiTests::runTests() {
 	QVERIFY(fdb.openDatabase());
 	runProtocolTests();
 	//runParserEngineTests();
-
-	emit(testsFinished());
 	return;
 
 	QString
@@ -80,18 +101,18 @@ void LibSiilihaiTests::runTests() {
 	QVERIFY(pm.tokenizePattern("%ax%a").length()==0);
 	QVERIFY(pm.tokenizePattern("x%ax%ax").length()==5);
 	qDebug() << "end test section";
-/*
-	QList<QString> patternTokens = pm.tokenizePattern(pattern);
-	qDebug() << "Pattern " << pattern << "\n tokenized:";
-	if (patternTokens.length() == 0) {
-		qDebug() << "invalid pattern!!";
-	} else {
-		for (int i = 0; i < patternTokens.length(); i++) {
-			qDebug() << "\t" << patternTokens[i];
-		}
-	}
-*/
-	QList <QHash<QString, QString> > matches = pm.findMatches(html, pattern);
+	/*
+	 QList<QString> patternTokens = pm.tokenizePattern(pattern);
+	 qDebug() << "Pattern " << pattern << "\n tokenized:";
+	 if (patternTokens.length() == 0) {
+	 qDebug() << "invalid pattern!!";
+	 } else {
+	 for (int i = 0; i < patternTokens.length(); i++) {
+	 qDebug() << "\t" << patternTokens[i];
+	 }
+	 }
+	 */
+	QList<QHash<QString, QString> > matches = pm.findMatches(html, pattern);
 	for (int i = 0; i < matches.length(); i++) {
 		qDebug() << "Match:";
 		QHash<QString, QString> matchHash = matches[i];
@@ -103,11 +124,11 @@ void LibSiilihaiTests::runTests() {
 	}
 
 	/*
-	pattern = "<test>%a<%i<num>%%%B<";
-	pm.findMatches(html, pattern);
-	pattern = "<test>%a<%i\n<num>\n%%%B<%";
-	pm.findMatches(html, pattern);
-	*/
+	 pattern = "<test>%a<%i<num>%%%B<";
+	 pm.findMatches(html, pattern);
+	 pattern = "<test>%a<%i\n<num>\n%%%B<%";
+	 pm.findMatches(html, pattern);
+	 */
 
 	emit(testsFinished());
 }

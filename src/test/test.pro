@@ -8,13 +8,13 @@ QT += core \
     testlib
 QT -= gui
 
-HEADERS += libsiilihaitests.h \
-	forumdatabase.h \
-    parserdatabase.h \
-    siilihaiprotocol.h \
-    parserengine.h \
-    forumparser.h \
-    patternmatcher.h
+HEADERS += libsiilihaitests.h
+#	forumdatabase.h \
+#    parserdatabase.h \
+#    siilihaiprotocol.h \
+#    parserengine.h \
+#    forumparser.h \
+#    patternmatcher.h
 SOURCES += main.cpp \
 	libsiilihaitests.cpp
 #    forumdatabase.cpp \

@@ -10,6 +10,10 @@
 #include "siilihaiprotocol.h"
 #include "parserdatabase.h"
 #include "forumdatabase.h"
+#include "forumparser.h"
+#include "forumsubscription.h"
+#include "forumsession.h"
+
 
 class LibSiilihaiTests : public QObject {
 	Q_OBJECT
@@ -26,10 +30,15 @@ public slots:
 private:
 	void runParserEngineTests();
 	void runProtocolTests();
+	void runForumSession();
+
 	SiilihaiProtocol protocol;
-	ParserDatabase pdb;
 	ForumDatabase fdb;
+	ParserDatabase pdb;
 	QSqlDatabase db;
+	ForumParser fp;
+	ForumSubscription fsub;
+	ForumSession fses;
 };
 
 #endif /* LIBSIILIHAITESTS_H_ */
