@@ -7,13 +7,23 @@
 
 #include "patternmatcher.h"
 
-PatternMatcher::PatternMatcher(QObject *parent) : QObject(parent) {
+PatternMatcher::PatternMatcher(QObject *parent) :
+	QObject(parent) {
 	// TODO Auto-generated constructor stub
-
+	patternSet = false;
 }
 
 PatternMatcher::~PatternMatcher() {
 	// TODO Auto-generated destructor stub
+}
+
+void PatternMatcher::setPattern(QString &pattern) {
+	patternTokens = tokenizePattern(pattern);
+	patternSet = true;
+}
+
+bool PatternMatcher::isPatternSet() {
+	return patternSet;
 }
 
 QList<QString> PatternMatcher::tokenizePattern(QString pattern) {
@@ -87,10 +97,8 @@ QString PatternMatcher::numberize(QString &txt) {
 	return result;
 }
 
-QList<QHash<QString, QString> > PatternMatcher::findMatches(QString &html,
-		QString &pattern) {
+QList<QHash<QString, QString> > PatternMatcher::findMatches(QString &html) {
 	//	qDebug() << "Matching pattern " << pattern << " to \n" << html;
-	QList<QString> patternTokens = tokenizePattern(pattern);
 	QList<QHash<QString, QString> > matches;
 	QHash<QString, QString> matchHash;
 
@@ -117,6 +125,7 @@ QList<QHash<QString, QString> > PatternMatcher::findMatches(QString &html,
 							match = numberize(match);
 						}
 						//						qDebug() << "tag " << pt << ":" << match;
+						pt = pt.toLower();
 						matchHash[pt] = match;
 					}
 					pos = matchPos;
@@ -132,7 +141,7 @@ QList<QHash<QString, QString> > PatternMatcher::findMatches(QString &html,
 				}
 			}
 		}
-		if(matchHash.size() > 0)
+		if (matchHash.size() > 0)
 			matches.append(matchHash);
 		matchHash.clear();
 	}

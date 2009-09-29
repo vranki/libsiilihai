@@ -9,7 +9,8 @@ QT += core \
     webkit \
     testlib
 QT -= gui
-HEADERS += httppost.h \
+HEADERS += forumgroup.h \
+    httppost.h \
     forumsession.h \
     forumsubscription.h \
     forumdatabase.h \
@@ -18,7 +19,8 @@ HEADERS += httppost.h \
     parserengine.h \
     forumparser.h \
     patternmatcher.h
-SOURCES += httppost.cpp \
+SOURCES += forumgroup.cpp \
+    httppost.cpp \
     forumsession.cpp \
     forumsubscription.cpp \
     forumdatabase.cpp \

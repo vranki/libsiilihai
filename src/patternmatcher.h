@@ -12,11 +12,16 @@ class PatternMatcher : public QObject {
 public:
 	PatternMatcher(QObject *parent=0);
 	virtual ~PatternMatcher();
+	QList <QHash<QString, QString> > findMatches(QString &html);
+	void setPattern(QString &pattern);
+	bool isPatternSet();
+private:
 	QList<QString> tokenizePattern(QString pattern);
-	QList <QHash<QString, QString> > findMatches(QString &html, QString &pattern);
 	bool isTag(QString &tag);
 	bool isNumberTag(QString &tag);
 	QString numberize(QString &txt);
+	QList<QString> patternTokens;
+	bool patternSet;
 };
 
 #endif /* PATTERNMATCHER_H_ */
