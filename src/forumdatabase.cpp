@@ -76,6 +76,17 @@ bool ForumDatabase::openDatabase() {
 			qDebug() << "Couldn't create forums table!";
 			return false;
 		}
+		if (!query.exec("CREATE TABLE groups ("
+                                "forumid INTEGER REFERENCES forums(parser), "
+                                "groupid VARCHAR NOT NULL, "
+                                "name VARCHAR, "
+                                "lastchange VARCHAR, "
+                                "subscribed BOOLEAN, "
+                                "PRIMARY KEY (forumid, groupid)"
+                                ")")) {
+			qDebug() << "Couldn't create groups table!";
+			return false;
+		}
 		if (!query.exec("CREATE TABLE threads ("
 			"forumid INTEGER REFERENCES forums(forumid), "
 			"groupid VARCHAR REFERENCES groups(groupid), "
@@ -107,5 +118,62 @@ bool ForumDatabase::openDatabase() {
 			return false;
 		}
 	}
+	return true;
+}
+QList <ForumGroup> ForumDatabase::listGroups(const int parser) {
+	QList <ForumGroup> groups;
+	QSqlQuery query;
+	query.prepare("SELECT * FROM groups WHERE forumid=?");
+	query.addBindValue(parser);
+
+	if (query.exec()) {
+		while (query.next()) {
+			ForumGroup g;
+			g.parser = query.value(0).toInt();
+			g.id = query.value(1).toString();
+			g.name = query.value(2).toString();
+			g.lastchange = query.value(3).toString();
+			g.subscribed = query.value(4).toBool();
+			groups.append(g);
+		}
+	} else {
+		qDebug() << "Unable to list parsers: " << query.lastError().text();
+	}
+
+	return groups;
+}
+
+bool ForumDatabase::addGroup(const ForumGroup &grp) {
+	if(grp.id.isNull() || grp.parser < 0) {
+		qDebug() << "Error: tried to add invalid group! " << grp.toString();
+	}
+	QSqlQuery query;
+	query.prepare("INSERT INTO groups(forumid, groupid, name, lastchange, subscribed) VALUES (?, ?, ?, ?, ?)");
+	query.addBindValue(grp.parser);
+	query.addBindValue(grp.id);
+	query.addBindValue(grp.name);
+	query.addBindValue(grp.lastchange);
+	query.addBindValue(grp.subscribed);
+	if (!query.exec()) {
+		qDebug() << "Adding group failed: " << query.lastError().text();
+		return false;
+	}
+	qDebug() << "Group " << grp.toString() << " stored";
+	return true;
+}
+
+bool ForumDatabase::deleteGroup(const ForumGroup &grp) {
+	if(grp.id.isNull() || grp.parser < 0) {
+		qDebug() << "Error: tried to delete invalid group! " << grp.toString();
+	}
+	QSqlQuery query;
+	query.prepare("DELETE FROM groups WHERE (forumid=? AND groupid=?)");
+	query.addBindValue(grp.parser);
+	query.addBindValue(grp.id);
+	if (!query.exec()) {
+		qDebug() << "Deleting group failed: " << query.lastError().text();
+		return false;
+	}
+	qDebug() << "Group " << grp.toString() << " deleted";
 	return true;
 }

@@ -3,7 +3,7 @@
 #include <QObject>
 #include <QtSql>
 #include <QList>
-// #include "forumparser.h"
+#include "forumgroup.h"
 #include "forumsubscription.h"
 
 class ForumDatabase : public QObject {
@@ -14,6 +14,9 @@ public:
 	bool openDatabase( );
 	bool addForum(const ForumSubscription &fs);
 	QList <ForumSubscription> listSubscriptions();
+	QList <ForumGroup> listGroups(const int parser);
+	bool addGroup(const ForumGroup &grp);
+	bool deleteGroup(const ForumGroup &grp);
 };
 
 #endif /* FORUMDATABASE_H_ */

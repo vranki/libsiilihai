@@ -13,6 +13,7 @@
 #include "forumparser.h"
 #include "forumsubscription.h"
 #include "forumsession.h"
+#include "parserengine.h"
 
 
 class LibSiilihaiTests : public QObject {
@@ -39,6 +40,7 @@ private:
 	ForumParser fp;
 	ForumSubscription fsub;
 	ForumSession fses;
+	ParserEngine engine;
 };
 
 #endif /* LIBSIILIHAITESTS_H_ */

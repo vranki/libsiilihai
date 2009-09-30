@@ -1,16 +1,17 @@
 #include "libsiilihaitests.h"
 
 LibSiilihaiTests::LibSiilihaiTests(QObject *parent) :
-	QObject(parent), fdb(parent), pdb(parent), fses(parent) {
+	QObject(parent), fdb(parent), pdb(parent), fses(parent), engine(&fdb, parent) {
 }
 
 LibSiilihaiTests::~LibSiilihaiTests() {
 }
 
 void LibSiilihaiTests::runParserEngineTests() {
-	ParserEngine pe(this);
-	ForumParser fp;
-
+	qDebug("Parserenginetests..");
+	engine.setParser(fp);
+	engine.setSubscription(fsub);
+	engine.updateGroupList();
 }
 
 void LibSiilihaiTests::runProtocolTests() {
@@ -61,6 +62,8 @@ void LibSiilihaiTests::runForumSession() {
 		fdb.addForum(fsub);
 	}
 	fsub = fdb.listSubscriptions()[0];
+	runParserEngineTests();
+	return;
 	fses.initialize(fp, fsub);
 	fses.listGroups();
 }
@@ -69,12 +72,13 @@ void LibSiilihaiTests::runTests() {
 	qDebug() << "Helloz";
 	db = QSqlDatabase::addDatabase("QSQLITE");
 	db.setDatabaseName("../siilihai.db");
-	if (!db.open())
+	if (!db.open()) {
 		qDebug() << "Unable to open db!";
+		return;
+	}
 	QVERIFY(pdb.openDatabase());
 	QVERIFY(fdb.openDatabase());
 	runProtocolTests();
-	//runParserEngineTests();
 	return;
 
 	QString

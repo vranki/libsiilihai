@@ -53,10 +53,12 @@ void ForumSession::listGroupsReply(QNetworkReply *reply) {
 			hi.next();
 			qDebug() << "\t" << hi.key() << ": " << hi.value();
 		}
+		fg.parser = fpar.id;
 		fg.id = match["%a"];
 		fg.name = match["%b"];
 		fg.lastchange = match["%c"];
 		if (fg.id.length() > 0 && fg.name.length() > 0) {
+			// if(fg.id != "2") // TEST
 			groups.append(fg);
 		} else {
 			qDebug() << "Incomplete group, not adding";
@@ -83,7 +85,7 @@ void ForumSession::fetchCookieReply(QNetworkReply *reply) {
 }
 
 void ForumSession::listGroups() {
-	if(operationInProgress != FSONoOp) {
+	if(operationInProgress != FSONoOp && operationInProgress != FSOListGroups) {
 		qDebug() << "Operation in progress!! Don't command me yet!";
 	}
 	operationInProgress = FSOListGroups;
