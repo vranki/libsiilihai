@@ -20,3 +20,6 @@ ForumGroup::~ForumGroup() {
 QString ForumGroup::toString() const {
 	return id + ": " + name;
 }
+bool ForumGroup::isSane() const {
+	return (parser > 0 && id.length() > 0 && name.length() > 0);
+}

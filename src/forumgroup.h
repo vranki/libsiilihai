@@ -7,6 +7,7 @@ public:
 	ForumGroup();
 	virtual ~ForumGroup();
 	QString toString() const;
+	bool isSane() const;
 	int parser;
 	QString name;
 	QString id;

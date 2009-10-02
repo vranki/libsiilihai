@@ -47,6 +47,9 @@ public:
 	QString reply_parameters;
 	QString toString();
 	bool isSane() const;
+	QString forumUrlWithoutEnd() const;
+	bool supportsThreadPages() const;
+	bool supportsMessaegePages() const;
 private:
 };
 

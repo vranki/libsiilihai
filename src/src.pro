@@ -2,6 +2,7 @@ TEMPLATE = lib
 VERSION = 0.5
 TARGET = siilihai
 CONFIG += create_prl
+QMAKE_CXXFLAGS += -g
 QT += core \
     sql \
     xml \
@@ -9,7 +10,9 @@ QT += core \
     webkit \
     testlib
 QT -= gui
-HEADERS += forumgroup.h \
+HEADERS += forummessage.h \
+    forumthread.h \
+    forumgroup.h \
     httppost.h \
     forumsession.h \
     forumsubscription.h \
@@ -19,7 +22,9 @@ HEADERS += forumgroup.h \
     parserengine.h \
     forumparser.h \
     patternmatcher.h
-SOURCES += forumgroup.cpp \
+SOURCES += forummessage.cpp \
+    forumthread.cpp \
+    forumgroup.cpp \
     httppost.cpp \
     forumsession.cpp \
     forumsubscription.cpp \

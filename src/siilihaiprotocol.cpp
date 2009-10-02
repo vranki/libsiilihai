@@ -92,7 +92,7 @@ void SiilihaiProtocol::replySubscribeForum(QNetworkReply *reply) {
 
 
 void SiilihaiProtocol::replyListParsers(QNetworkReply *reply) {
-	QString docs = reply->readAll();
+	QString docs = QString().fromUtf8(reply->readAll());
 	qDebug() << docs;
 	QString ck = QString::null;
 	QList<ForumParser> parsers;
@@ -123,7 +123,7 @@ void SiilihaiProtocol::replyListParsers(QNetworkReply *reply) {
 }
 
 void SiilihaiProtocol::replyLogin(QNetworkReply *reply) {
-	QString docs = reply->readAll();
+	QString docs = QString().fromUtf8(reply->readAll());
 	qDebug() << docs;
 	QString ck = QString::null;
 	if (reply->error() == QNetworkReply::NoError) {
@@ -142,7 +142,7 @@ void SiilihaiProtocol::replyLogin(QNetworkReply *reply) {
 }
 
 void SiilihaiProtocol::replyGetParser(QNetworkReply *reply) {
-	QString docs = reply->readAll();
+	QString docs = QString().fromUtf8(reply->readAll());
 	ForumParser parser;
 	parser.id = -1;
 	qDebug() << docs;
@@ -163,7 +163,7 @@ void SiilihaiProtocol::replyGetParser(QNetworkReply *reply) {
 		parser.group_list_pattern
 				= re.firstChildElement("group_list_pattern").text();
 		parser.thread_list_pattern
-				= re.firstChildElement("group_list_pattern").text();
+				= re.firstChildElement("thread_list_pattern").text();
 		parser.message_list_pattern = re.firstChildElement(
 				"message_list_pattern").text();
 		parser.verify_login_pattern = re.firstChildElement(

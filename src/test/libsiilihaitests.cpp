@@ -11,7 +11,7 @@ void LibSiilihaiTests::runParserEngineTests() {
 	qDebug("Parserenginetests..");
 	engine.setParser(fp);
 	engine.setSubscription(fsub);
-	engine.updateGroupList();
+	engine.updateForum();
 }
 
 void LibSiilihaiTests::runProtocolTests() {

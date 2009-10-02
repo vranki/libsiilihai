@@ -19,6 +19,8 @@ PatternMatcher::~PatternMatcher() {
 
 void PatternMatcher::setPattern(QString &pattern) {
 	patternTokens = tokenizePattern(pattern);
+	qDebug() << "Converted pattern " << pattern << " to "
+			<< patternTokens.size() << " tokens.";
 	patternSet = true;
 }
 
@@ -98,7 +100,7 @@ QString PatternMatcher::numberize(QString &txt) {
 }
 
 QList<QHash<QString, QString> > PatternMatcher::findMatches(QString &html) {
-	//	qDebug() << "Matching pattern " << pattern << " to \n" << html;
+	//qDebug() << "Matching pattern.. ";
 	QList<QHash<QString, QString> > matches;
 	QHash<QString, QString> matchHash;
 
@@ -124,9 +126,9 @@ QList<QHash<QString, QString> > PatternMatcher::findMatches(QString &html) {
 						if (isNumberTag(pt)) {
 							match = numberize(match);
 						}
-						//						qDebug() << "tag " << pt << ":" << match;
+						//										qDebug() << "tag " << pt << ":" << match;
 						pt = pt.toLower();
-						matchHash[pt] = match;
+						matchHash[pt] = match.trimmed();
 					}
 					pos = matchPos;
 				}
