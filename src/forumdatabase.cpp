@@ -1,10 +1,3 @@
-/*
- * forumdatabase.cpp
- *
- *  Created on: Sep 23, 2009
- *      Author: vranki
- */
-
 #include "forumdatabase.h"
 
 ForumDatabase::ForumDatabase(QObject *parent) :
@@ -143,12 +136,12 @@ QList <ForumGroup> ForumDatabase::listGroups(const int parser) {
 	return groups;
 }
 
-QList <ForumThread> ForumDatabase::listThreads(const int parser, QString group) {
+QList <ForumThread> ForumDatabase::listThreads(const ForumGroup &group) {
 	QList <ForumThread> threads;
 	QSqlQuery query;
 	query.prepare("SELECT * FROM threads WHERE forumid=? AND groupid=?");
-	query.addBindValue(parser);
-	query.addBindValue(group);
+	query.addBindValue(group.parser);
+	query.addBindValue(group.id);
 
 	if (query.exec()) {
 		while (query.next()) {
@@ -168,13 +161,13 @@ QList <ForumThread> ForumDatabase::listThreads(const int parser, QString group) 
 	return threads;
 }
 
-QList <ForumMessage> ForumDatabase::listMessages(const int parser, QString group, QString thread) {
+QList <ForumMessage> ForumDatabase::listMessages(const ForumThread &thread) {
 	QList <ForumMessage> messages;
 	QSqlQuery query;
 	query.prepare("SELECT * FROM messages WHERE forumid=? AND groupid=? AND threadid=?");
-	query.addBindValue(parser);
-	query.addBindValue(group);
-	query.addBindValue(thread);
+	query.addBindValue(thread.forumid);
+	query.addBindValue(thread.groupid);
+	query.addBindValue(thread.id);
 	if (query.exec()) {
 		while (query.next()) {
 			ForumMessage m;
@@ -218,6 +211,17 @@ bool ForumDatabase::addGroup(const ForumGroup &grp) {
 bool ForumDatabase::addThread(const ForumThread &thread) {
 	Q_ASSERT(thread.isSane());
 	QSqlQuery query;
+	query.prepare("SELECT * FROM threads WHERE forumid=? AND groupid=? AND threadid=?");
+	query.addBindValue(thread.forumid);
+	query.addBindValue(thread.groupid);
+	query.addBindValue(thread.id);
+
+	query.exec();
+	if (query.next()) {
+		qDebug() << "Trying to add duplicate thread! " << thread.toString();
+		return false;
+	}
+
 	query.prepare("INSERT INTO threads(forumid, groupid, threadid, name, ordernum, lastchange) VALUES (?, ?, ?, ?, ?, ?)");
 	query.addBindValue(thread.forumid);
 	query.addBindValue(thread.groupid);
@@ -236,6 +240,18 @@ bool ForumDatabase::addThread(const ForumThread &thread) {
 bool ForumDatabase::addMessage(const ForumMessage &message) {
 	Q_ASSERT(message.isSane());
 	QSqlQuery query;
+	query.prepare("SELECT * FROM messages WHERE forumid=? AND groupid=? AND threadid=? AND messageid=?");
+	query.addBindValue(message.forumid);
+	query.addBindValue(message.groupid);
+	query.addBindValue(message.threadid);
+	query.addBindValue(message.id);
+	query.exec();
+	if(query.next()) {
+		qDebug() << "Looks like you're adding duplicate message " << message.toString();
+		return false;
+	}
+
+	// QSqlQuery query;
 	query.prepare("INSERT INTO messages(forumid, groupid, threadid, messageid,"\
 			" ordernum, url, subject, author, lastchange, body, read) VALUES "\
 			"(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");

@@ -8,12 +8,11 @@
 #include "forummessage.h"
 
 ForumMessage::ForumMessage() {
-	// TODO Auto-generated constructor stub
-
+	forumid = -1;
+	id = QString::null;
 }
 
 ForumMessage::~ForumMessage() {
-	// TODO Auto-generated destructor stub
 }
 
 bool ForumMessage::isSane() const {
@@ -21,5 +20,5 @@ bool ForumMessage::isSane() const {
 }
 
 QString ForumMessage::toString() const {
-	return forumid + "/" + groupid + "/" + threadid + "/" + id + ": " + subject;
+	return QString().number(forumid) + "/" + groupid + "/" + threadid + "/" + id + ": " + subject;
 }

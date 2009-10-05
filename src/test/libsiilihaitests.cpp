@@ -71,7 +71,7 @@ void LibSiilihaiTests::runForumSession() {
 void LibSiilihaiTests::runTests() {
 	qDebug() << "Helloz";
 	db = QSqlDatabase::addDatabase("QSQLITE");
-	db.setDatabaseName("../siilihai.db");
+	db.setDatabaseName(QDir::homePath() + "/siilihai.db");
 	if (!db.open()) {
 		qDebug() << "Unable to open db!";
 		return;

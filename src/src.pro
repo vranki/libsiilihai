@@ -2,6 +2,7 @@ TEMPLATE = lib
 VERSION = 0.5
 TARGET = siilihai
 CONFIG += create_prl
+CONFIG += debug
 QMAKE_CXXFLAGS += -g
 QT += core \
     sql \

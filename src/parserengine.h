@@ -29,10 +29,13 @@ public slots:
 	void listMessagesFinished(QList<ForumMessage> messages, ForumThread thread);
 	void listGroupsFinished(QList<ForumGroup> groups);
 	void listThreadsFinished(QList<ForumThread> threads, ForumGroup group);
+	void networkFailure(QString message);
+	void cancelOperation();
 signals:
 	void groupListChanged(int forum);
 	void forumUpdated(int forum);
 	void statusChanged(int forum, bool reloading);
+	void updateFailure(QString message);
 private:
 	void updateNextChangedGroup();
 	void updateNextChangedThread();

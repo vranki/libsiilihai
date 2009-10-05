@@ -18,8 +18,8 @@ public:
 	QList <ForumSubscription> listSubscriptions();
 	QList <ForumGroup> listGroups(const int parser);
 	// @todo strings to classes
-	QList <ForumThread> listThreads(const int parser, QString group);
-	QList <ForumMessage> listMessages(const int parser, QString group, QString thread);
+	QList <ForumThread> listThreads(const ForumGroup &group);
+	QList <ForumMessage> listMessages(const ForumThread &thread);
 	bool addThread(const ForumThread &thread);
 	bool deleteThread(const ForumThread &thread);
 	bool addMessage(const ForumMessage &message);

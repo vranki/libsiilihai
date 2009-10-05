@@ -9,16 +9,15 @@
 
 SiilihaiProtocol::SiilihaiProtocol(QObject *parent) :
 	QObject(parent) {
-	// TODO Auto-generated constructor stub
-
+	nam.setCookieJar(new QNetworkCookieJar(this));
 }
 
 SiilihaiProtocol::~SiilihaiProtocol() {
-	// TODO Auto-generated destructor stub
 }
 
 void SiilihaiProtocol::listParsers() {
 	QNetworkRequest req(listParsersUrl);
+	qDebug() << "list parsers url: " << listParsersUrl.toString();
 	QHash<QString, QString> params;
 	if (!clientKey.isNull()) {
 		params.insert("client_key", clientKey);
@@ -61,6 +60,7 @@ void SiilihaiProtocol::setBaseURL(QString bu) {
 	loginUrl = QUrl(baseUrl + "api/login.xml");
 	getParserUrl = QUrl(baseUrl + "api/getparser.xml");
 	subscribeForumUrl = QUrl(baseUrl + "api/subscribeforum.xml");
+	qDebug() << "Protocol using base url " << baseUrl;
 }
 
 void SiilihaiProtocol::subscribeForum(const int id, const int latest_threads,
@@ -114,7 +114,7 @@ void SiilihaiProtocol::replyListParsers(QNetworkReply *reply) {
 		}
 		ck = doc.documentElement().text();
 	} else {
-		qDebug() << "error!";
+		qDebug() << "replyListParsers network error: " << reply->errorString();
 	}
 	nam.disconnect(SIGNAL(finished(QNetworkReply*)));
 	emit
@@ -131,7 +131,7 @@ void SiilihaiProtocol::replyLogin(QNetworkReply *reply) {
 		doc.setContent(docs);
 		ck = doc.documentElement().text();
 	} else {
-		qDebug() << "error!";
+		qDebug() << "replyLogin network error: " << reply->errorString();
 	}
 	qDebug() << "got ck" << ck;
 	clientKey = ck;
@@ -171,7 +171,7 @@ void SiilihaiProtocol::replyGetParser(QNetworkReply *reply) {
 		parser.login_parameters
 				= re.firstChildElement("login_parameters").text();
 		parser.login_type = re.firstChildElement("login_type").text().toInt();
-		parser.charset = re.firstChildElement("charset").text();
+		parser.charset = re.firstChildElement("charset").text().toLower();
 		parser.thread_list_page_start = re.firstChildElement(
 				"thread_list_page_start").text().toInt();
 		parser.thread_list_page_increment = re.firstChildElement(
@@ -192,7 +192,7 @@ void SiilihaiProtocol::replyGetParser(QNetworkReply *reply) {
 				= re.firstChildElement("posting_parameters").text();
 		parser.posting_hints = re.firstChildElement("posting_hints").text();
 	} else {
-		qDebug() << "error!";
+		qDebug() << "replyGetParser network error: " << reply->errorString();
 	}
 	nam.disconnect(SIGNAL(finished(QNetworkReply*)));
 	emit

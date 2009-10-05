@@ -1,23 +1,15 @@
-/*
- * forumthread.cpp
- *
- *  Created on: Oct 1, 2009
- *      Author: vranki
- */
-
 #include "forumthread.h"
 
 ForumThread::ForumThread() {
-	// TODO Auto-generated constructor stub
-
+	forumid = -1;
+	id = QString::null;
 }
 
 ForumThread::~ForumThread() {
-	// TODO Auto-generated destructor stub
 }
 
 QString ForumThread::toString() const {
-	return forumid + "/" + groupid + "/" + id + ": " + name;
+	return QString().number(forumid) + "/" + groupid + "/" + id + ": " + name;
 }
 
 bool ForumThread::isSane() const {

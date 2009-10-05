@@ -15,8 +15,8 @@ ForumSession::ForumSession(QObject *parent) :
 }
 
 ForumSession::~ForumSession() {
-	// TODO Auto-generated destructor stub
 }
+
 QString ForumSession::convertCharset(const QByteArray &src) {
 	if (fpar.charset == "" || fpar.charset == "utf-8") {
 		return QString().fromUtf8(src.data());
@@ -33,25 +33,34 @@ QString ForumSession::convertCharset(const QByteArray &src) {
 
 void ForumSession::listGroupsReply(QNetworkReply *reply) {
 	QList<ForumGroup> groups;
-	qDebug() << "RX listgroups: ";
+	qDebug()
+			<< "FS::listGroupsReply: **************************************************************";
+	qDebug() << statusReport();
+
 	disconnect(&nam, SIGNAL(finished(QNetworkReply*)), this,
 			SLOT(listGroupsReply(QNetworkReply*)));
 	QString data = convertCharset(reply->readAll());
-	// qDebug() << "Data: " << data;
-	static PatternMatcher pm;
-	if (!pm.isPatternSet()) {
-		pm.setPattern(fpar.group_list_pattern);
+	if (reply->error() != QNetworkReply::NoError) {
+		emit(networkFailure(reply->errorString()));
+		cancelOperation();
+		return;
 	}
+
+	qDebug() << "Data: " << data;
+	PatternMatcher pm;
+	pm.setPattern(fpar.group_list_pattern);
 	QList<QHash<QString, QString> > matches = pm.findMatches(data);
 	for (int i = 0; i < matches.size(); i++) {
 		ForumGroup fg;
 		QHash<QString, QString> match = matches[i];
-		qDebug() << "Match " << i;
-		QHashIterator<QString, QString> hi(match);
-		while (hi.hasNext()) {
-			hi.next();
-			qDebug() << "\t" << hi.key() << ": " << hi.value();
-		}
+		/*
+		 qDebug() << "Match " << i;
+		 QHashIterator<QString, QString> hi(match);
+		 while (hi.hasNext()) {
+		 hi.next();
+		 qDebug() << "\t" << hi.key() << ": " << hi.value();
+		 }
+		 */
 		fg.parser = fpar.id;
 		fg.id = match["%a"];
 		fg.name = match["%b"];
@@ -69,9 +78,18 @@ void ForumSession::listGroupsReply(QNetworkReply *reply) {
 
 void ForumSession::fetchCookieReply(QNetworkReply *reply) {
 	qDebug() << "RX cookies:";
+	qDebug() << statusReport();
+
 	cookieFetched = true;
 	disconnect(&nam, SIGNAL(finished(QNetworkReply*)), this,
 			SLOT(fetchCookieReply(QNetworkReply*)));
+	if (reply->error() != QNetworkReply::NoError) {
+		emit(networkFailure(reply->errorString()));
+		cancelOperation();
+		return;
+	}
+	if (operationInProgress == FSONoOp)
+		return;
 	QList<QNetworkCookie> cookies = cookieJar->cookiesForUrl(QUrl(
 			fpar.forum_url));
 	for (int i = 0; i < cookies.size(); i++) {
@@ -109,6 +127,8 @@ void ForumSession::listGroups() {
 }
 
 void ForumSession::fetchCookie() {
+	if (operationInProgress == FSONoOp)
+		return;
 	QNetworkRequest req(QUrl(fpar.forum_url));
 	connect(&nam, SIGNAL(finished(QNetworkReply*)), this,
 			SLOT(fetchCookieReply(QNetworkReply*)));
@@ -125,12 +145,13 @@ void ForumSession::initialize(ForumParser &fop, ForumSubscription &fos) {
 
 void ForumSession::updateGroupPage() {
 	Q_ASSERT(operationInProgress==FSOUpdateThreads);
+	if (operationInProgress != FSOUpdateThreads)
+		return;
 
 	QString urlString = fpar.thread_list_path;
 	urlString = urlString.replace("%g", currentGroup.id);
 	if (fpar.supportsThreadPages()) {
-		urlString = urlString.replace("%p", QString().number(
-				currentListPage));
+		urlString = urlString.replace("%p", QString().number(currentListPage));
 	}
 	urlString = fpar.forumUrlWithoutEnd() + urlString;
 	qDebug() << "Fetching URL " << urlString;
@@ -145,14 +166,15 @@ void ForumSession::updateGroupPage() {
 
 void ForumSession::updateThreadPage() {
 	Q_ASSERT(operationInProgress==FSOUpdateMessages);
+	if (operationInProgress != FSOUpdateMessages)
+		return;
 
 	QString urlString = fpar.view_thread_path;
 	urlString = urlString.replace("%g", currentGroup.id);
 	urlString = urlString.replace("%t", currentThread.id);
 	currentListPage = fpar.view_thread_page_start;
 	if (currentListPage >= 0) {
-		urlString = urlString.replace("%p", QString().number(
-				currentListPage));
+		urlString = urlString.replace("%p", QString().number(currentListPage));
 	}
 	urlString = fpar.forumUrlWithoutEnd() + urlString;
 	qDebug() << "Fetching URL " << urlString;
@@ -175,6 +197,7 @@ void ForumSession::updateGroup(ForumGroup group) {
 	}
 	operationInProgress = FSOUpdateThreads;
 	currentGroup = group;
+	threads.clear();
 	if (!cookieFetched) {
 		fetchCookie();
 		return;
@@ -193,6 +216,7 @@ void ForumSession::updateThread(ForumThread thread) {
 	}
 	operationInProgress = FSOUpdateMessages;
 	currentThread = thread;
+	messages.clear();
 
 	if (!cookieFetched) {
 		fetchCookie();
@@ -204,26 +228,32 @@ void ForumSession::updateThread(ForumThread thread) {
 void ForumSession::listMessagesReply(QNetworkReply *reply) {
 	QList<ForumMessage> newMessages;
 	qDebug() << "RX listmessages: ";
+	qDebug() << statusReport();
 	disconnect(&nam, SIGNAL(finished(QNetworkReply*)), this,
 			SLOT(listMessagesReply(QNetworkReply*)));
+	if (reply->error() != QNetworkReply::NoError) {
+		emit(networkFailure(reply->errorString()));
+		cancelOperation();
+		return;
+	}
 	QString data = convertCharset(reply->readAll());
 	qDebug() << "Pattern: " << fpar.message_list_pattern;
 	// qDebug() << "Data: " << data;
-	static PatternMatcher pm;
-	if (!pm.isPatternSet()) {
-		pm.setPattern(fpar.message_list_pattern);
-	}
+	PatternMatcher pm;
+	pm.setPattern(fpar.message_list_pattern);
 	QList<QHash<QString, QString> > matches = pm.findMatches(data);
 	qDebug() << "ListMessages Found " << matches.size() << " matches";
 	for (int i = 0; i < matches.size(); i++) {
 		ForumMessage fm;
 		QHash<QString, QString> match = matches[i];
+		/*
 		 qDebug() << "Match " << i;
 		 QHashIterator<QString, QString> hi(match);
 		 while (hi.hasNext()) {
 		 hi.next();
 		 qDebug() << "\t" << hi.key() << ": " << hi.value();
 		 }
+		 */
 		fm.forumid = fpar.id;
 		fm.groupid = currentThread.groupid;
 		fm.threadid = currentThread.id;
@@ -237,7 +267,7 @@ void ForumSession::listMessagesReply(QNetworkReply *reply) {
 			newMessages.append(fm);
 		} else {
 			qDebug() << "Incomplete message, not adding";
-			Q_ASSERT(false);
+			// Q_ASSERT(false);
 		}
 	}
 	// See if the new threads contains already unknown threads
@@ -252,7 +282,13 @@ void ForumSession::listMessagesReply(QNetworkReply *reply) {
 		if (!messageFound) {
 			newMessagesFound = true;
 			newMessages[i].ordernum = messages.size();
-			messages.append(newMessages[i]);
+			if (messages.size() < fsub.latest_messages) {
+				messages.append(newMessages[i]);
+			} else {
+				qDebug()
+						<< "Number of messages exceeding maximum latest messages limit - not adding.";
+				newMessagesFound = false;
+			}
 		}
 	}
 	if (newMessagesFound) {
@@ -263,34 +299,63 @@ void ForumSession::listMessagesReply(QNetworkReply *reply) {
 					<< currentListPage;
 			updateThreadPage();
 		} else {
-			qDebug() << "Forum doesn't support multipage - NOT continuing to next page.";
+			qDebug()
+					<< "Forum doesn't support multipage - NOT continuing to next page.";
 			operationInProgress = FSONoOp;
 			emit
 			(listMessagesFinished(messages, currentThread));
+			messages.clear();
 		}
 	} else {
-		qDebug() << "NOT continuing to next page, no new messages found on this one.";
+		qDebug()
+				<< "NOT continuing to next page, no new messages found on this one.";
 		operationInProgress = FSONoOp;
 		emit
 		(listMessagesFinished(messages, currentThread));
-	}
-	if(operationInProgress == FSONoOp) {
 		messages.clear();
 	}
+	if (operationInProgress == FSONoOp) {
+		qDebug() << "clearing messages, size " << messages.size();
+		messages.clear();
+		currentThread.id = -1;
+	}
+}
+
+QString ForumSession::statusReport() {
+	QString op;
+	if (operationInProgress == FSONoOp)
+		op = "NoOp";
+	if (operationInProgress == FSOListGroups)
+		op = "ListGroups";
+	if (operationInProgress == FSOUpdateThreads)
+		op = "UpdateThreads";
+	if (operationInProgress == FSOUpdateMessages)
+		op = "UpdateMessages";
+
+	return "Operation: " + op + " in " + fpar.toString() + "\n" + "Threads: "
+			+ QString().number(threads.size()) + "\n" + "Messages: "
+			+ QString().number(messages.size()) + "\n" + "Page: "
+			+ QString().number(currentListPage) + "\n" + "Group: "
+			+ currentGroup.toString() + "\n" + "Thread: "
+			+ currentThread.toString() + "\n";
 }
 
 void ForumSession::listThreadsReply(QNetworkReply *reply) {
 	QList<ForumThread> newThreads;
-	qDebug() << "RX listthreads: ";
+	qDebug() << "RX listthreads in group " << currentGroup.toString();
+	qDebug() << statusReport();
 	disconnect(&nam, SIGNAL(finished(QNetworkReply*)), this,
 			SLOT(listThreadsReply(QNetworkReply*)));
-	QString data = convertCharset(reply->readAll());
-	qDebug() << "Pattern: " << fpar.thread_list_pattern;
-	// qDebug() << "Data: " << data;
-	static PatternMatcher pm;
-	if (!pm.isPatternSet()) {
-		pm.setPattern(fpar.thread_list_pattern);
+	if (reply->error() != QNetworkReply::NoError) {
+		emit(networkFailure(reply->errorString()));
+		cancelOperation();
+		return;
 	}
+	QString data = convertCharset(reply->readAll());
+	// qDebug() << "Pattern: " << fpar.thread_list_pattern;
+	// qDebug() << "Data: " << data;
+	PatternMatcher pm;
+	pm.setPattern(fpar.thread_list_pattern);
 	QList<QHash<QString, QString> > matches = pm.findMatches(data);
 	qDebug() << "ListThreads Found " << matches.size() << " matches";
 	for (int i = 0; i < matches.size(); i++) {
@@ -328,7 +393,14 @@ void ForumSession::listThreadsReply(QNetworkReply *reply) {
 		if (!threadFound) {
 			newThreadsFound = true;
 			newThreads[i].ordernum = threads.size();
-			threads.append(newThreads[i]);
+			if (threads.size() < fsub.latest_threads) {
+				threads.append(newThreads[i]);
+			} else {
+				qDebug()
+						<< "Number of threads exceeding maximum latest threads limit - not adding "
+						<< newThreads[i].toString();
+				newThreadsFound = false;
+			}
 		}
 	}
 	if (newThreadsFound) {
@@ -339,7 +411,8 @@ void ForumSession::listThreadsReply(QNetworkReply *reply) {
 					<< currentListPage;
 			updateGroupPage();
 		} else {
-			qDebug() << "Forum doesn't support multipage - NOT continuing to next page.";
+			qDebug()
+					<< "Forum doesn't support multipage - NOT continuing to next page.";
 			operationInProgress = FSONoOp;
 			emit
 			(listThreadsFinished(threads, currentGroup));
@@ -350,7 +423,19 @@ void ForumSession::listThreadsReply(QNetworkReply *reply) {
 		emit
 		(listThreadsFinished(threads, currentGroup));
 	}
-	if(operationInProgress == FSONoOp) {
+	if (operationInProgress == FSONoOp) {
 		threads.clear();
+		currentThread.id = -1;
 	}
+}
+
+void ForumSession::cancelOperation() {
+	disconnect(&nam, SIGNAL(finished(QNetworkReply*)));
+	operationInProgress = FSONoOp;
+	cookieFetched = false;
+	currentListPage = -1;
+	threads.clear();
+	messages.clear();
+	currentGroup.id = -1;
+	currentThread.id = -1;
 }
