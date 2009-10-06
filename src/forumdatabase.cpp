@@ -6,6 +6,47 @@ ForumDatabase::ForumDatabase(QObject *parent) :
 
 ForumDatabase::~ForumDatabase() {
 }
+bool ForumDatabase::deleteForum(const int forumid) {
+	Q_ASSERT(forumid > 0);
+
+	QList<ForumGroup> groups;
+	QSqlQuery query;
+	query.prepare("DELETE FROM messages WHERE (forumid=?)");
+	query.addBindValue(forumid);
+
+	if (query.exec()) {
+	} else {
+		qDebug() << "Unable to delete messages: " << query.lastError().text();
+		Q_ASSERT(false);
+	}
+
+	query.prepare("DELETE FROM threads WHERE (forumid=?)");
+	query.addBindValue(forumid);
+
+	if (query.exec()) {
+	} else {
+		qDebug() << "Unable to delete threads: " << query.lastError().text();
+		Q_ASSERT(false);
+	}
+	query.prepare("DELETE FROM groups WHERE (forumid=?)");
+	query.addBindValue(forumid);
+
+	if (query.exec()) {
+	} else {
+		qDebug() << "Unable to delete groups: " << query.lastError().text();
+		Q_ASSERT(false);
+	}
+	query.prepare("DELETE FROM forums WHERE (parser=?)");
+	query.addBindValue(forumid);
+
+	if (query.exec()) {
+	} else {
+		qDebug() << "Unable to delete forum: " << query.lastError().text();
+		Q_ASSERT(false);
+	}
+
+	return true;
+}
 
 bool ForumDatabase::addForum(const ForumSubscription &fs) {
 	Q_ASSERT(fs.isSane());
@@ -34,21 +75,21 @@ bool ForumDatabase::addForum(const ForumSubscription &fs) {
 	return true;
 }
 
-QList <ForumSubscription> ForumDatabase::listSubscriptions() {
+QList<ForumSubscription> ForumDatabase::listSubscriptions() {
 	QList<ForumSubscription> subscriptions;
 	QSqlQuery query;
 	query.prepare("SELECT * FROM forums");
 	if (query.exec()) {
-			while (query.next()) {
-				ForumSubscription fs;
-				fs.parser = query.value(0).toInt();
-				fs.name = query.value(1).toString();
-				fs.username = query.value(2).toString();
-				fs.password = query.value(3).toString();
-				fs.latest_threads = query.value(4).toInt();
-				fs.latest_messages = query.value(5).toInt();
-				subscriptions.append(fs);
-			}
+		while (query.next()) {
+			ForumSubscription fs;
+			fs.parser = query.value(0).toInt();
+			fs.name = query.value(1).toString();
+			fs.username = query.value(2).toString();
+			fs.password = query.value(3).toString();
+			fs.latest_threads = query.value(4).toInt();
+			fs.latest_messages = query.value(5).toInt();
+			subscriptions.append(fs);
+		}
 	} else {
 		qDebug() << "Error listing subscrioptions!";
 	}
@@ -71,13 +112,13 @@ bool ForumDatabase::openDatabase() {
 			return false;
 		}
 		if (!query.exec("CREATE TABLE groups ("
-                                "forumid INTEGER REFERENCES forums(parser), "
-                                "groupid VARCHAR NOT NULL, "
-                                "name VARCHAR, "
-                                "lastchange VARCHAR, "
-                                "subscribed BOOLEAN, "
-                                "PRIMARY KEY (forumid, groupid)"
-                                ")")) {
+			"forumid INTEGER REFERENCES forums(parser), "
+			"groupid VARCHAR NOT NULL, "
+			"name VARCHAR, "
+			"lastchange VARCHAR, "
+			"subscribed BOOLEAN, "
+			"PRIMARY KEY (forumid, groupid)"
+			")")) {
 			qDebug() << "Couldn't create groups table!";
 			return false;
 		}
@@ -113,8 +154,9 @@ bool ForumDatabase::openDatabase() {
 	}
 	return true;
 }
-QList <ForumGroup> ForumDatabase::listGroups(const int parser) {
-	QList <ForumGroup> groups;
+
+QList<ForumGroup> ForumDatabase::listGroups(const int parser) {
+	QList<ForumGroup> groups;
 	QSqlQuery query;
 	query.prepare("SELECT * FROM groups WHERE forumid=?");
 	query.addBindValue(parser);
@@ -136,10 +178,10 @@ QList <ForumGroup> ForumDatabase::listGroups(const int parser) {
 	return groups;
 }
 
-QList <ForumThread> ForumDatabase::listThreads(const ForumGroup &group) {
-	QList <ForumThread> threads;
+QList<ForumThread> ForumDatabase::listThreads(const ForumGroup &group) {
+	QList<ForumThread> threads;
 	QSqlQuery query;
-	query.prepare("SELECT * FROM threads WHERE forumid=? AND groupid=?");
+	query.prepare("SELECT DISTINCT * FROM threads WHERE forumid=? AND groupid=? ORDER BY ordernum");
 	query.addBindValue(group.parser);
 	query.addBindValue(group.id);
 
@@ -161,10 +203,11 @@ QList <ForumThread> ForumDatabase::listThreads(const ForumGroup &group) {
 	return threads;
 }
 
-QList <ForumMessage> ForumDatabase::listMessages(const ForumThread &thread) {
-	QList <ForumMessage> messages;
+QList<ForumMessage> ForumDatabase::listMessages(const ForumThread &thread) {
+	QList<ForumMessage> messages;
 	QSqlQuery query;
-	query.prepare("SELECT * FROM messages WHERE forumid=? AND groupid=? AND threadid=?");
+	query.prepare(
+			"SELECT DISTINCT * FROM messages WHERE forumid=? AND groupid=? AND threadid=? ORDER BY ordernum");
 	query.addBindValue(thread.forumid);
 	query.addBindValue(thread.groupid);
 	query.addBindValue(thread.id);
@@ -194,7 +237,8 @@ bool ForumDatabase::addGroup(const ForumGroup &grp) {
 	Q_ASSERT(grp.isSane());
 
 	QSqlQuery query;
-	query.prepare("INSERT INTO groups(forumid, groupid, name, lastchange, subscribed) VALUES (?, ?, ?, ?, ?)");
+	query.prepare(
+			"INSERT INTO groups(forumid, groupid, name, lastchange, subscribed) VALUES (?, ?, ?, ?, ?)");
 	query.addBindValue(grp.parser);
 	query.addBindValue(grp.id);
 	query.addBindValue(grp.name);
@@ -211,7 +255,8 @@ bool ForumDatabase::addGroup(const ForumGroup &grp) {
 bool ForumDatabase::addThread(const ForumThread &thread) {
 	Q_ASSERT(thread.isSane());
 	QSqlQuery query;
-	query.prepare("SELECT * FROM threads WHERE forumid=? AND groupid=? AND threadid=?");
+	query.prepare(
+			"SELECT * FROM threads WHERE forumid=? AND groupid=? AND threadid=?");
 	query.addBindValue(thread.forumid);
 	query.addBindValue(thread.groupid);
 	query.addBindValue(thread.id);
@@ -222,7 +267,8 @@ bool ForumDatabase::addThread(const ForumThread &thread) {
 		return false;
 	}
 
-	query.prepare("INSERT INTO threads(forumid, groupid, threadid, name, ordernum, lastchange) VALUES (?, ?, ?, ?, ?, ?)");
+	query.prepare(
+			"INSERT INTO threads(forumid, groupid, threadid, name, ordernum, lastchange) VALUES (?, ?, ?, ?, ?, ?)");
 	query.addBindValue(thread.forumid);
 	query.addBindValue(thread.groupid);
 	query.addBindValue(thread.id);
@@ -230,7 +276,8 @@ bool ForumDatabase::addThread(const ForumThread &thread) {
 	query.addBindValue(thread.ordernum);
 	query.addBindValue(thread.lastchange);
 	if (!query.exec()) {
-		qDebug() << "Adding thread " << thread.toString() << " failed: " << query.lastError().text();
+		qDebug() << "Adding thread " << thread.toString() << " failed: "
+				<< query.lastError().text();
 		return false;
 	}
 	qDebug() << "Thread " << thread.toString() << " stored";
@@ -240,21 +287,23 @@ bool ForumDatabase::addThread(const ForumThread &thread) {
 bool ForumDatabase::addMessage(const ForumMessage &message) {
 	Q_ASSERT(message.isSane());
 	QSqlQuery query;
-	query.prepare("SELECT * FROM messages WHERE forumid=? AND groupid=? AND threadid=? AND messageid=?");
+	query.prepare(
+			"SELECT * FROM messages WHERE forumid=? AND groupid=? AND threadid=? AND messageid=?");
 	query.addBindValue(message.forumid);
 	query.addBindValue(message.groupid);
 	query.addBindValue(message.threadid);
 	query.addBindValue(message.id);
 	query.exec();
-	if(query.next()) {
-		qDebug() << "Looks like you're adding duplicate message " << message.toString();
+	if (query.next()) {
+		qDebug() << "Looks like you're adding duplicate message "
+				<< message.toString();
 		return false;
 	}
 
 	// QSqlQuery query;
-	query.prepare("INSERT INTO messages(forumid, groupid, threadid, messageid,"\
-			" ordernum, url, subject, author, lastchange, body, read) VALUES "\
-			"(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+	query.prepare("INSERT INTO messages(forumid, groupid, threadid, messageid,"
+		" ordernum, url, subject, author, lastchange, body, read) VALUES "
+		"(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 	query.addBindValue(message.forumid);
 	query.addBindValue(message.groupid);
 	query.addBindValue(message.threadid);
@@ -268,7 +317,8 @@ bool ForumDatabase::addMessage(const ForumMessage &message) {
 	query.addBindValue(message.read);
 
 	if (!query.exec()) {
-		qDebug() << "Adding message " << message.toString() << " failed: " << query.lastError().text();
+		qDebug() << "Adding message " << message.toString() << " failed: "
+				<< query.lastError().text();
 		return false;
 	}
 	qDebug() << "Message " << message.toString() << " stored";
@@ -278,7 +328,8 @@ bool ForumDatabase::addMessage(const ForumMessage &message) {
 bool ForumDatabase::deleteMessage(const ForumMessage &message) {
 	Q_ASSERT(message.isSane());
 	QSqlQuery query;
-	query.prepare("DELETE FROM messages WHERE (forumid=? AND groupid=? AND threadid=? AND messageid=?)");
+	query.prepare(
+			"DELETE FROM messages WHERE (forumid=? AND groupid=? AND threadid=? AND messageid=?)");
 	query.addBindValue(message.forumid);
 	query.addBindValue(message.groupid);
 	query.addBindValue(message.threadid);
@@ -307,11 +358,13 @@ bool ForumDatabase::deleteGroup(const ForumGroup &grp) {
 }
 
 bool ForumDatabase::deleteThread(const ForumThread &thread) {
-	if(!thread.isSane()) {
-		qDebug() << "Error: tried to delete invalid tread " << thread.toString();
+	if (!thread.isSane()) {
+		qDebug() << "Error: tried to delete invalid tread "
+				<< thread.toString();
 	}
 	QSqlQuery query;
-	query.prepare("DELETE FROM threads WHERE (forumid=? AND groupid=? AND threadid=?)");
+	query.prepare(
+			"DELETE FROM threads WHERE (forumid=? AND groupid=? AND threadid=?)");
 	query.addBindValue(thread.forumid);
 	query.addBindValue(thread.groupid);
 	query.addBindValue(thread.id);
@@ -326,7 +379,8 @@ bool ForumDatabase::deleteThread(const ForumThread &thread) {
 bool ForumDatabase::updateGroup(const ForumGroup &grp) {
 	Q_ASSERT(grp.isSane());
 	QSqlQuery query;
-	query.prepare("UPDATE groups SET name=?, lastchange=?, subscribed=? WHERE(forumid=? AND groupid=?)");
+	query.prepare(
+			"UPDATE groups SET name=?, lastchange=?, subscribed=? WHERE(forumid=? AND groupid=?)");
 	query.addBindValue(grp.name);
 	query.addBindValue(grp.lastchange);
 	query.addBindValue(grp.subscribed);
@@ -337,5 +391,22 @@ bool ForumDatabase::updateGroup(const ForumGroup &grp) {
 		return false;
 	}
 	qDebug() << "Group " << grp.toString() << " updated";
+	return true;
+}
+
+bool ForumDatabase::markMessageRead(const ForumMessage &message, bool read) {
+	Q_ASSERT(message.isSane());
+	QSqlQuery query;
+	query.prepare(
+			"UPDATE messages SET read=? WHERE(forumid=? AND groupid=? AND threadid=? AND messageid=?)");
+	query.addBindValue(read);
+	query.addBindValue(message.forumid);
+	query.addBindValue(message.groupid);
+	query.addBindValue(message.threadid);
+	query.addBindValue(message.id);
+	if (!query.exec()) {
+		qDebug() << "Setting message read failed: " << query.lastError().text();
+		return false;
+	}
 	return true;
 }

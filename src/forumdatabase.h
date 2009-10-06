@@ -15,6 +15,7 @@ public:
 	virtual ~ForumDatabase();
 	bool openDatabase( );
 	bool addForum(const ForumSubscription &fs);
+	bool deleteForum(const int forumid);
 	QList <ForumSubscription> listSubscriptions();
 	QList <ForumGroup> listGroups(const int parser);
 	// @todo strings to classes
@@ -27,6 +28,8 @@ public:
 	bool addGroup(const ForumGroup &grp);
 	bool updateGroup(const ForumGroup &grp);
 	bool deleteGroup(const ForumGroup &grp);
+public slots:
+	bool markMessageRead(const ForumMessage &message, bool read=true);
 };
 
 #endif /* FORUMDATABASE_H_ */

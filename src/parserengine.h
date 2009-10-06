@@ -25,6 +25,7 @@ public:
 	void setSubscription(ForumSubscription &fs);
 	void updateGroupList();
 	void updateForum();
+	bool isBusy();
 public slots:
 	void listMessagesFinished(QList<ForumMessage> messages, ForumThread thread);
 	void listGroupsFinished(QList<ForumGroup> groups);
@@ -39,11 +40,13 @@ signals:
 private:
 	void updateNextChangedGroup();
 	void updateNextChangedThread();
+	void setBusy(bool busy);
 	ForumParser parser;
 	ForumSubscription subscription;
 	ForumSession session;
 	bool sessionInitialized;
 	bool updateAll;
+	bool forumBusy;
 	ForumDatabase *fdb;
 	QQueue<ForumGroup> groupsToUpdateQueue;
 	QQueue<ForumThread> threadsToUpdateQueue;

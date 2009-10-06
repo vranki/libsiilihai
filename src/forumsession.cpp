@@ -46,7 +46,7 @@ void ForumSession::listGroupsReply(QNetworkReply *reply) {
 		return;
 	}
 
-	qDebug() << "Data: " << data;
+	// qDebug() << "Data: " << data;
 	PatternMatcher pm;
 	pm.setPattern(fpar.group_list_pattern);
 	QList<QHash<QString, QString> > matches = pm.findMatches(data);

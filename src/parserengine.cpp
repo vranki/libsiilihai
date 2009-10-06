@@ -20,6 +20,7 @@ ParserEngine::ParserEngine(ForumDatabase *fd, QObject *parent) :
 			this, SLOT(listMessagesFinished(QList<ForumMessage>, ForumThread)));
 	fdb = fd;
 	updateAll = false;
+	forumBusy = 0;
 }
 
 ParserEngine::~ParserEngine() {
@@ -35,7 +36,7 @@ void ParserEngine::setSubscription(ForumSubscription &fs) {
 
 void ParserEngine::updateForum() {
 	qDebug() << "updateForum() called for forum " << parser.toString();
-	emit statusChanged(parser.id, true);
+	setBusy(true);
 	updateAll = true;
 	if (!sessionInitialized)
 		session.initialize(parser, subscription);
@@ -44,11 +45,11 @@ void ParserEngine::updateForum() {
 
 void ParserEngine::networkFailure(QString message) {
 	emit updateFailure("Update failed due to network error: " + message);
-	emit statusChanged(parser.id, false);
+	cancelOperation();
 }
 
 void ParserEngine::updateGroupList() {
-	emit statusChanged(parser.id, true);
+	setBusy(true);
 	updateAll = false;
 	if (!sessionInitialized)
 		session.initialize(parser, subscription);
@@ -65,9 +66,9 @@ void ParserEngine::updateNextChangedGroup() {
 		updateAll = false;
 		Q_ASSERT(groupsToUpdateQueue.size()==0 &&
 				threadsToUpdateQueue.size()==0);
+		setBusy(false);
 		emit
 		forumUpdated(parser.id);
-		emit statusChanged(parser.id, false);
 	}
 }
 
@@ -84,13 +85,13 @@ void ParserEngine::updateNextChangedThread() {
 
 void ParserEngine::listGroupsFinished(QList<ForumGroup> groups) {
 	qDebug() << "ParserEngine::listGroupsFinished rx groups " << groups.size()
-				<< " in " << parser.toString();
+			<< " in " << parser.toString();
 	QList<ForumGroup> dbgroups = fdb->listGroups(subscription.parser);
 
 	groupsToUpdateQueue.clear();
 	if (groups.size() == 0 && dbgroups.size() > 0) {
-		emit updateFailure(
-				"Updating group list for " + parser.parser_name + " failed. \nCheck your network connection.");
+		emit updateFailure("Updating group list for " + parser.parser_name
+				+ " failed. \nCheck your network connection.");
 		cancelOperation();
 		return;
 	}
@@ -107,16 +108,20 @@ void ParserEngine::listGroupsFinished(QList<ForumGroup> groups) {
 					groupsToUpdateQueue.enqueue(groups[g]);
 					qDebug() << "Group " << dbgroups[d].toString()
 							<< " has been changed, adding to list";
-					qDebug() << "lc's " << dbgroups[d].lastchange << " & " << groups[g].lastchange;
 					// @todo store changed version
+				} else {
+					qDebug() << "Group" << dbgroups[d].toString() << " hasn't changed - not reloading.";
 				}
+				qDebug() << "lc's " << dbgroups[d].lastchange << " & "
+						<< groups[g].lastchange;
 			}
 		}
 		if (!foundInDb) {
+			qDebug() << "Group " << groups[g].toString() << " not found in db - adding.";
 			groupsChanged = true;
 			if (!updateAll) {
 				// DON'T set lastchange when only updating group list.
-				groups[g].lastchange = "";
+				groups[g].lastchange = "UPDATE_NEEDED";
 			} else {
 				groupsToUpdateQueue.enqueue(groups[g]);
 			}
@@ -142,7 +147,7 @@ void ParserEngine::listGroupsFinished(QList<ForumGroup> groups) {
 	if (updateAll) {
 		updateNextChangedGroup();
 	} else {
-		emit statusChanged(parser.id, false);
+		setBusy(false);
 	}
 	if (groupsChanged) {
 		emit(groupListChanged(parser.id));
@@ -204,10 +209,12 @@ void ParserEngine::listThreadsFinished(QList<ForumThread> threads,
 
 void ParserEngine::listMessagesFinished(QList<ForumMessage> messages,
 		ForumThread thread) {
-	qDebug() << "PE: listmessagesFinished " << messages.size() << "new in " << thread.toString();
+	qDebug() << "PE: listmessagesFinished " << messages.size() << "new in "
+			<< thread.toString();
 	QList<ForumMessage> dbmessages = fdb->listMessages(thread);
 	// Diff the group list
-	qDebug() << "db contains " << dbmessages.size() << " msgs, got now " << messages.size() << " thread " << thread.toString();
+	qDebug() << "db contains " << dbmessages.size() << " msgs, got now "
+			<< messages.size() << " thread " << thread.toString();
 	bool messagesChanged = false;
 	for (int t = 0; t < messages.size(); t++) {
 		bool foundInDb = false;
@@ -217,8 +224,7 @@ void ParserEngine::listMessagesFinished(QList<ForumMessage> messages,
 				// qDebug() << "msg id " << dbmessages[d].id << " & " << messages[t].id;
 				foundInDb = true;
 				// @todo testi:
-				if (dbmessages[d].lastchange
-						!= messages[t].lastchange) {
+				if (dbmessages[d].lastchange != messages[t].lastchange) {
 					qDebug() << "Message " << dbmessages[d].toString()
 							<< " has been changed.";
 					// @todo update in db
@@ -249,10 +255,22 @@ void ParserEngine::listMessagesFinished(QList<ForumMessage> messages,
 	updateNextChangedThread();
 }
 
+bool ParserEngine::isBusy() {
+	return forumBusy;
+}
+
+void ParserEngine::setBusy(bool busy) {
+	if (busy != forumBusy) {
+		statusChanged(parser.id, busy);
+	}
+
+	forumBusy = busy;
+}
+
 void ParserEngine::cancelOperation() {
-	statusChanged(parser.id, false);
 	updateAll = false;
 	session.cancelOperation();
 	groupsToUpdateQueue.clear();
 	threadsToUpdateQueue.clear();
+	setBusy(false);
 }
