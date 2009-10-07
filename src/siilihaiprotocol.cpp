@@ -34,6 +34,7 @@ void SiilihaiProtocol::login(QString user, QString pass) {
 	params.insert("username", user);
 	params.insert("password", pass);
 	params.insert("action", "login");
+	params.insert("clientversion", CLIENT_VERSION);
 	loginData = HttpPost::setPostParameters(&req, params);
 	connect(&nam, SIGNAL(finished(QNetworkReply*)), this,
 			SLOT(replyLogin(QNetworkReply*)));
@@ -124,20 +125,24 @@ void SiilihaiProtocol::replyListParsers(QNetworkReply *reply) {
 
 void SiilihaiProtocol::replyLogin(QNetworkReply *reply) {
 	QString docs = QString().fromUtf8(reply->readAll());
-	qDebug() << docs;
+	qDebug() << docs.trimmed();
 	QString ck = QString::null;
+	QString motd = QString::null;
 	if (reply->error() == QNetworkReply::NoError) {
 		QDomDocument doc;
 		doc.setContent(docs);
-		ck = doc.documentElement().text();
+		QDomElement re = doc.firstChild().toElement();
+		ck = re.firstChildElement("client_key").text();
+		motd = re.firstChildElement("motd").text();
 	} else {
 		qDebug() << "replyLogin network error: " << reply->errorString();
 	}
-	qDebug() << "got ck" << ck;
-	clientKey = ck;
+	qDebug() << "got ck" << ck << " and motd " << motd;
+	if(ck.length()>0)
+		clientKey = ck;
 	nam.disconnect(SIGNAL(finished(QNetworkReply*)));
 	emit
-	(loginFinished(!ck.isNull()));
+	(loginFinished(!clientKey.isNull(), motd));
 	reply->deleteLater();
 }
 

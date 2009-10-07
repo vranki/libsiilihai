@@ -110,7 +110,7 @@ void ParserEngine::listGroupsFinished(QList<ForumGroup> groups) {
 							<< " has been changed, adding to list";
 					// @todo store changed version
 				} else {
-					qDebug() << "Group" << dbgroups[d].toString() << " hasn't changed - not reloading.";
+					qDebug() << "Group" << dbgroups[d].toString() << " hasn't changed or is not subscribed - not reloading.";
 				}
 				qDebug() << "lc's " << dbgroups[d].lastchange << " & "
 						<< groups[g].lastchange;

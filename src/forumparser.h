@@ -13,6 +13,12 @@ class ForumParser {
 public:
 	ForumParser();
 	virtual ~ForumParser();
+	QString toString();
+	bool isSane() const;
+	QString forumUrlWithoutEnd() const;
+	bool supportsThreadPages() const;
+	bool supportsMessagePages() const;
+	bool supportsMessageUrl() const;
 	// @todo these _should_ be private
 	int id;
 	QString parser_name;
@@ -45,11 +51,6 @@ public:
 	QString reply_subject;
 	QString reply_message;
 	QString reply_parameters;
-	QString toString();
-	bool isSane() const;
-	QString forumUrlWithoutEnd() const;
-	bool supportsThreadPages() const;
-	bool supportsMessaegePages() const;
 private:
 };
 

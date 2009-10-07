@@ -69,7 +69,7 @@ void ForumSession::listGroupsReply(QNetworkReply *reply) {
 			groups.append(fg);
 		} else {
 			qDebug() << "Insane group, not adding";
-			Q_ASSERT(false);
+			// Q_ASSERT(false);
 		}
 	}
 	operationInProgress = FSONoOp;
@@ -178,6 +178,8 @@ void ForumSession::updateThreadPage() {
 	}
 	urlString = fpar.forumUrlWithoutEnd() + urlString;
 	qDebug() << "Fetching URL " << urlString;
+	currentMessagesUrl = urlString;
+
 	QNetworkRequest req;
 	req.setUrl(QUrl(urlString));
 
@@ -263,6 +265,11 @@ void ForumSession::listMessagesReply(QNetworkReply *reply) {
 		fm.body = match["%c"];
 		fm.author = match["%d"];
 		fm.lastchange = match["%e"];
+		if(fpar.supportsMessageUrl()) {
+			fm.url = getMessageUrl(fm);
+		} else {
+			fm.url = currentMessagesUrl;
+		}
 		if (fm.isSane()) {
 			newMessages.append(fm);
 		} else {
@@ -292,7 +299,7 @@ void ForumSession::listMessagesReply(QNetworkReply *reply) {
 		}
 	}
 	if (newMessagesFound) {
-		if (fpar.supportsMessaegePages()) {
+		if (fpar.supportsMessagePages()) {
 			// Continue to next page
 			currentListPage += fpar.view_thread_page_increment;
 			qDebug() << "New messages were found - continuing to next page "
@@ -378,7 +385,7 @@ void ForumSession::listThreadsReply(QNetworkReply *reply) {
 			newThreads.append(ft);
 		} else {
 			qDebug() << "Incomplete thread, not adding";
-			Q_ASSERT(false);
+			// Q_ASSERT(false);
 		}
 	}
 	// See if the new threads contains already unknown threads
@@ -438,4 +445,15 @@ void ForumSession::cancelOperation() {
 	messages.clear();
 	currentGroup.id = -1;
 	currentThread.id = -1;
+}
+
+QString ForumSession::getMessageUrl(const ForumMessage &msg) {
+	QUrl url = QUrl();
+
+	QString urlString = fpar.view_message_path;
+	urlString = urlString.replace("%g", currentGroup.id);
+	urlString = urlString.replace("%t", currentThread.id);
+	urlString = urlString.replace("%m", msg.id);
+	urlString = fpar.forumUrlWithoutEnd() + urlString;
+	return urlString;
 }

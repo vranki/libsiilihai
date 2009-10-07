@@ -15,18 +15,18 @@ void LibSiilihaiTests::runParserEngineTests() {
 }
 
 void LibSiilihaiTests::runProtocolTests() {
-	protocol.setBaseURL("http://localhost:8000/");
-	connect(&protocol, SIGNAL(loginFinished(bool)), this,
-			SLOT(loginFinished(bool)));
+	protocol.setBaseURL("http://www.siilihai.com/");
+	connect(&protocol, SIGNAL(loginFinished(bool, QString)), this,
+			SLOT(loginFinished(bool, QString)));
 	protocol.login("keijjo", "keijjo");
 	qDebug("Logging in..");
 }
 
-void LibSiilihaiTests::loginFinished(bool success) {
-	qDebug() << "Login success:" << success;
+void LibSiilihaiTests::loginFinished(bool success, QString motd) {
+	qDebug() << "Login success:" << success << " motd " << motd;
 	connect(&protocol, SIGNAL(listParsersFinished(QList <ForumParser>)), this,
 			SLOT(listParsersFinished(QList <ForumParser>)));
-	protocol.listParsers();
+	// protocol.listParsers();
 }
 
 void LibSiilihaiTests::listParsersFinished(QList<ForumParser> parsers) {

@@ -37,6 +37,11 @@ bool ForumParser::supportsThreadPages() const {
 	return (thread_list_path.contains("%p") && thread_list_page_start >= 0 && thread_list_page_increment != 0);
 }
 
-bool ForumParser::supportsMessaegePages() const {
+bool ForumParser::supportsMessagePages() const {
 	return (view_thread_path.contains("%p") && view_thread_page_start >= 0 && view_thread_page_increment != 0);
 }
+
+bool ForumParser::supportsMessageUrl() const {
+	return (view_message_path.size() > 0);
+}
+

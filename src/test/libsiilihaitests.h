@@ -25,7 +25,7 @@ signals:
 	void testsFinished();
 public slots:
 	void runTests();
-	void loginFinished(bool success);
+	void loginFinished(bool success, QString motd);
 	void listParsersFinished(QList <ForumParser> parsers);
 	void getParserFinished(ForumParser parser);
 private:

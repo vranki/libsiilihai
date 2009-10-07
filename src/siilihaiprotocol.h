@@ -19,6 +19,8 @@
 #include "forumparser.h"
 #include "httppost.h"
 
+#define CLIENT_VERSION "0.6"
+
 class SiilihaiProtocol : public QObject {
 	Q_OBJECT
 public:
@@ -35,7 +37,7 @@ public slots:
 	void replyGetParser(QNetworkReply *reply);
 	void replySubscribeForum(QNetworkReply *reply);
 signals:
-	void loginFinished(bool success);
+	void loginFinished(bool success, QString motd);
 	void listParsersFinished(QList <ForumParser> parsers);
 	void subscribeForumFinished(bool success);
 	void getParserFinished(ForumParser parser);

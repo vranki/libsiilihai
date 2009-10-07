@@ -35,6 +35,7 @@ public:
 	void listGroups();
 	void updateGroup(ForumGroup group);
 	void updateThread(ForumThread thread);
+	QString getMessageUrl(const ForumMessage &msg);
 public slots:
 	void listGroupsReply(QNetworkReply *reply);
 	void listThreadsReply(QNetworkReply *reply);
@@ -66,6 +67,7 @@ private:
 	ForumThread currentThread;
 	QList<ForumThread> threads;
 	QList<ForumMessage> messages;
+	QString currentMessagesUrl;
 };
 
 #endif /* FORUMSESSION_H_ */
