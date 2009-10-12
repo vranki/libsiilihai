@@ -31,30 +31,37 @@ public:
 
 	ForumSession(QObject *parent=0);
 	virtual ~ForumSession();
-	void initialize(ForumParser &fop, ForumSubscription &fos);
+	void initialize(ForumParser &fop, ForumSubscription &fos, PatternMatcher *matcher=0);
+	void setParser(ForumParser &fop);
 	void listGroups();
 	void updateGroup(ForumGroup group);
 	void updateThread(ForumThread thread);
 	QString getMessageUrl(const ForumMessage &msg);
+
+	void performListGroups(QString &html);
+	void performListThreads(QString &html);
+
 public slots:
 	void listGroupsReply(QNetworkReply *reply);
 	void listThreadsReply(QNetworkReply *reply);
 	void listMessagesReply(QNetworkReply *reply);
 	void fetchCookieReply(QNetworkReply *reply);
 	void cancelOperation();
+
 signals:
 	void listGroupsFinished(QList<ForumGroup> groups);
 	void listThreadsFinished(QList<ForumThread> threads, ForumGroup group);
 	void listMessagesFinished(QList<ForumMessage> messages, ForumThread thread);
 	void groupUpdated(QList<ForumThread> threads);
 	void networkFailure(QString message);
+
 private:
 	void fetchCookie();
 	void updateGroupPage();
 	void updateThreadPage();
 	QString convertCharset(const QByteArray &src);
 	QString statusReport();
-
+	PatternMatcher *pm;
 	ForumParser fpar;
 	ForumSubscription fsub;
 	QNetworkAccessManager nam;

@@ -7,14 +7,14 @@
 
 #include "patternmatcher.h"
 
-PatternMatcher::PatternMatcher(QObject *parent) :
+PatternMatcher::PatternMatcher(QObject *parent, bool emitStatus) :
 	QObject(parent) {
-	// TODO Auto-generated constructor stub
 	patternSet = false;
+	es = emitStatus;
 }
 
 PatternMatcher::~PatternMatcher() {
-	// TODO Auto-generated destructor stub
+
 }
 
 void PatternMatcher::setPattern(QString &pattern) {
@@ -51,18 +51,19 @@ QList<QString> PatternMatcher::tokenizePattern(QString pattern) {
 			patternTokens.append(part);
 		}
 	}
-	if (isTag(patternTokens[patternTokens.length() - 1]) || isTag(
-			patternTokens[0])) {
-		qDebug() << "Warning: last or first token can't be tag!!";
-		return QList<QString> ();
-	}
-	for (int i = 0; i < patternTokens.length() - 1; i++) {
-		if (isTag(patternTokens[i]) && isTag(patternTokens[i + 1])) {
-			qDebug() << "Warning: can't have two tokens after eachother!!";
+	if (patternTokens.size() > 0) {
+		if (isTag(patternTokens[patternTokens.length() - 1]) || isTag(
+				patternTokens[0])) {
+			qDebug() << "Warning: last or first token can't be tag!!";
 			return QList<QString> ();
 		}
+		for (int i = 0; i < patternTokens.length() - 1; i++) {
+			if (isTag(patternTokens[i]) && isTag(patternTokens[i + 1])) {
+				qDebug() << "Warning: can't have two tokens after eachother!!";
+				return QList<QString> ();
+			}
+		}
 	}
-
 	return patternTokens;
 }
 
@@ -100,16 +101,19 @@ QString PatternMatcher::numberize(QString &txt) {
 }
 
 QList<QHash<QString, QString> > PatternMatcher::findMatches(QString &html) {
-	//qDebug() << "Matching pattern.. ";
 	QList<QHash<QString, QString> > matches;
 	QHash<QString, QString> matchHash;
 
 	int pos = 0;
 	int htmllength = html.length();
-	while (pos < htmllength) {
+	PatternMatchType type = PMTNoMatch;
+	if (es)
+		emit dataMatchingStart(html);
+
+	while (pos < htmllength && patternTokens.length() > 0) {
 		for (int n = 0; n < patternTokens.length() && pos < htmllength; n++) {
 			QString pt = patternTokens[n];
-			if (isTag(pt)) {
+			if (isTag(pt)) { // It's a tag like %a
 				if (n == patternTokens.length()) {
 					qDebug() << "Panic!! not enough tokens!!";
 				}
@@ -118,6 +122,9 @@ QList<QHash<QString, QString> > PatternMatcher::findMatches(QString &html) {
 				//						<< nextToken << " at " << html.right(htmllength - pos);
 				int matchPos = html.indexOf(nextToken, pos);
 				if (matchPos < 0) {
+					if (es)
+						emit dataMatched(pos, html.mid(pos, htmllength - pos),
+								PMTNoMatch);
 					pos = htmllength;
 				} else {
 					if (pt[1] != 'i') {
@@ -129,16 +136,32 @@ QList<QHash<QString, QString> > PatternMatcher::findMatches(QString &html) {
 						//										qDebug() << "tag " << pt << ":" << match;
 						pt = pt.toLower();
 						matchHash[pt] = match.trimmed();
+						type = PMTTag;
+					} else {
+						type = PMTIgnored;
+
 					}
+					if (es)
+						emit dataMatched(pos,
+								html.mid(pos, matchPos - pos), type);
 					pos = matchPos;
 				}
-			} else {
+			} else { // NOT tag, just random text
 				//				qDebug() << "Looking for text " << pt << " at " << html.right(
 				//						htmllength - pos);
 				int matchPos = html.indexOf(pt, pos);
-				if (matchPos < 0) {
+				if (matchPos < 0) { // didn't find - skip to end
+					if (es)
+						emit dataMatched(pos, html.mid(pos, htmllength - pos),
+								PMTNoMatch);
 					pos = htmllength;
-				} else {
+				} else { // Match found
+					if (es) {
+						emit dataMatched(pos, html.mid(pos, matchPos - pos),
+								PMTNoMatch);
+						emit dataMatched(matchPos, html.mid(matchPos, pt.length()),
+								PMTMatch);
+					}
 					pos = matchPos + pt.length();
 				}
 			}
@@ -147,5 +170,8 @@ QList<QHash<QString, QString> > PatternMatcher::findMatches(QString &html) {
 			matches.append(matchHash);
 		matchHash.clear();
 	}
+	if (es)
+		emit dataMatchingEnd();
 	return matches;
 }
+

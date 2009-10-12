@@ -17,7 +17,6 @@ SiilihaiProtocol::~SiilihaiProtocol() {
 
 void SiilihaiProtocol::listParsers() {
 	QNetworkRequest req(listParsersUrl);
-	qDebug() << "list parsers url: " << listParsersUrl.toString();
 	QHash<QString, QString> params;
 	if (!clientKey.isNull()) {
 		params.insert("client_key", clientKey);
@@ -55,12 +54,65 @@ void SiilihaiProtocol::getParser(const int id) {
 	nam.post(req, getParserData);
 }
 
+void SiilihaiProtocol::saveParser(const ForumParser parser) {
+	if (!parser.mayWork()) {
+		qDebug() << "Tried to save not working parser!!";
+		emit
+		(saveParserFinished(-666, "That won't work!"));
+		return;
+	}
+
+	QNetworkRequest req(saveParserUrl);
+	QHash<QString, QString> params;
+	params.insert("id", QString().number(parser.id));
+	params.insert("parser_name", parser.parser_name);
+	params.insert("forum_url", parser.forum_url);
+	params.insert("parser_status", QString().number(parser.parser_status));
+	params.insert("thread_list_path", parser.thread_list_path);
+	params.insert("view_thread_path", parser.view_thread_path);
+	params.insert("login_path", parser.login_path);
+	params.insert("date_format", QString().number(parser.date_format));
+	params.insert("group_list_pattern", parser.group_list_pattern);
+	params.insert("thread_list_pattern", parser.thread_list_pattern);
+	params.insert("message_list_pattern", parser.message_list_pattern);
+	params.insert("verify_login_pattern", parser.verify_login_pattern);
+	params.insert("login_parameters", parser.login_parameters);
+	params.insert("login_type", QString().number(parser.login_type));
+	params.insert("charset", parser.charset.toLower());
+	params.insert("thread_list_page_start", QString().number(
+			parser.thread_list_page_start));
+	params.insert("thread_list_page_increment", QString().number(
+			parser.thread_list_page_increment));
+	params.insert("view_thread_page_start", QString().number(
+			parser.view_thread_page_start));
+	params.insert("view_thread_page_increment", QString().number(
+			parser.view_thread_page_increment));
+	params.insert("forum_software", parser.forum_software);
+	params.insert("view_message_path", parser.view_message_path);
+	params.insert("parser_type", QString().number(parser.parser_type));
+	params.insert("posting_path", parser.posting_path);
+	params.insert("posting_subject", parser.posting_subject);
+	params.insert("posting_message", parser.posting_message);
+	params.insert("posting_parameters", parser.posting_parameters);
+	params.insert("posting_hints", parser.posting_hints);
+
+	if (!clientKey.isNull()) {
+		params.insert("client_key", clientKey);
+	}
+
+	saveParserData = HttpPost::setPostParameters(&req, params);
+	connect(&nam, SIGNAL(finished(QNetworkReply*)), this,
+			SLOT(replySaveParser(QNetworkReply*)));
+	nam.post(req, saveParserData);
+}
+
 void SiilihaiProtocol::setBaseURL(QString bu) {
 	baseUrl = bu;
 	listParsersUrl = QUrl(baseUrl + "api/forumlist.xml");
 	loginUrl = QUrl(baseUrl + "api/login.xml");
 	getParserUrl = QUrl(baseUrl + "api/getparser.xml");
 	subscribeForumUrl = QUrl(baseUrl + "api/subscribeforum.xml");
+	saveParserUrl = QUrl(baseUrl + "api/saveparser.xml");
 	qDebug() << "Protocol using base url " << baseUrl;
 }
 
@@ -87,14 +139,14 @@ void SiilihaiProtocol::subscribeForum(const int id, const int latest_threads,
 void SiilihaiProtocol::replySubscribeForum(QNetworkReply *reply) {
 	bool success = reply->error() == QNetworkReply::NoError;
 	nam.disconnect(SIGNAL(finished(QNetworkReply*)));
-	emit(subscribeForumFinished(success));
+	emit
+	(subscribeForumFinished(success));
 	reply->deleteLater();
 }
 
-
 void SiilihaiProtocol::replyListParsers(QNetworkReply *reply) {
 	QString docs = QString().fromUtf8(reply->readAll());
-	qDebug() << docs;
+	qDebug() << "RLP: " << docs;
 	QString ck = QString::null;
 	QList<ForumParser> parsers;
 	if (reply->error() == QNetworkReply::NoError) {
@@ -138,7 +190,7 @@ void SiilihaiProtocol::replyLogin(QNetworkReply *reply) {
 		qDebug() << "replyLogin network error: " << reply->errorString();
 	}
 	qDebug() << "got ck" << ck << " and motd " << motd;
-	if(ck.length()>0)
+	if (ck.length() > 0)
 		clientKey = ck;
 	nam.disconnect(SIGNAL(finished(QNetworkReply*)));
 	emit
@@ -202,5 +254,26 @@ void SiilihaiProtocol::replyGetParser(QNetworkReply *reply) {
 	nam.disconnect(SIGNAL(finished(QNetworkReply*)));
 	emit
 	(getParserFinished(parser));
+	reply->deleteLater();
+}
+
+void SiilihaiProtocol::replySaveParser(QNetworkReply *reply) {
+	QString docs = QString().fromUtf8(reply->readAll());
+	int id = -1;
+	QString msg = QString::null;
+	qDebug() << docs;
+	if (reply->error() == QNetworkReply::NoError) {
+		QDomDocument doc;
+		doc.setContent(docs);
+		QDomElement re = doc.firstChild().toElement();
+		id = re.firstChildElement("id").text().toInt();
+		msg = re.firstChildElement("save_message").text();
+	} else {
+		qDebug() << "replySaveParser network error: " << reply->errorString();
+		msg = reply->errorString();
+	}
+	nam.disconnect(SIGNAL(finished(QNetworkReply*)));
+	emit
+	(saveParserFinished(id, msg));
 	reply->deleteLater();
 }

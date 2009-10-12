@@ -31,22 +31,25 @@ public:
 	void listParsers();
 	void getParser(const int id);
 	void subscribeForum(const int id, const int latest_threads, const int latest_messages, bool unsubscribe=false);
+	void saveParser(const ForumParser parser);
 public slots:
 	void replyLogin(QNetworkReply *reply);
 	void replyListParsers(QNetworkReply *reply);
 	void replyGetParser(QNetworkReply *reply);
+	void replySaveParser(QNetworkReply *reply);
 	void replySubscribeForum(QNetworkReply *reply);
 signals:
 	void loginFinished(bool success, QString motd);
 	void listParsersFinished(QList <ForumParser> parsers);
 	void subscribeForumFinished(bool success);
 	void getParserFinished(ForumParser parser);
+	void saveParserFinished(int newId, QString message);
 private:
 	QString clientKey;
 	QNetworkAccessManager nam;
 	QString baseUrl;
-	QByteArray loginData, listParsersData, getParserData, subscribeForumData;
-	QUrl listParsersUrl, loginUrl, getParserUrl, subscribeForumUrl;
+	QByteArray loginData, listParsersData, saveParserData, getParserData, subscribeForumData;
+	QUrl listParsersUrl, loginUrl, getParserUrl, saveParserUrl, subscribeForumUrl;
 };
 
 #endif /* SIILIHAIPROTOCOL_H_ */

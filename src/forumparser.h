@@ -15,6 +15,7 @@ public:
 	virtual ~ForumParser();
 	QString toString();
 	bool isSane() const;
+	bool mayWork() const;
 	QString forumUrlWithoutEnd() const;
 	bool supportsThreadPages() const;
 	bool supportsMessagePages() const;

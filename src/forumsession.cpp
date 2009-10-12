@@ -32,9 +32,7 @@ QString ForumSession::convertCharset(const QByteArray &src) {
 }
 
 void ForumSession::listGroupsReply(QNetworkReply *reply) {
-	QList<ForumGroup> groups;
-	qDebug()
-			<< "FS::listGroupsReply: **************************************************************";
+	qDebug() << "FS::listGroupsReply:";
 	qDebug() << statusReport();
 
 	disconnect(&nam, SIGNAL(finished(QNetworkReply*)), this,
@@ -46,21 +44,17 @@ void ForumSession::listGroupsReply(QNetworkReply *reply) {
 		return;
 	}
 
-	// qDebug() << "Data: " << data;
-	PatternMatcher pm;
-	pm.setPattern(fpar.group_list_pattern);
-	QList<QHash<QString, QString> > matches = pm.findMatches(data);
+	performListGroups(data);
+}
+
+void ForumSession::performListGroups(QString &html) {
+	QList<ForumGroup> groups;
+	pm->setPattern(fpar.group_list_pattern);
+	QList<QHash<QString, QString> > matches = pm->findMatches(html);
 	for (int i = 0; i < matches.size(); i++) {
 		ForumGroup fg;
 		QHash<QString, QString> match = matches[i];
-		/*
-		 qDebug() << "Match " << i;
-		 QHashIterator<QString, QString> hi(match);
-		 while (hi.hasNext()) {
-		 hi.next();
-		 qDebug() << "\t" << hi.key() << ": " << hi.value();
-		 }
-		 */
+
 		fg.parser = fpar.id;
 		fg.id = match["%a"];
 		fg.name = match["%b"];
@@ -75,6 +69,7 @@ void ForumSession::listGroupsReply(QNetworkReply *reply) {
 	operationInProgress = FSONoOp;
 	emit(listGroupsFinished(groups));
 }
+
 
 void ForumSession::fetchCookieReply(QNetworkReply *reply) {
 	qDebug() << "RX cookies:";
@@ -135,12 +130,16 @@ void ForumSession::fetchCookie() {
 	nam.post(req, emptyData);
 }
 
-void ForumSession::initialize(ForumParser &fop, ForumSubscription &fos) {
+void ForumSession::initialize(ForumParser &fop, ForumSubscription &fos,
+		PatternMatcher *matcher) {
 	fsub = fos;
 	fpar = fop;
 
 	cookieFetched = false;
 	operationInProgress = FSONoOp;
+	pm = matcher;
+	if (!pm)
+		pm = new PatternMatcher(this);
 }
 
 void ForumSession::updateGroupPage() {
@@ -265,7 +264,7 @@ void ForumSession::listMessagesReply(QNetworkReply *reply) {
 		fm.body = match["%c"];
 		fm.author = match["%d"];
 		fm.lastchange = match["%e"];
-		if(fpar.supportsMessageUrl()) {
+		if (fpar.supportsMessageUrl()) {
 			fm.url = getMessageUrl(fm);
 		} else {
 			fm.url = currentMessagesUrl;
@@ -348,7 +347,6 @@ QString ForumSession::statusReport() {
 }
 
 void ForumSession::listThreadsReply(QNetworkReply *reply) {
-	QList<ForumThread> newThreads;
 	qDebug() << "RX listthreads in group " << currentGroup.toString();
 	qDebug() << statusReport();
 	disconnect(&nam, SIGNAL(finished(QNetworkReply*)), this,
@@ -359,23 +357,20 @@ void ForumSession::listThreadsReply(QNetworkReply *reply) {
 		return;
 	}
 	QString data = convertCharset(reply->readAll());
+	performListThreads(data);
+}
+
+void ForumSession::performListThreads(QString &html) {
+	QList<ForumThread> newThreads;
 	// qDebug() << "Pattern: " << fpar.thread_list_pattern;
 	// qDebug() << "Data: " << data;
 	PatternMatcher pm;
 	pm.setPattern(fpar.thread_list_pattern);
-	QList<QHash<QString, QString> > matches = pm.findMatches(data);
+	QList<QHash<QString, QString> > matches = pm.findMatches(html);
 	qDebug() << "ListThreads Found " << matches.size() << " matches";
 	for (int i = 0; i < matches.size(); i++) {
 		ForumThread ft;
 		QHash<QString, QString> match = matches[i];
-		/*
-		 qDebug() << "Match " << i;
-		 QHashIterator<QString, QString> hi(match);
-		 while (hi.hasNext()) {
-		 hi.next();
-		 qDebug() << "\t" << hi.key() << ": " << hi.value();
-		 }
-		 */
 		ft.forumid = fpar.id;
 		ft.groupid = currentGroup.id;
 		ft.id = match["%a"];
@@ -456,4 +451,8 @@ QString ForumSession::getMessageUrl(const ForumMessage &msg) {
 	urlString = urlString.replace("%m", msg.id);
 	urlString = fpar.forumUrlWithoutEnd() + urlString;
 	return urlString;
+}
+
+void ForumSession::setParser(ForumParser &fop) {
+	fpar = fop;
 }
