@@ -18,7 +18,6 @@ public:
 	bool deleteForum(const int forumid);
 	QList <ForumSubscription> listSubscriptions();
 	QList <ForumGroup> listGroups(const int parser);
-	// @todo strings to classes
 	QList <ForumThread> listThreads(const ForumGroup &group);
 	QList <ForumMessage> listMessages(const ForumThread &thread);
 	bool addThread(const ForumThread &thread);
@@ -28,6 +27,9 @@ public:
 	bool addGroup(const ForumGroup &grp);
 	bool updateGroup(const ForumGroup &grp);
 	bool deleteGroup(const ForumGroup &grp);
+	int unreadIn(const ForumSubscription &fs);
+	int unreadIn(const ForumGroup &fg);
+
 public slots:
 	bool markMessageRead(const ForumMessage &message, bool read=true);
 };

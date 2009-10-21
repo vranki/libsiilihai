@@ -60,7 +60,7 @@ void ParserEngine::updateNextChangedGroup() {
 	Q_ASSERT(updateAll);
 
 	if (groupsToUpdateQueue.size() > 0) {
-		session.updateGroup(groupsToUpdateQueue.dequeue());
+		session.listThreads(groupsToUpdateQueue.dequeue());
 	} else {
 		qDebug() << "No more changed groups - end of update.";
 		updateAll = false;
@@ -76,7 +76,7 @@ void ParserEngine::updateNextChangedThread() {
 	Q_ASSERT(updateAll);
 
 	if (threadsToUpdateQueue.size() > 0) {
-		session.updateThread(threadsToUpdateQueue.dequeue());
+		session.listMessages(threadsToUpdateQueue.dequeue());
 	} else {
 		qDebug() << "PE: no more threads to update - updating next group.";
 		updateNextChangedGroup();

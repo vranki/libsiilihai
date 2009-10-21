@@ -1,19 +1,17 @@
-/*
- * forumparser.cpp
- *
- *  Created on: Sep 18, 2009
- *      Author: vranki
- */
-
 #include "forumparser.h"
 
 ForumParser::ForumParser() {
-	// TODO Auto-generated constructor stub
 	id = -1;
+	thread_list_page_start = 0;
+	thread_list_page_increment = 0;
+	view_thread_page_start = 0;
+	view_thread_page_increment = 0;
+	login_type = 0;
+	parser_type = 0;
+	parser_status = 0;
 }
 
 ForumParser::~ForumParser() {
-	// TODO Auto-generated destructor stub
 }
 
 QString ForumParser::toString() {
@@ -39,16 +37,13 @@ QString ForumParser::forumUrlWithoutEnd() const {
 }
 
 bool ForumParser::supportsThreadPages() const {
-	return (thread_list_path.contains("%p") && thread_list_page_start >= 0
-			&& thread_list_page_increment != 0);
+	return (thread_list_path.contains("%p"));
 }
 
 bool ForumParser::supportsMessagePages() const {
-	return (view_thread_path.contains("%p") && view_thread_page_start >= 0
-			&& view_thread_page_increment != 0);
+	return (view_thread_path.contains("%p"));
 }
 
 bool ForumParser::supportsMessageUrl() const {
 	return (view_message_path.size() > 0);
 }
-

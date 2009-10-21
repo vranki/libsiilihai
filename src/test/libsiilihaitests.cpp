@@ -15,7 +15,7 @@ void LibSiilihaiTests::runParserEngineTests() {
 }
 
 void LibSiilihaiTests::runProtocolTests() {
-	protocol.setBaseURL("http://www.siilihai.com/");
+	protocol.setBaseURL("http://localhost:8000/");
 	connect(&protocol, SIGNAL(loginFinished(bool, QString)), this,
 			SLOT(loginFinished(bool, QString)));
 	protocol.login("keijjo", "keijjo");
@@ -78,6 +78,11 @@ void LibSiilihaiTests::runTests() {
 	}
 	QVERIFY(pdb.openDatabase());
 	QVERIFY(fdb.openDatabase());
+	QHash<QString, QString> params;
+	params["keke"] = "joo + jääöäöä 123 ;:;:&#/#%&/#¤&#&##&xxxx";
+	params["pier"] = "true";
+	HttpPost::setPostParameters(new QNetworkRequest(), params);
+
 	runProtocolTests();
 	return;
 

@@ -10,6 +10,7 @@
 #include <QByteArray>
 #include <QHash>
 #include <QString>
+#include <QDebug>
 #include <QNetworkRequest>
 
 
@@ -18,6 +19,8 @@ public:
 	HttpPost();
 	virtual ~HttpPost();
 	static QByteArray setPostParameters(QNetworkRequest *req, const QHash<QString, QString> &params);
+private:
+	static void encodeParam(QString &p);
 };
 
 #endif /* HTTPPOST_H_ */

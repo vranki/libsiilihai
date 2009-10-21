@@ -410,3 +410,36 @@ bool ForumDatabase::markMessageRead(const ForumMessage &message, bool read) {
 	}
 	return true;
 }
+
+int ForumDatabase::unreadIn(const ForumSubscription &fs) {
+	QSqlQuery query;
+	query.prepare(
+			"SELECT count() FROM messages WHERE forumid=? AND read=\"false\"");
+	query.addBindValue(fs.parser);
+
+	query.exec();
+	if (query.next()) {
+		return query.value(0).toInt();
+	} else {
+		qDebug() << "Can't count unreads in " << fs.toString();
+	}
+
+	return -1;
+}
+
+int ForumDatabase::unreadIn(const ForumGroup &fg) {
+	QSqlQuery query;
+	query.prepare(
+			"SELECT count() FROM messages WHERE forumid=? AND groupid=? AND read=\"false\"");
+	query.addBindValue(fg.parser);
+	query.addBindValue(fg.id);
+
+	query.exec();
+	if (query.next()) {
+		return query.value(0).toInt();
+	} else {
+		qDebug() << "Can't count unreads in " << fg.toString();
+	}
+
+	return -1;
+}

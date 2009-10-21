@@ -14,6 +14,7 @@
 #include "forumsubscription.h"
 #include "forumsession.h"
 #include "parserengine.h"
+#include "httppost.h"
 
 
 class LibSiilihaiTests : public QObject {

@@ -34,12 +34,15 @@ public:
 	void initialize(ForumParser &fop, ForumSubscription &fos, PatternMatcher *matcher=0);
 	void setParser(ForumParser &fop);
 	void listGroups();
-	void updateGroup(ForumGroup group);
-	void updateThread(ForumThread thread);
+	void listThreads(ForumGroup group);
+	void listMessages(ForumThread thread);
 	QString getMessageUrl(const ForumMessage &msg);
+	QString getThreadListUrl(const ForumGroup &grp, int page=-1);
+	QString getMessageListUrl(const ForumThread &thread, int page=-1);
 
 	void performListGroups(QString &html);
 	void performListThreads(QString &html);
+	void performListMessages(QString &html);
 
 public slots:
 	void listGroupsReply(QNetworkReply *reply);

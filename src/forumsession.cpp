@@ -38,6 +38,7 @@ void ForumSession::listGroupsReply(QNetworkReply *reply) {
 	disconnect(&nam, SIGNAL(finished(QNetworkReply*)), this,
 			SLOT(listGroupsReply(QNetworkReply*)));
 	QString data = convertCharset(reply->readAll());
+
 	if (reply->error() != QNetworkReply::NoError) {
 		emit(networkFailure(reply->errorString()));
 		cancelOperation();
@@ -50,6 +51,7 @@ void ForumSession::listGroupsReply(QNetworkReply *reply) {
 void ForumSession::performListGroups(QString &html) {
 	QList<ForumGroup> groups;
 	pm->setPattern(fpar.group_list_pattern);
+	qDebug() << "PLG for " << html.length();
 	QList<QHash<QString, QString> > matches = pm->findMatches(html);
 	for (int i = 0; i < matches.size(); i++) {
 		ForumGroup fg;
@@ -69,7 +71,6 @@ void ForumSession::performListGroups(QString &html) {
 	operationInProgress = FSONoOp;
 	emit(listGroupsFinished(groups));
 }
-
 
 void ForumSession::fetchCookieReply(QNetworkReply *reply) {
 	qDebug() << "RX cookies:";
@@ -96,7 +97,10 @@ void ForumSession::fetchCookieReply(QNetworkReply *reply) {
 		listGroups();
 		break;
 	case FSOUpdateThreads:
-		updateGroup(currentGroup);
+		listThreads(currentGroup);
+		break;
+	case FSOUpdateMessages:
+		listMessages(currentThread);
 		break;
 	default:
 		Q_ASSERT(false);
@@ -147,12 +151,7 @@ void ForumSession::updateGroupPage() {
 	if (operationInProgress != FSOUpdateThreads)
 		return;
 
-	QString urlString = fpar.thread_list_path;
-	urlString = urlString.replace("%g", currentGroup.id);
-	if (fpar.supportsThreadPages()) {
-		urlString = urlString.replace("%p", QString().number(currentListPage));
-	}
-	urlString = fpar.forumUrlWithoutEnd() + urlString;
+	QString urlString = getThreadListUrl(currentGroup, currentListPage);
 	qDebug() << "Fetching URL " << urlString;
 	QNetworkRequest req;
 	req.setUrl(QUrl(urlString));
@@ -168,14 +167,7 @@ void ForumSession::updateThreadPage() {
 	if (operationInProgress != FSOUpdateMessages)
 		return;
 
-	QString urlString = fpar.view_thread_path;
-	urlString = urlString.replace("%g", currentGroup.id);
-	urlString = urlString.replace("%t", currentThread.id);
-	currentListPage = fpar.view_thread_page_start;
-	if (currentListPage >= 0) {
-		urlString = urlString.replace("%p", QString().number(currentListPage));
-	}
-	urlString = fpar.forumUrlWithoutEnd() + urlString;
+	QString urlString = getMessageListUrl(currentThread, currentListPage);
 	qDebug() << "Fetching URL " << urlString;
 	currentMessagesUrl = urlString;
 
@@ -188,10 +180,11 @@ void ForumSession::updateThreadPage() {
 	nam.post(req, emptyData);
 }
 
-void ForumSession::updateGroup(ForumGroup group) {
+void ForumSession::listThreads(ForumGroup group) {
 	qDebug() << "ForumSession::UpdateGroup: " << group.toString();
 
-	if (operationInProgress != FSONoOp) {
+	if (operationInProgress != FSONoOp && operationInProgress
+			!= FSOUpdateThreads) {
 		qDebug() << "Operation in progress!! Don't command me yet!";
 		Q_ASSERT(false);
 		return;
@@ -207,10 +200,10 @@ void ForumSession::updateGroup(ForumGroup group) {
 	updateGroupPage();
 }
 
-void ForumSession::updateThread(ForumThread thread) {
+void ForumSession::listMessages(ForumThread thread) {
 	qDebug() << "ForumSession::UpdateThread: " << thread.toString();
 
-	if (operationInProgress != FSONoOp) {
+	if (operationInProgress != FSONoOp && operationInProgress != FSOUpdateMessages) {
 		qDebug() << "Operation in progress!! Don't command me yet!";
 		Q_ASSERT(false);
 		return;
@@ -227,7 +220,6 @@ void ForumSession::updateThread(ForumThread thread) {
 }
 
 void ForumSession::listMessagesReply(QNetworkReply *reply) {
-	QList<ForumMessage> newMessages;
 	qDebug() << "RX listmessages: ";
 	qDebug() << statusReport();
 	disconnect(&nam, SIGNAL(finished(QNetworkReply*)), this,
@@ -238,23 +230,20 @@ void ForumSession::listMessagesReply(QNetworkReply *reply) {
 		return;
 	}
 	QString data = convertCharset(reply->readAll());
+	performListMessages(data);
+}
+
+void ForumSession::performListMessages(QString &html) {
+	QList<ForumMessage> newMessages;
 	qDebug() << "Pattern: " << fpar.message_list_pattern;
 	// qDebug() << "Data: " << data;
-	PatternMatcher pm;
-	pm.setPattern(fpar.message_list_pattern);
-	QList<QHash<QString, QString> > matches = pm.findMatches(data);
+	operationInProgress = FSOUpdateMessages;
+	pm->setPattern(fpar.message_list_pattern);
+	QList<QHash<QString, QString> > matches = pm->findMatches(html);
 	qDebug() << "ListMessages Found " << matches.size() << " matches";
 	for (int i = 0; i < matches.size(); i++) {
 		ForumMessage fm;
 		QHash<QString, QString> match = matches[i];
-		/*
-		 qDebug() << "Match " << i;
-		 QHashIterator<QString, QString> hi(match);
-		 while (hi.hasNext()) {
-		 hi.next();
-		 qDebug() << "\t" << hi.key() << ": " << hi.value();
-		 }
-		 */
 		fm.forumid = fpar.id;
 		fm.groupid = currentThread.groupid;
 		fm.threadid = currentThread.id;
@@ -362,11 +351,11 @@ void ForumSession::listThreadsReply(QNetworkReply *reply) {
 
 void ForumSession::performListThreads(QString &html) {
 	QList<ForumThread> newThreads;
+	operationInProgress = FSOUpdateThreads;
 	// qDebug() << "Pattern: " << fpar.thread_list_pattern;
 	// qDebug() << "Data: " << data;
-	PatternMatcher pm;
-	pm.setPattern(fpar.thread_list_pattern);
-	QList<QHash<QString, QString> > matches = pm.findMatches(html);
+	pm->setPattern(fpar.thread_list_pattern);
+	QList<QHash<QString, QString> > matches = pm->findMatches(html);
 	qDebug() << "ListThreads Found " << matches.size() << " matches";
 	for (int i = 0; i < matches.size(); i++) {
 		ForumThread ft;
@@ -455,4 +444,31 @@ QString ForumSession::getMessageUrl(const ForumMessage &msg) {
 
 void ForumSession::setParser(ForumParser &fop) {
 	fpar = fop;
+}
+
+QString ForumSession::getThreadListUrl(const ForumGroup &grp, int page) {
+	QString urlString = fpar.thread_list_path;
+	urlString = urlString.replace("%g", grp.id);
+	if (fpar.supportsThreadPages()) {
+		if (page < 0)
+			page = fpar.thread_list_page_start;
+		urlString = urlString.replace("%p", QString().number(page));
+	}
+	urlString = fpar.forumUrlWithoutEnd() + urlString;
+	return urlString;
+}
+
+QString ForumSession::getMessageListUrl(const ForumThread &thread, int page) {
+	QString urlString = fpar.view_thread_path;
+	urlString = urlString.replace("%g", thread.groupid);
+	urlString = urlString.replace("%t", thread.id);
+	if (fpar.supportsMessagePages()) {
+		//	currentListPage = fpar.view_thread_page_start;
+		if (page < 0)
+			page = fpar.view_thread_page_start;
+		urlString = urlString.replace("%p", QString().number(page));
+
+	}
+	urlString = fpar.forumUrlWithoutEnd() + urlString;
+	return urlString;
 }

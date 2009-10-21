@@ -14,6 +14,7 @@ public:
 	ForumSubscription();
 	virtual ~ForumSubscription();
 	bool isSane() const;
+	QString toString() const;
 	int parser;
 	QString name;
 	QString username;

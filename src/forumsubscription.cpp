@@ -8,14 +8,16 @@
 #include "forumsubscription.h"
 
 ForumSubscription::ForumSubscription() {
-	// TODO Auto-generated constructor stub
-
+	parser = -1;
 }
 
 ForumSubscription::~ForumSubscription() {
-	// TODO Auto-generated destructor stub
 }
 
 bool ForumSubscription::isSane() const {
 	return (parser > 0 && name.length() > 0 && latest_messages > 0 && latest_threads > 0);
+}
+
+QString ForumSubscription::toString() const {
+	return QString("Subscription to ") + QString().number(parser) + " (" + name + ")";
 }

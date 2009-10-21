@@ -7,12 +7,14 @@ QMAKE_CXXFLAGS += -g
 QT += core \
     sql \
     xml \
-    network 
-#    \
-#    webkit \
-#    testlib
+    network
+
+# \
+# webkit \
+# testlib
 QT -= gui
-HEADERS += forummessage.h \
+HEADERS += forumrequest.h \
+    forummessage.h \
     forumthread.h \
     forumgroup.h \
     httppost.h \
@@ -24,7 +26,8 @@ HEADERS += forummessage.h \
     parserengine.h \
     forumparser.h \
     patternmatcher.h
-SOURCES += forummessage.cpp \
+SOURCES += forumrequest.cpp \
+    forummessage.cpp \
     forumthread.cpp \
     forumgroup.cpp \
     httppost.cpp \

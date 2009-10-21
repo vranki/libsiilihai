@@ -107,6 +107,7 @@ QList<QHash<QString, QString> > PatternMatcher::findMatches(QString &html) {
 	int pos = 0;
 	int htmllength = html.length();
 	PatternMatchType type = PMTNoMatch;
+	qDebug() << "EmitSignals:" << es << " size " << html.length();
 	if (es)
 		emit dataMatchingStart(html);
 
