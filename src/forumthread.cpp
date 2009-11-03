@@ -13,5 +13,5 @@ QString ForumThread::toString() const {
 }
 
 bool ForumThread::isSane() const {
-	return (forumid >=0 && groupid.length() > 0 && name.length() > 0 && id.length() > 0);
+	return (groupid.length() > 0 && name.length() > 0 && id.length() > 0);
 }

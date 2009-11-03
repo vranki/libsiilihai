@@ -11,9 +11,11 @@
 #include <QList>
 #include "forumparser.h"
 #include "forumrequest.h"
+#include "forumsubscription.h"
 #include "httppost.h"
+#include "parserreport.h"
 
-#define CLIENT_VERSION "0.6"
+#define CLIENT_VERSION "0.7"
 
 class SiilihaiProtocol: public QObject {
 Q_OBJECT
@@ -25,18 +27,21 @@ public:
 	void setBaseURL(QString bu);
 	void listParsers();
 	void listRequests();
+	void listSubscriptions();
 	void getParser(const int id);
-	void subscribeForum(const int id, const int latest_threads,
-			const int latest_messages, bool unsubscribe = false);
+	void subscribeForum(const ForumSubscription fs, bool unsubscribe = false);
 	void saveParser(const ForumParser parser);
 public slots:
-// void replyRegister(QNetworkReply *reply);
+	void sendParserReport(ParserReport pr);
 	void replyLogin(QNetworkReply *reply);
 	void replyListParsers(QNetworkReply *reply);
 	void replyListRequests(QNetworkReply *reply);
 	void replyGetParser(QNetworkReply *reply);
 	void replySaveParser(QNetworkReply *reply);
 	void replySubscribeForum(QNetworkReply *reply);
+	void replyListSubscriptions(QNetworkReply *reply);
+	void replySendParserReport(QNetworkReply *reply);
+
 signals:
 	void loginFinished(bool success, QString motd);
 	void listParsersFinished(QList<ForumParser> parsers);
@@ -44,14 +49,19 @@ signals:
 	void subscribeForumFinished(bool success);
 	void getParserFinished(ForumParser parser);
 	void saveParserFinished(int newId, QString message);
+	void listSubscriptionsFinished(QList<int> subscriptions);
+	void sendParserReportFinished(bool success);
+
 private:
 	QString clientKey;
 	QNetworkAccessManager nam;
 	QString baseUrl;
 	QByteArray loginData, listParsersData, saveParserData, getParserData,
-			subscribeForumData, listRequestsData, registerData;
+			subscribeForumData, listRequestsData, registerData, listSubscriptionsData,
+			sendParserReportData;
 	QUrl listParsersUrl, loginUrl, getParserUrl, saveParserUrl,
-			subscribeForumUrl, listRequestsUrl, registerUrl;
+			subscribeForumUrl, listRequestsUrl, registerUrl, listSubscriptionsUrl,
+			sendParserReportUrl;
 };
 
 #endif /* SIILIHAIPROTOCOL_H_ */

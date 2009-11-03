@@ -16,7 +16,7 @@ ForumMessage::~ForumMessage() {
 }
 
 bool ForumMessage::isSane() const {
-	return (forumid>0&&groupid.length()>0&&threadid.length()>0&&id.length()>0);
+	return (groupid.length()>0&&threadid.length()>0&&id.length()>0);
 }
 
 QString ForumMessage::toString() const {

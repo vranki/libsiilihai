@@ -6,7 +6,7 @@ ForumParser::ForumParser() {
 	thread_list_page_increment = 0;
 	view_thread_page_start = 0;
 	view_thread_page_increment = 0;
-	login_type = 0;
+	login_type = LoginTypeNotSupported;
 	parser_type = 0;
 	parser_status = 0;
 }
@@ -46,4 +46,8 @@ bool ForumParser::supportsMessagePages() const {
 
 bool ForumParser::supportsMessageUrl() const {
 	return (view_message_path.size() > 0);
+}
+
+bool ForumParser::supportsLogin() const {
+	return (login_path.length() > 0 && login_type > 0);
 }

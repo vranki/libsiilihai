@@ -194,7 +194,7 @@ ForumParser ParserDatabase::getParser(const int id) {
 			p.message_list_pattern = query.value(9).toString();
 			p.verify_login_pattern = query.value(10).toString();
 			p.login_parameters = query.value(11).toString();
-			p.login_type = query.value(12).toInt();
+			p.login_type = (ForumParser::ForumLoginType) query.value(12).toInt();
 			p.charset = query.value(13).toString();
 			p.thread_list_page_start = query.value(14).toInt();
 			p.thread_list_page_increment = query.value(15).toInt();

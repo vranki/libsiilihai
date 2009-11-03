@@ -35,12 +35,13 @@ public slots:
 signals:
 	void groupListChanged(int forum);
 	void forumUpdated(int forum);
-	void statusChanged(int forum, bool reloading);
+	void statusChanged(int forum, bool reloading, float progress);
 	void updateFailure(QString message);
 private:
 	void updateNextChangedGroup();
 	void updateNextChangedThread();
 	void setBusy(bool busy);
+	void updateCurrentProgress();
 	ForumParser parser;
 	ForumSubscription subscription;
 	ForumSession session;
@@ -50,6 +51,7 @@ private:
 	ForumDatabase *fdb;
 	QQueue<ForumGroup> groupsToUpdateQueue;
 	QQueue<ForumThread> threadsToUpdateQueue;
+	int largestGroupsToUpdateQueue, largestThreadsToUpdateQueue;
 };
 
 #endif /* PARSERENGINE_H_ */

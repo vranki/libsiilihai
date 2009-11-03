@@ -7,7 +7,7 @@
 #ifndef PATTERNMATCHER_H_
 #define PATTERNMATCHER_H_
 
-enum PatternMatchType { PMTNoMatch, PMTMatch, PMTIgnored, PMTTag };
+enum PatternMatchType { PMTNoMatch, PMTMatch, PMTIgnored, PMTTag, PMTWhitespace };
 
 class PatternMatcher : public QObject {
 	Q_OBJECT

@@ -107,28 +107,44 @@ QList<QHash<QString, QString> > PatternMatcher::findMatches(QString &html) {
 	int pos = 0;
 	int htmllength = html.length();
 	PatternMatchType type = PMTNoMatch;
-	qDebug() << "EmitSignals:" << es << " size " << html.length();
 	if (es)
 		emit dataMatchingStart(html);
+/*
+	if (pt[1] == 'w') { // Only accepting whitespace now
+		int matchStart = pos;
+		while (pos < htmllength && !html.at(pos).isPrint()) {
+			pos++;
+		}
+		emit dataMatched(matchStart, html.mid(matchStart, pos
+				- matchStart), PMTWhitespace);
+	}
+*/
 
 	while (pos < htmllength && patternTokens.length() > 0) {
 		for (int n = 0; n < patternTokens.length() && pos < htmllength; n++) {
 			QString pt = patternTokens[n];
+			QString nextPt = QString::null;
+
+			if(n < patternTokens.length()-1)
+				nextPt = patternTokens[n+1];
+
 			if (isTag(pt)) { // It's a tag like %a
 				if (n == patternTokens.length()) {
 					qDebug() << "Panic!! not enough tokens!!";
 				}
-				QString nextToken = patternTokens[n + 1];
 				//				qDebug() << "Looking for token " << pt << " ending at "
 				//						<< nextToken << " at " << html.right(htmllength - pos);
-				int matchPos = html.indexOf(nextToken, pos);
+				int matchPos = html.indexOf(nextPt, pos);
+
 				if (matchPos < 0) {
 					if (es)
 						emit dataMatched(pos, html.mid(pos, htmllength - pos),
 								PMTNoMatch);
 					pos = htmllength;
 				} else {
-					if (pt[1] != 'i') {
+					if (pt[1] == 'i') {
+						type = PMTIgnored;
+					} else {
 						QString match = html.mid(pos, matchPos - pos);
 
 						if (isNumberTag(pt)) {
@@ -138,13 +154,10 @@ QList<QHash<QString, QString> > PatternMatcher::findMatches(QString &html) {
 						pt = pt.toLower();
 						matchHash[pt] = match.trimmed();
 						type = PMTTag;
-					} else {
-						type = PMTIgnored;
-
 					}
 					if (es)
-						emit dataMatched(pos,
-								html.mid(pos, matchPos - pos), type);
+						emit dataMatched(pos, html.mid(pos, matchPos - pos),
+								type);
 					pos = matchPos;
 				}
 			} else { // NOT tag, just random text
@@ -160,8 +173,8 @@ QList<QHash<QString, QString> > PatternMatcher::findMatches(QString &html) {
 					if (es) {
 						emit dataMatched(pos, html.mid(pos, matchPos - pos),
 								PMTNoMatch);
-						emit dataMatched(matchPos, html.mid(matchPos, pt.length()),
-								PMTMatch);
+						emit dataMatched(matchPos, html.mid(matchPos,
+								pt.length()), PMTMatch);
 					}
 					pos = matchPos + pt.length();
 				}

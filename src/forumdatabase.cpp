@@ -390,7 +390,7 @@ bool ForumDatabase::updateGroup(const ForumGroup &grp) {
 		qDebug() << "Updating group failed: " << query.lastError().text();
 		return false;
 	}
-	qDebug() << "Group " << grp.toString() << " updated";
+	qDebug() << "Group " << grp.toString() << " updated, subscribed:" << grp.subscribed;
 	return true;
 }
 
@@ -442,4 +442,15 @@ int ForumDatabase::unreadIn(const ForumGroup &fg) {
 	}
 
 	return -1;
+}
+
+ForumSubscription ForumDatabase::getSubscription(int id) {
+	QList<ForumSubscription> subscriptions = listSubscriptions();
+	ForumSubscription fs;
+	for(int i=0;i<subscriptions.size();i++) {
+		if(subscriptions[i].parser == id) {
+			fs = subscriptions[i];
+		}
+	}
+	return fs;
 }

@@ -1,41 +1,40 @@
-/*
- * forumsession.cpp
- *
- *  Created on: Sep 28, 2009
- *      Author: vranki
- */
-
 #include "forumsession.h"
 
 ForumSession::ForumSession(QObject *parent) :
 	QObject(parent) {
 	operationInProgress = FSONoOp;
-	cookieJar = new QNetworkCookieJar();
-	nam.setCookieJar(cookieJar);
+	nam = 0;
+	cookieJar = 0;
+	currentListPage = 0;
+	loggedIn = false;
+	cookieFetched = false;
+	clearAuthentications();
 }
 
 ForumSession::~ForumSession() {
 }
 
 QString ForumSession::convertCharset(const QByteArray &src) {
+	QString converted;
+	// I don't like this.. Support needed for more!
 	if (fpar.charset == "" || fpar.charset == "utf-8") {
-		return QString().fromUtf8(src.data());
+		converted = QString().fromUtf8(src.data());
+	} else if (fpar.charset == "iso-8859-1" || fpar.charset == "iso-8859-15") {
+		converted = (QString().fromLatin1(src.data()));
+	} else {
+		qDebug() << "Unknown charset " << fpar.charset << " - assuming ASCII";
+		converted = (QString().fromAscii(src.data()));
 	}
-	// @todo may not work!
-	if (fpar.charset == "iso-8859-1" || fpar.charset == "iso-8859-15") {
-		return (QString().fromLatin1(src.data()));
-	}
-	// @todo smarter
-	qDebug() << "Unknown charset " << fpar.charset << " - assuming ASCII";
-	return (QString().fromAscii(src.data()));
-
+	// Remove silly newlines
+	converted.remove(QChar(13));
+	return converted;
 }
 
 void ForumSession::listGroupsReply(QNetworkReply *reply) {
-	qDebug() << "FS::listGroupsReply:";
+	qDebug() << Q_FUNC_INFO;
 	qDebug() << statusReport();
 
-	disconnect(&nam, SIGNAL(finished(QNetworkReply*)), this,
+	disconnect(nam, SIGNAL(finished(QNetworkReply*)), this,
 			SLOT(listGroupsReply(QNetworkReply*)));
 	QString data = convertCharset(reply->readAll());
 
@@ -48,10 +47,28 @@ void ForumSession::listGroupsReply(QNetworkReply *reply) {
 	performListGroups(data);
 }
 
+void ForumSession::loginReply(QNetworkReply *reply) {
+	qDebug() << Q_FUNC_INFO;
+	qDebug() << statusReport();
+
+	disconnect(nam, SIGNAL(finished(QNetworkReply*)), this,
+			SLOT(loginReply(QNetworkReply*)));
+	QString data = convertCharset(reply->readAll());
+
+	if (reply->error() != QNetworkReply::NoError) {
+		emit(networkFailure(reply->errorString()));
+		loginFinished(false);
+		cancelOperation();
+		return;
+	}
+
+	performLogin(data);
+}
+
 void ForumSession::performListGroups(QString &html) {
+	emit receivedHtml(html);
 	QList<ForumGroup> groups;
 	pm->setPattern(fpar.group_list_pattern);
-	qDebug() << "PLG for " << html.length();
 	QList<QHash<QString, QString> > matches = pm->findMatches(html);
 	for (int i = 0; i < matches.size(); i++) {
 		ForumGroup fg;
@@ -61,23 +78,33 @@ void ForumSession::performListGroups(QString &html) {
 		fg.id = match["%a"];
 		fg.name = match["%b"];
 		fg.lastchange = match["%c"];
-		if (fg.isSane()) {
-			groups.append(fg);
-		} else {
-			qDebug() << "Insane group, not adding";
-			// Q_ASSERT(false);
-		}
+		groups.append(fg);
 	}
 	operationInProgress = FSONoOp;
 	emit(listGroupsFinished(groups));
 }
 
+void ForumSession::performLogin(QString &html) {
+	qDebug() << Q_FUNC_INFO;
+	emit
+	receivedHtml(html);
+	bool success = html.contains(fpar.verify_login_pattern);
+	emit loginFinished(success);
+	loggedIn = success;
+	if(loggedIn) {
+		nextOperation();
+	} else {
+		cancelOperation();
+		qDebug() << "Login failed - cancelling ops!";
+	}
+}
+
 void ForumSession::fetchCookieReply(QNetworkReply *reply) {
-	qDebug() << "RX cookies:";
+	qDebug() << Q_FUNC_INFO;
 	qDebug() << statusReport();
 
 	cookieFetched = true;
-	disconnect(&nam, SIGNAL(finished(QNetworkReply*)), this,
+	disconnect(nam, SIGNAL(finished(QNetworkReply*)), this,
 			SLOT(fetchCookieReply(QNetworkReply*)));
 	if (reply->error() != QNetworkReply::NoError) {
 		emit(networkFailure(reply->errorString()));
@@ -86,28 +113,18 @@ void ForumSession::fetchCookieReply(QNetworkReply *reply) {
 	}
 	if (operationInProgress == FSONoOp)
 		return;
+	/*
 	QList<QNetworkCookie> cookies = cookieJar->cookiesForUrl(QUrl(
 			fpar.forum_url));
 	for (int i = 0; i < cookies.size(); i++) {
 		qDebug() << "\t" << cookies[i].name();
 	}
-
-	switch (operationInProgress) {
-	case FSOListGroups:
-		listGroups();
-		break;
-	case FSOUpdateThreads:
-		listThreads(currentGroup);
-		break;
-	case FSOUpdateMessages:
-		listMessages(currentThread);
-		break;
-	default:
-		Q_ASSERT(false);
-	}
+	*/
+	nextOperation();
 }
 
 void ForumSession::listGroups() {
+	qDebug() << Q_FUNC_INFO;
 	if (operationInProgress != FSONoOp && operationInProgress != FSOListGroups) {
 		qDebug()
 				<< "FS::listGroups(): Operation in progress!! Don't command me yet!";
@@ -115,23 +132,73 @@ void ForumSession::listGroups() {
 		return;
 	}
 	operationInProgress = FSOListGroups;
-	if (!cookieFetched) {
-		fetchCookie();
+	if(prepareForUse()) return;
+
+	QNetworkRequest req(QUrl(fpar.forum_url));
+	connect(nam, SIGNAL(finished(QNetworkReply*)), this,
+			SLOT(listGroupsReply(QNetworkReply*)));
+	nam->post(req, emptyData);
+}
+
+void ForumSession::loginToForum() {
+	qDebug() << Q_FUNC_INFO;
+
+	if (fpar.login_type == ForumParser::LoginTypeNotSupported) {
+		qDebug() << "Login not supproted!";
+		emit
+		loginFinished(false);
 		return;
 	}
-	QNetworkRequest req(QUrl(fpar.forum_url));
-	connect(&nam, SIGNAL(finished(QNetworkReply*)), this,
-			SLOT(listGroupsReply(QNetworkReply*)));
-	nam.post(req, emptyData);
+
+	if (fsub.username.length() <= 0 || fsub.password.length() <= 0) {
+		qDebug() << "Warning, no credentials supplied. Logging in should fail.";
+	}
+
+	qDebug() << "u/p: " << fsub.username << "/" << fsub.password;
+	QUrl loginUrl(getLoginUrl());
+	if (fpar.login_type == ForumParser::LoginTypeHttpPost) {
+		QNetworkRequest req;
+		req.setUrl(loginUrl);
+		QHash<QString, QString> params;
+		QStringList loginParamPairs = fpar.login_parameters.split(",",
+				QString::SkipEmptyParts);
+		for (int i = 0; i < loginParamPairs.size(); ++i) {
+			QString paramPair = loginParamPairs.at(i);
+			paramPair = paramPair.replace("%u", fsub.username);
+			paramPair = paramPair.replace("%p", fsub.password);
+			qDebug() << "Param Pair: " << paramPair;
+
+			if (paramPair.contains('=')) {
+				QStringList singleParam = paramPair.split('=',
+						QString::KeepEmptyParts);
+				if (singleParam.size() == 2) {
+					params.insert(singleParam.at(0), singleParam.at(1));
+				} else {
+					qDebug("hm, invalid login parameter pair!");
+				}
+			}
+		}
+		qDebug() << "Logging with " << params.size() << " params " << " to "
+				<< getLoginUrl();
+		loginData = HttpPost::setPostParameters(&req, params);
+
+		connect(nam, SIGNAL(finished(QNetworkReply*)), this,
+				SLOT(loginReply(QNetworkReply*)));
+		nam->post(req, loginData);
+	} else {
+		qDebug("Sorry, http auth not yet implemented.");
+	}
 }
 
 void ForumSession::fetchCookie() {
+	qDebug() << Q_FUNC_INFO;
+
 	if (operationInProgress == FSONoOp)
 		return;
 	QNetworkRequest req(QUrl(fpar.forum_url));
-	connect(&nam, SIGNAL(finished(QNetworkReply*)), this,
+	connect(nam, SIGNAL(finished(QNetworkReply*)), this,
 			SLOT(fetchCookieReply(QNetworkReply*)));
-	nam.post(req, emptyData);
+	nam->post(req, emptyData);
 }
 
 void ForumSession::initialize(ForumParser &fop, ForumSubscription &fos,
@@ -156,10 +223,10 @@ void ForumSession::updateGroupPage() {
 	QNetworkRequest req;
 	req.setUrl(QUrl(urlString));
 
-	connect(&nam, SIGNAL(finished(QNetworkReply*)), this,
+	connect(nam, SIGNAL(finished(QNetworkReply*)), this,
 			SLOT(listThreadsReply(QNetworkReply*)));
 
-	nam.post(req, emptyData);
+	nam->post(req, emptyData);
 }
 
 void ForumSession::updateThreadPage() {
@@ -174,10 +241,10 @@ void ForumSession::updateThreadPage() {
 	QNetworkRequest req;
 	req.setUrl(QUrl(urlString));
 
-	connect(&nam, SIGNAL(finished(QNetworkReply*)), this,
+	connect(nam, SIGNAL(finished(QNetworkReply*)), this,
 			SLOT(listMessagesReply(QNetworkReply*)));
 
-	nam.post(req, emptyData);
+	nam->post(req, emptyData);
 }
 
 void ForumSession::listThreads(ForumGroup group) {
@@ -192,10 +259,7 @@ void ForumSession::listThreads(ForumGroup group) {
 	operationInProgress = FSOUpdateThreads;
 	currentGroup = group;
 	threads.clear();
-	if (!cookieFetched) {
-		fetchCookie();
-		return;
-	}
+	if(prepareForUse()) return;
 	currentListPage = fpar.thread_list_page_start;
 	updateGroupPage();
 }
@@ -203,7 +267,8 @@ void ForumSession::listThreads(ForumGroup group) {
 void ForumSession::listMessages(ForumThread thread) {
 	qDebug() << "ForumSession::UpdateThread: " << thread.toString();
 
-	if (operationInProgress != FSONoOp && operationInProgress != FSOUpdateMessages) {
+	if (operationInProgress != FSONoOp && operationInProgress
+			!= FSOUpdateMessages) {
 		qDebug() << "Operation in progress!! Don't command me yet!";
 		Q_ASSERT(false);
 		return;
@@ -212,17 +277,14 @@ void ForumSession::listMessages(ForumThread thread) {
 	currentThread = thread;
 	messages.clear();
 
-	if (!cookieFetched) {
-		fetchCookie();
-		return;
-	}
+	if(prepareForUse()) return;
 	updateThreadPage();
 }
 
 void ForumSession::listMessagesReply(QNetworkReply *reply) {
-	qDebug() << "RX listmessages: ";
+	qDebug() << Q_FUNC_INFO;
 	qDebug() << statusReport();
-	disconnect(&nam, SIGNAL(finished(QNetworkReply*)), this,
+	disconnect(nam, SIGNAL(finished(QNetworkReply*)), this,
 			SLOT(listMessagesReply(QNetworkReply*)));
 	if (reply->error() != QNetworkReply::NoError) {
 		emit(networkFailure(reply->errorString()));
@@ -235,8 +297,8 @@ void ForumSession::listMessagesReply(QNetworkReply *reply) {
 
 void ForumSession::performListMessages(QString &html) {
 	QList<ForumMessage> newMessages;
-	qDebug() << "Pattern: " << fpar.message_list_pattern;
-	// qDebug() << "Data: " << data;
+	emit
+	receivedHtml(html);
 	operationInProgress = FSOUpdateMessages;
 	pm->setPattern(fpar.message_list_pattern);
 	QList<QHash<QString, QString> > matches = pm->findMatches(html);
@@ -287,7 +349,7 @@ void ForumSession::performListMessages(QString &html) {
 		}
 	}
 	if (newMessagesFound) {
-		if (fpar.supportsMessagePages()) {
+		if (fpar.view_thread_page_increment > 0) {
 			// Continue to next page
 			currentListPage += fpar.view_thread_page_increment;
 			qDebug() << "New messages were found - continuing to next page "
@@ -336,9 +398,9 @@ QString ForumSession::statusReport() {
 }
 
 void ForumSession::listThreadsReply(QNetworkReply *reply) {
-	qDebug() << "RX listthreads in group " << currentGroup.toString();
+	qDebug() << Q_FUNC_INFO << currentGroup.toString();
 	qDebug() << statusReport();
-	disconnect(&nam, SIGNAL(finished(QNetworkReply*)), this,
+	disconnect(nam, SIGNAL(finished(QNetworkReply*)), this,
 			SLOT(listThreadsReply(QNetworkReply*)));
 	if (reply->error() != QNetworkReply::NoError) {
 		emit(networkFailure(reply->errorString()));
@@ -351,9 +413,9 @@ void ForumSession::listThreadsReply(QNetworkReply *reply) {
 
 void ForumSession::performListThreads(QString &html) {
 	QList<ForumThread> newThreads;
+	emit
+	receivedHtml(html);
 	operationInProgress = FSOUpdateThreads;
-	// qDebug() << "Pattern: " << fpar.thread_list_pattern;
-	// qDebug() << "Data: " << data;
 	pm->setPattern(fpar.thread_list_pattern);
 	QList<QHash<QString, QString> > matches = pm->findMatches(html);
 	qDebug() << "ListThreads Found " << matches.size() << " matches";
@@ -395,7 +457,7 @@ void ForumSession::performListThreads(QString &html) {
 		}
 	}
 	if (newThreadsFound) {
-		if (fpar.supportsThreadPages()) {
+		if (fpar.thread_list_page_increment > 0) {
 			// Continue to next page
 			currentListPage += fpar.thread_list_page_increment;
 			qDebug() << "New threads were found - continuing to next page "
@@ -421,14 +483,15 @@ void ForumSession::performListThreads(QString &html) {
 }
 
 void ForumSession::cancelOperation() {
-	disconnect(&nam, SIGNAL(finished(QNetworkReply*)));
+	if (nam)
+		disconnect(nam, SIGNAL(finished(QNetworkReply*)));
 	operationInProgress = FSONoOp;
 	cookieFetched = false;
 	currentListPage = -1;
 	threads.clear();
 	messages.clear();
-	currentGroup.id = -1;
-	currentThread.id = -1;
+	currentGroup.id = QString::null;
+	currentThread.id = QString::null;
 }
 
 QString ForumSession::getMessageUrl(const ForumMessage &msg) {
@@ -440,6 +503,10 @@ QString ForumSession::getMessageUrl(const ForumMessage &msg) {
 	urlString = urlString.replace("%m", msg.id);
 	urlString = fpar.forumUrlWithoutEnd() + urlString;
 	return urlString;
+}
+
+QString ForumSession::getLoginUrl() {
+	return fpar.forumUrlWithoutEnd() + fpar.login_path;
 }
 
 void ForumSession::setParser(ForumParser &fop) {
@@ -463,12 +530,76 @@ QString ForumSession::getMessageListUrl(const ForumThread &thread, int page) {
 	urlString = urlString.replace("%g", thread.groupid);
 	urlString = urlString.replace("%t", thread.id);
 	if (fpar.supportsMessagePages()) {
-		//	currentListPage = fpar.view_thread_page_start;
 		if (page < 0)
 			page = fpar.view_thread_page_start;
 		urlString = urlString.replace("%p", QString().number(page));
-
 	}
 	urlString = fpar.forumUrlWithoutEnd() + urlString;
 	return urlString;
+}
+
+void ForumSession::authenticationRequired(QNetworkReply * reply,
+		QAuthenticator * authenticator) {
+	qDebug() << Q_FUNC_INFO;
+
+	if (fsub.username.length() <= 0 || fsub.password.length() <= 0) {
+		qDebug() << "FAIL: no credentials given for subscription "
+				<< fsub.toString();
+		cancelOperation();
+		emit networkFailure(
+				"Server requested for username and password for forum "
+						+ fsub.name + " but you haven't provided them.");
+	} else {
+		qDebug() << "Gave credentials to server";
+		authenticator->setUser(fsub.username);
+		authenticator->setPassword(fsub.password);
+	}
+}
+
+void ForumSession::clearAuthentications() {
+	qDebug() << Q_FUNC_INFO;
+	cancelOperation();
+
+	if (cookieJar)
+		cookieJar->deleteLater();
+	if (nam)
+		nam->deleteLater();
+	loggedIn = false;
+
+	nam = new QNetworkAccessManager(this);
+	cookieJar = new QNetworkCookieJar();
+	nam->setCookieJar(cookieJar);
+	connect(nam, SIGNAL(authenticationRequired(QNetworkReply *,
+					QAuthenticator *)), this,
+			SLOT(authenticationRequired(QNetworkReply *,
+							QAuthenticator *)));
+}
+
+bool ForumSession::prepareForUse() {
+	qDebug() << Q_FUNC_INFO;
+	if (!cookieFetched) {
+		fetchCookie();
+		return true;
+	}
+	if (!loggedIn && fpar.supportsLogin() && fsub.username.length() > 0 && fsub.password.length() > 0) {
+		loginToForum();
+		return true;
+	}
+	return false;
+}
+
+void ForumSession::nextOperation() {
+	switch (operationInProgress) {
+	case FSOListGroups:
+		listGroups();
+		break;
+	case FSOUpdateThreads:
+		listThreads(currentGroup);
+		break;
+	case FSOUpdateMessages:
+		listMessages(currentThread);
+		break;
+	default:
+		Q_ASSERT(false);
+	}
 }

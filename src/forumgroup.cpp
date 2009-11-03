@@ -19,5 +19,5 @@ QString ForumGroup::toString() const {
 	return QString().number(parser) + "/" + id + ": " + name;
 }
 bool ForumGroup::isSane() const {
-	return (parser > 0 && id.length() > 0 && name.length() > 0);
+	return (id.length() > 0 && name.length() > 0);
 }

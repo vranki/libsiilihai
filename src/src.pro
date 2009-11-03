@@ -13,7 +13,8 @@ QT += core \
 # webkit \
 # testlib
 QT -= gui
-HEADERS += forumrequest.h \
+HEADERS += parserreport.h \
+    forumrequest.h \
     forummessage.h \
     forumthread.h \
     forumgroup.h \
@@ -26,7 +27,8 @@ HEADERS += forumrequest.h \
     parserengine.h \
     forumparser.h \
     patternmatcher.h
-SOURCES += forumrequest.cpp \
+SOURCES += parserreport.cpp \
+    forumrequest.cpp \
     forummessage.cpp \
     forumthread.cpp \
     forumgroup.cpp \

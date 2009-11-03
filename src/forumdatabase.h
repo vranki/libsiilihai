@@ -17,6 +17,7 @@ public:
 	bool addForum(const ForumSubscription &fs);
 	bool deleteForum(const int forumid);
 	QList <ForumSubscription> listSubscriptions();
+	ForumSubscription getSubscription(int id);
 	QList <ForumGroup> listGroups(const int parser);
 	QList <ForumThread> listThreads(const ForumGroup &group);
 	QList <ForumMessage> listMessages(const ForumThread &thread);

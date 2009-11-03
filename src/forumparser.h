@@ -11,6 +11,8 @@
 
 class ForumParser {
 public:
+	enum ForumLoginType { LoginTypeNotSupported=0, LoginTypeHttpPost=1, LoginTypeHttpAuth=2 };
+
 	ForumParser();
 	virtual ~ForumParser();
 	QString toString();
@@ -20,7 +22,8 @@ public:
 	bool supportsThreadPages() const;
 	bool supportsMessagePages() const;
 	bool supportsMessageUrl() const;
-	// @todo these _should_ be private
+	bool supportsLogin() const;
+	// @todo these _should_ be private and have getters&setters
 	int id;
 	QString parser_name;
 	QString forum_url;
@@ -33,7 +36,7 @@ public:
 	QString message_list_pattern;
 	QString verify_login_pattern;
 	QString login_parameters;
-	int login_type;
+	ForumLoginType login_type;
 	QString charset;
 	int thread_list_page_start;
 	int thread_list_page_increment;

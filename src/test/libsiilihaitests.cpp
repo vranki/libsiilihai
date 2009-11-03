@@ -70,6 +70,7 @@ void LibSiilihaiTests::runForumSession() {
 
 void LibSiilihaiTests::runTests() {
 	qDebug() << "Helloz";
+	/*
 	db = QSqlDatabase::addDatabase("QSQLITE");
 	db.setDatabaseName(QDir::homePath() + "/siilihai.db");
 	if (!db.open()) {
@@ -85,7 +86,7 @@ void LibSiilihaiTests::runTests() {
 
 	runProtocolTests();
 	return;
-
+*/
 	QString
 			html =
 					"<body><test>foo%%foo</test>\n\tkekekee<num>123&x=y</num><test>keke</test>kekekee<num>666</num></body>";

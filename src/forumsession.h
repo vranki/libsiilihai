@@ -9,12 +9,14 @@
 #define FORUMSESSION_H_
 #include <QObject>
 #include <QString>
+#include <QStringList>
 #include <QHash>
 #include <QNetworkAccessManager>
 #include <QNetworkRequest>
 #include <QNetworkReply>
 #include <QNetworkCookieJar>
 #include <QDebug>
+#include <QAuthenticator>
 
 #include "forumparser.h"
 #include "forumsubscription.h"
@@ -32,24 +34,32 @@ public:
 	ForumSession(QObject *parent=0);
 	virtual ~ForumSession();
 	void initialize(ForumParser &fop, ForumSubscription &fos, PatternMatcher *matcher=0);
+	void clearAuthentications();
 	void setParser(ForumParser &fop);
 	void listGroups();
 	void listThreads(ForumGroup group);
 	void listMessages(ForumThread thread);
+	void loginToForum();
+
+
 	QString getMessageUrl(const ForumMessage &msg);
+	QString getLoginUrl();
 	QString getThreadListUrl(const ForumGroup &grp, int page=-1);
 	QString getMessageListUrl(const ForumThread &thread, int page=-1);
 
 	void performListGroups(QString &html);
 	void performListThreads(QString &html);
 	void performListMessages(QString &html);
+	void performLogin(QString &html);
 
 public slots:
 	void listGroupsReply(QNetworkReply *reply);
 	void listThreadsReply(QNetworkReply *reply);
 	void listMessagesReply(QNetworkReply *reply);
 	void fetchCookieReply(QNetworkReply *reply);
+	void loginReply(QNetworkReply *reply);
 	void cancelOperation();
+	void authenticationRequired ( QNetworkReply * reply, QAuthenticator * authenticator );
 
 signals:
 	void listGroupsFinished(QList<ForumGroup> groups);
@@ -57,8 +67,12 @@ signals:
 	void listMessagesFinished(QList<ForumMessage> messages, ForumThread thread);
 	void groupUpdated(QList<ForumThread> threads);
 	void networkFailure(QString message);
+	void loginFinished(bool success);
+	void receivedHtml(const QString &data);
 
 private:
+	bool prepareForUse(); // get cookie & login if needed
+	void nextOperation();
 	void fetchCookie();
 	void updateGroupPage();
 	void updateThreadPage();
@@ -67,9 +81,9 @@ private:
 	PatternMatcher *pm;
 	ForumParser fpar;
 	ForumSubscription fsub;
-	QNetworkAccessManager nam;
-	QByteArray emptyData;
-	bool cookieFetched;
+	QNetworkAccessManager *nam;
+	QByteArray emptyData, loginData;
+	bool cookieFetched, loggedIn;
 	ForumSessionOperation operationInProgress;
 	QNetworkCookieJar *cookieJar;
 	int currentListPage;

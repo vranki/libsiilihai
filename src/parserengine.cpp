@@ -1,10 +1,3 @@
-/*
- * parserengine.cpp
- *
- *  Created on: Sep 18, 2009
- *      Author: vranki
- */
-
 #include "parserengine.h"
 
 ParserEngine::ParserEngine(ForumDatabase *fd, QObject *parent) :
@@ -18,6 +11,9 @@ ParserEngine::ParserEngine(ForumDatabase *fd, QObject *parent) :
 	connect(&session,
 			SIGNAL(listMessagesFinished(QList<ForumMessage>, ForumThread)),
 			this, SLOT(listMessagesFinished(QList<ForumMessage>, ForumThread)));
+	connect(&session,
+			SIGNAL(networkFailure(QString)),
+			this, SLOT(networkFailure(QString)));
 	fdb = fd;
 	updateAll = false;
 	forumBusy = 0;
@@ -37,23 +33,30 @@ void ParserEngine::setSubscription(ForumSubscription &fs) {
 void ParserEngine::updateForum() {
 	qDebug() << "updateForum() called for forum " << parser.toString();
 	setBusy(true);
+	largestGroupsToUpdateQueue = 0;
+	largestThreadsToUpdateQueue = 0;
+
 	updateAll = true;
 	if (!sessionInitialized)
 		session.initialize(parser, subscription);
 	session.listGroups();
+	updateCurrentProgress();
 }
 
 void ParserEngine::networkFailure(QString message) {
-	emit updateFailure("Update failed due to network error: " + message);
+	emit updateFailure("Updating " + subscription.name + " failed due to network error:\n\n" + message);
 	cancelOperation();
 }
 
 void ParserEngine::updateGroupList() {
 	setBusy(true);
 	updateAll = false;
+	largestGroupsToUpdateQueue = 0;
+	largestThreadsToUpdateQueue = 0;
 	if (!sessionInitialized)
 		session.initialize(parser, subscription);
 	session.listGroups();
+	updateCurrentProgress();
 }
 
 void ParserEngine::updateNextChangedGroup() {
@@ -70,6 +73,7 @@ void ParserEngine::updateNextChangedGroup() {
 		emit
 		forumUpdated(parser.id);
 	}
+	updateCurrentProgress();
 }
 
 void ParserEngine::updateNextChangedThread() {
@@ -81,6 +85,7 @@ void ParserEngine::updateNextChangedThread() {
 		qDebug() << "PE: no more threads to update - updating next group.";
 		updateNextChangedGroup();
 	}
+	updateCurrentProgress();
 }
 
 void ParserEngine::listGroupsFinished(QList<ForumGroup> groups) {
@@ -108,16 +113,18 @@ void ParserEngine::listGroupsFinished(QList<ForumGroup> groups) {
 					groupsToUpdateQueue.enqueue(groups[g]);
 					qDebug() << "Group " << dbgroups[d].toString()
 							<< " has been changed, adding to list";
-					// @todo store changed version
+					// Store the updated version to database
+					groups[g].subscribed = true;
+					fdb->updateGroup(groups[g]);
 				} else {
-					qDebug() << "Group" << dbgroups[d].toString() << " hasn't changed or is not subscribed - not reloading.";
+					qDebug() << "Group" << dbgroups[d].toString()
+							<< " hasn't changed or is not subscribed - not reloading.";
 				}
-				qDebug() << "lc's " << dbgroups[d].lastchange << " & "
-						<< groups[g].lastchange;
 			}
 		}
 		if (!foundInDb) {
-			qDebug() << "Group " << groups[g].toString() << " not found in db - adding.";
+			qDebug() << "Group " << groups[g].toString()
+					<< " not found in db - adding.";
 			groupsChanged = true;
 			if (!updateAll) {
 				// DON'T set lastchange when only updating group list.
@@ -261,10 +268,31 @@ bool ParserEngine::isBusy() {
 
 void ParserEngine::setBusy(bool busy) {
 	if (busy != forumBusy) {
-		statusChanged(parser.id, busy);
+		forumBusy = busy;
+		updateCurrentProgress();
 	}
-
 	forumBusy = busy;
+}
+
+void ParserEngine::updateCurrentProgress() {
+	float progress = -1;
+
+	int gsize = groupsToUpdateQueue.size();
+	int tsize = threadsToUpdateQueue.size();
+	if (gsize > largestGroupsToUpdateQueue)
+		largestGroupsToUpdateQueue = gsize;
+	if (tsize > largestThreadsToUpdateQueue)
+		largestThreadsToUpdateQueue = tsize;
+
+	if (largestGroupsToUpdateQueue > 0) {
+		float lgroups = largestGroupsToUpdateQueue;
+		float lthreads = largestThreadsToUpdateQueue;
+		float groups = gsize;
+		float threads = tsize;
+
+		progress = groups / lgroups;
+	}
+	emit statusChanged(parser.id, forumBusy, progress);
 }
 
 void ParserEngine::cancelOperation() {
