@@ -37,7 +37,7 @@ void ForumSession::listGroupsReply(QNetworkReply *reply) {
 	disconnect(nam, SIGNAL(finished(QNetworkReply*)), this,
 			SLOT(listGroupsReply(QNetworkReply*)));
 	QString data = convertCharset(reply->readAll());
-
+	qDebug() << "RX " << data.size() << " chars";
 	if (reply->error() != QNetworkReply::NoError) {
 		emit(networkFailure(reply->errorString()));
 		cancelOperation();
@@ -483,6 +483,7 @@ void ForumSession::performListThreads(QString &html) {
 }
 
 void ForumSession::cancelOperation() {
+	qDebug() << Q_FUNC_INFO;
 	if (nam)
 		disconnect(nam, SIGNAL(finished(QNetworkReply*)));
 	operationInProgress = FSONoOp;
