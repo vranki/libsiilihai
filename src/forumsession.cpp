@@ -231,11 +231,12 @@ void ForumSession::updateGroupPage() {
 
 void ForumSession::updateThreadPage() {
 	Q_ASSERT(operationInProgress==FSOUpdateMessages);
-	if (operationInProgress != FSOUpdateMessages)
+	if (operationInProgress != FSOUpdateMessages) {
+		Q_ASSERT(false);
 		return;
-
+	}
 	QString urlString = getMessageListUrl(currentThread, currentListPage);
-	qDebug() << "Fetching URL " << urlString;
+	qDebug() << Q_FUNC_INFO << " Fetching URL " << urlString;
 	currentMessagesUrl = urlString;
 
 	QNetworkRequest req;
@@ -275,9 +276,11 @@ void ForumSession::listMessages(ForumThread thread) {
 	}
 	operationInProgress = FSOUpdateMessages;
 	currentThread = thread;
+
 	messages.clear();
 
 	if(prepareForUse()) return;
+	currentListPage = fpar.view_thread_page_start;
 	updateThreadPage();
 }
 

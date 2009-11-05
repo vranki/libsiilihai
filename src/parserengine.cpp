@@ -16,6 +16,7 @@ ParserEngine::ParserEngine(ForumDatabase *fd, QObject *parent) :
 			this, SLOT(networkFailure(QString)));
 	fdb = fd;
 	updateAll = false;
+	forceUpdate = false;
 	forumBusy = 0;
 }
 
@@ -30,8 +31,9 @@ void ParserEngine::setSubscription(ForumSubscription &fs) {
 	subscription = fs;
 }
 
-void ParserEngine::updateForum() {
+void ParserEngine::updateForum(bool force) {
 	qDebug() << "updateForum() called for forum " << parser.toString();
+	forceUpdate = force;
 	setBusy(true);
 	largestGroupsToUpdateQueue = 0;
 	largestThreadsToUpdateQueue = 0;
@@ -108,8 +110,8 @@ void ParserEngine::listGroupsFinished(QList<ForumGroup> groups) {
 		for (int d = 0; d < dbgroups.size(); d++) {
 			if (dbgroups[d].id == groups[g].id) {
 				foundInDb = true;
-				if ((dbgroups[d].subscribed && (dbgroups[d].lastchange
-						!= groups[g].lastchange))) {
+				if ((dbgroups[d].subscribed && ((dbgroups[d].lastchange
+						!= groups[g].lastchange) || forceUpdate))) {
 					groupsToUpdateQueue.enqueue(groups[g]);
 					qDebug() << "Group " << dbgroups[d].toString()
 							<< " has been changed, adding to list";
@@ -182,7 +184,7 @@ void ParserEngine::listThreadsFinished(QList<ForumThread> threads,
 		for (int d = 0; d < dbthreads.size(); d++) {
 			if (dbthreads[d].id == threads[t].id) {
 				foundInDb = true;
-				if (dbthreads[d].lastchange != threads[t].lastchange) {
+				if ((dbthreads[d].lastchange != threads[t].lastchange) || forceUpdate) {
 					threadsToUpdateQueue.enqueue(threads[t]);
 					qDebug() << "Thread " << dbthreads[d].toString()
 							<< " has been changed, adding to list";
@@ -230,11 +232,11 @@ void ParserEngine::listMessagesFinished(QList<ForumMessage> messages,
 			if (dbmessages[d].id == messages[t].id) {
 				// qDebug() << "msg id " << dbmessages[d].id << " & " << messages[t].id;
 				foundInDb = true;
-				// @todo testi:
-				if (dbmessages[d].lastchange != messages[t].lastchange) {
+				if ((dbmessages[d].lastchange != messages[t].lastchange) || forceUpdate) {
 					qDebug() << "Message " << dbmessages[d].toString()
 							<< " has been changed.";
 					// @todo update in db
+					fdb->updateMessage(messages[t]);
 				}
 			}
 		}

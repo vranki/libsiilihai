@@ -24,6 +24,7 @@ public:
 	bool addThread(const ForumThread &thread);
 	bool deleteThread(const ForumThread &thread);
 	bool addMessage(const ForumMessage &message);
+	bool updateMessage(const ForumMessage &message);
 	bool deleteMessage(const ForumMessage &message);
 	bool addGroup(const ForumGroup &grp);
 	bool updateGroup(const ForumGroup &grp);
@@ -33,6 +34,8 @@ public:
 
 public slots:
 	bool markMessageRead(const ForumMessage &message, bool read=true);
+private:
+	void bindMessageValues(QSqlQuery &query, const ForumMessage &message);
 };
 
 #endif /* FORUMDATABASE_H_ */

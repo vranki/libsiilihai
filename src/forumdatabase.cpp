@@ -304,6 +304,19 @@ bool ForumDatabase::addMessage(const ForumMessage &message) {
 	query.prepare("INSERT INTO messages(forumid, groupid, threadid, messageid,"
 		" ordernum, url, subject, author, lastchange, body, read) VALUES "
 		"(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+	bindMessageValues(query, message);
+
+
+	if (!query.exec()) {
+		qDebug() << "Adding message " << message.toString() << " failed: "
+				<< query.lastError().text();
+		return false;
+	}
+	qDebug() << "Message " << message.toString() << " stored";
+	return true;
+}
+
+void ForumDatabase::bindMessageValues(QSqlQuery &query, const ForumMessage &message) {
 	query.addBindValue(message.forumid);
 	query.addBindValue(message.groupid);
 	query.addBindValue(message.threadid);
@@ -315,13 +328,25 @@ bool ForumDatabase::addMessage(const ForumMessage &message) {
 	query.addBindValue(message.lastchange);
 	query.addBindValue(message.body);
 	query.addBindValue(message.read);
+}
 
+bool ForumDatabase::updateMessage(const ForumMessage &message) {
+	QSqlQuery query;
+	query.prepare(
+			"UPDATE messages SET forumid=?, groupid=?, threadid=?, messageid=?,"
+		" ordernum=?, url=?, subject=?, author=?, lastchange=?, body=?, read=? WHERE(forumid=? AND groupid=? AND threadid=? AND messageid=?)");
+
+	bindMessageValues(query, message);
+	query.addBindValue(message.forumid);
+	query.addBindValue(message.groupid);
+	query.addBindValue(message.threadid);
+	query.addBindValue(message.id);
 	if (!query.exec()) {
-		qDebug() << "Adding message " << message.toString() << " failed: "
-				<< query.lastError().text();
+		qDebug() << "Updating message failed: " << query.lastError().text();
+		Q_ASSERT(false);
 		return false;
 	}
-	qDebug() << "Message " << message.toString() << " stored";
+	qDebug() << "Message " << message.toString() << " updated";
 	return true;
 }
 

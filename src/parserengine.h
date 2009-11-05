@@ -24,7 +24,7 @@ public:
 	void setParser(ForumParser &fp);
 	void setSubscription(ForumSubscription &fs);
 	void updateGroupList();
-	void updateForum();
+	void updateForum(bool force=false);
 	bool isBusy();
 public slots:
 	void listMessagesFinished(QList<ForumMessage> messages, ForumThread thread);
@@ -48,6 +48,7 @@ private:
 	bool sessionInitialized;
 	bool updateAll;
 	bool forumBusy;
+	bool forceUpdate; // Update even if no changes
 	ForumDatabase *fdb;
 	QQueue<ForumGroup> groupsToUpdateQueue;
 	QQueue<ForumThread> threadsToUpdateQueue;
