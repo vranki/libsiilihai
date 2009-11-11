@@ -4,6 +4,7 @@
 #include <QNetworkAccessManager>
 #include <QNetworkRequest>
 #include <QNetworkReply>
+#include <QNetworkProxy>
 #include <QNetworkCookieJar>
 #include <QDomDocument>
 #include <QDebug>
@@ -24,7 +25,8 @@ public:
 	virtual ~SiilihaiProtocol();
 	void login(QString user, QString pass);
 	void registerUser(QString user, QString pass, QString email);
-	void setBaseURL(QString bu);
+	void setBaseURL(QString &bu);
+	QString baseURL();
 	void listParsers();
 	void listRequests();
 	void listSubscriptions();

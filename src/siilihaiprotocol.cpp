@@ -135,7 +135,7 @@ void SiilihaiProtocol::saveParser(const ForumParser parser) {
 	nam.post(req, saveParserData);
 }
 
-void SiilihaiProtocol::setBaseURL(QString bu) {
+void SiilihaiProtocol::setBaseURL(QString &bu) {
 	baseUrl = bu;
 	listParsersUrl = QUrl(baseUrl + "api/forumlist.xml");
 	loginUrl = QUrl(baseUrl + "api/login.xml");
@@ -146,6 +146,7 @@ void SiilihaiProtocol::setBaseURL(QString bu) {
 	listRequestsUrl = QUrl(baseUrl + "api/requestlist.xml");
 	listSubscriptionsUrl = QUrl(baseUrl + "api/subscriptionlist.xml");
 	sendParserReportUrl = QUrl(baseUrl + "api/sendparserreport.xml");
+	nam.setProxy(QNetworkProxy::applicationProxy());
 }
 
 void SiilihaiProtocol::subscribeForum(const ForumSubscription fs,
@@ -390,4 +391,8 @@ void SiilihaiProtocol::sendParserReport(ParserReport pr) {
 	connect(&nam, SIGNAL(finished(QNetworkReply*)), this,
 			SLOT(replySendParserReport(QNetworkReply*)));
 	nam.post(req, sendParserReportData);
+}
+
+QString SiilihaiProtocol::baseURL() {
+	return baseUrl;
 }

@@ -14,6 +14,7 @@
 #include <QNetworkAccessManager>
 #include <QNetworkRequest>
 #include <QNetworkReply>
+#include <QNetworkProxy>
 #include <QNetworkCookieJar>
 #include <QDebug>
 #include <QAuthenticator>

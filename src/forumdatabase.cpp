@@ -419,6 +419,10 @@ bool ForumDatabase::updateGroup(const ForumGroup &grp) {
 	return true;
 }
 
+bool ForumDatabase::markMessageRead(const ForumMessage &message) {
+	return markMessageRead(message, true);
+}
+
 bool ForumDatabase::markMessageRead(const ForumMessage &message, bool read) {
 	Q_ASSERT(message.isSane());
 	QSqlQuery query;
@@ -478,4 +482,28 @@ ForumSubscription ForumDatabase::getSubscription(int id) {
 		}
 	}
 	return fs;
+}
+
+bool ForumDatabase::markForumRead(const int forumid, bool read) {
+	QList<ForumGroup> groups = listGroups(forumid);
+	ForumGroup group;
+	foreach(group, groups) {
+		markGroupRead(group, read);
+	}
+
+	return true;
+}
+
+bool ForumDatabase::markGroupRead(const ForumGroup &group, bool read) {
+	QList<ForumThread> threads = listThreads(group);
+	ForumThread thread;
+	foreach(thread, threads) {
+		QList<ForumMessage> messages = listMessages(thread);
+		ForumMessage message;
+		foreach(message, messages) {
+			message.read = read;
+			markMessageRead(message, read);
+		}
+	}
+	return true;
 }

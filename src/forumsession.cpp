@@ -211,6 +211,7 @@ void ForumSession::initialize(ForumParser &fop, ForumSubscription &fos,
 	pm = matcher;
 	if (!pm)
 		pm = new PatternMatcher(this);
+	nam->setProxy(QNetworkProxy::applicationProxy());
 }
 
 void ForumSession::updateGroupPage() {

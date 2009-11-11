@@ -79,8 +79,6 @@ void ParserEngine::updateNextChangedGroup() {
 }
 
 void ParserEngine::updateNextChangedThread() {
-	Q_ASSERT(updateAll);
-
 	if (threadsToUpdateQueue.size() > 0) {
 		session.listMessages(threadsToUpdateQueue.dequeue());
 	} else {
@@ -91,7 +89,7 @@ void ParserEngine::updateNextChangedThread() {
 }
 
 void ParserEngine::listGroupsFinished(QList<ForumGroup> groups) {
-	qDebug() << "ParserEngine::listGroupsFinished rx groups " << groups.size()
+	qDebug() << Q_FUNC_INFO << " rx groups " << groups.size()
 			<< " in " << parser.toString();
 	QList<ForumGroup> dbgroups = fdb->listGroups(subscription.parser);
 
@@ -213,6 +211,7 @@ void ParserEngine::listThreadsFinished(QList<ForumThread> threads,
 			fdb->deleteThread(dbthreads[d]);
 		}
 	}
+	if(operatio)
 	updateNextChangedThread();
 }
 

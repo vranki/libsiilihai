@@ -11,11 +11,12 @@ void LibSiilihaiTests::runParserEngineTests() {
 	qDebug("Parserenginetests..");
 	engine.setParser(fp);
 	engine.setSubscription(fsub);
-	engine.updateForum();
+	engine.updateForum(false);
 }
 
 void LibSiilihaiTests::runProtocolTests() {
-	protocol.setBaseURL("http://localhost:8000/");
+	QString bu("http://localhost:8000/");
+	protocol.setBaseURL(bu);
 	connect(&protocol, SIGNAL(loginFinished(bool, QString)), this,
 			SLOT(loginFinished(bool, QString)));
 	protocol.login("keijjo", "keijjo");

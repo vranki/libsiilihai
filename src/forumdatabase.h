@@ -31,9 +31,11 @@ public:
 	bool deleteGroup(const ForumGroup &grp);
 	int unreadIn(const ForumSubscription &fs);
 	int unreadIn(const ForumGroup &fg);
-
+	bool markForumRead(const int forumid, bool read);
+	bool markGroupRead(const ForumGroup &group, bool read);
 public slots:
-	bool markMessageRead(const ForumMessage &message, bool read=true);
+	bool markMessageRead(const ForumMessage &message);
+	bool markMessageRead(const ForumMessage &message, bool read);
 private:
 	void bindMessageValues(QSqlQuery &query, const ForumMessage &message);
 };
