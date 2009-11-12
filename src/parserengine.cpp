@@ -211,8 +211,8 @@ void ParserEngine::listThreadsFinished(QList<ForumThread> threads,
 			fdb->deleteThread(dbthreads[d]);
 		}
 	}
-	if(operatio)
-	updateNextChangedThread();
+	if(updateAll)
+		updateNextChangedThread();
 }
 
 void ParserEngine::listMessagesFinished(QList<ForumMessage> messages,
@@ -260,7 +260,8 @@ void ParserEngine::listMessagesFinished(QList<ForumMessage> messages,
 			fdb->deleteMessage(dbmessages[d]);
 		}
 	}
-	updateNextChangedThread();
+	if(updateAll)
+		updateNextChangedThread();
 }
 
 bool ParserEngine::isBusy() {
