@@ -1,17 +1,13 @@
 #!/usr/bin/make -f
 APPNAME := libsiilihai
-builddir:
-	mkdir -p builddir
-
-builddir/Makefile: builddir
-	cd builddir && qmake-qt4 PREFIX=/usr ../$(APPNAME).pro
 
 build: build-stamp
 
-build-stamp: builddir/Makefile
+build-stamp:
 	dh_testdir
 	# Add here commands to compile the package.
-	cd builddir && $(MAKE)
+	qmake-qt4 PREFIX=/usr -recursive
+	$(MAKE)
 	touch $@
 
 clean:
@@ -19,16 +15,21 @@ clean:
 	dh_testroot
 	rm -f build-stamp
 	# Add here commands to clean up after the build process.
-	rm -rf builddir
+	qmake-qt4 -recursive
+	make clean
+	make distclean
 	dh_clean
+	
 install: build
 	dh_testdir
 	dh_testroot
+	qmake -recursive
 	dh_clean -k
 	dh_installdirs
+	qmake -recursive
 
 # Add here commands to install the package into debian/your_appname
-	cd builddir && $(MAKE) INSTALL_ROOT=$(CURDIR)/debian/$(APPNAME) install
+	$(MAKE) INSTALL_ROOT=$(CURDIR)/debian/$(APPNAME) install
 # Build architecture-independent files here.
 binary-indep: build install
 # We have nothing to do by default.

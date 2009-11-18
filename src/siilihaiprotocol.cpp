@@ -63,6 +63,7 @@ void SiilihaiProtocol::registerUser(QString user, QString pass, QString email) {
 	params.insert("username", user);
 	params.insert("password", pass);
 	params.insert("email", email);
+	params.insert("captcha", "earth");
 	params.insert("clientversion", CLIENT_VERSION);
 	registerData = HttpPost::setPostParameters(&req, params);
 	connect(&nam, SIGNAL(finished(QNetworkReply*)), this,
@@ -84,7 +85,7 @@ void SiilihaiProtocol::getParser(const int id) {
 	nam.post(req, getParserData);
 }
 
-void SiilihaiProtocol::saveParser(const ForumParser parser) {
+void SiilihaiProtocol::saveParser(const ForumParser &parser) {
 	if (!parser.mayWork()) {
 		qDebug() << "Tried to save not working parser!!";
 		emit
@@ -146,10 +147,12 @@ void SiilihaiProtocol::setBaseURL(QString &bu) {
 	listRequestsUrl = QUrl(baseUrl + "api/requestlist.xml");
 	listSubscriptionsUrl = QUrl(baseUrl + "api/subscriptionlist.xml");
 	sendParserReportUrl = QUrl(baseUrl + "api/sendparserreport.xml");
+	subscribeGroupsUrl = QUrl(baseUrl + "api/subscribegroups.xml");
+	sendThreadDataUrl = QUrl(baseUrl + "api/threaddata.xml");
 	nam.setProxy(QNetworkProxy::applicationProxy());
 }
 
-void SiilihaiProtocol::subscribeForum(const ForumSubscription fs,
+void SiilihaiProtocol::subscribeForum(const ForumSubscription &fs,
 		bool unsubscribe) {
 	QNetworkRequest req(subscribeForumUrl);
 	QHash<QString, QString> params;
@@ -177,6 +180,114 @@ void SiilihaiProtocol::replySubscribeForum(QNetworkReply *reply) {
 	reply->deleteLater();
 }
 
+void SiilihaiProtocol::subscribeGroups(QMap<bool, ForumGroup> &fgs) {
+	if (fgs.isEmpty()) {
+		emit subscribeGroupsFinished(false);
+	}
+	ForumGroup first = fgs.begin().value();
+	QNetworkRequest req(subscribeGroupsUrl);
+	QDomDocument doc("SiilihaiML");
+	QDomElement root = doc.createElement("SubscribeGroups");
+	doc.appendChild(root);
+
+	QDomElement forumTag = doc.createElement("forum");
+	root.appendChild(forumTag);
+
+	QDomText t = doc.createTextNode(QString().number(first.parser));
+	forumTag.appendChild(t);
+
+	QMapIterator<bool, ForumGroup> i(fgs);
+	while (i.hasNext()) {
+		i.next();
+		QDomElement subTag;
+		if (i.key()) {
+			subTag = doc.createElement("subscribe");
+		} else {
+			subTag = doc.createElement("unsubscribe");
+		}
+		root.appendChild(subTag);
+		QDomText t = doc.createTextNode(i.value().id);
+		subTag.appendChild(t);
+	}
+	QString xml = doc.toString();
+	subscribeGroupsData = doc.toByteArray();
+	qDebug() << "TX xml: " << xml;
+
+	connect(&nam, SIGNAL(finished(QNetworkReply*)), this,
+			SLOT(replySubscribeGroups(QNetworkReply*)));
+	nam.post(req, subscribeGroupsData);
+}
+
+void SiilihaiProtocol::replySubscribeGroups(QNetworkReply *reply) {
+	bool success = reply->error() == QNetworkReply::NoError;
+	nam.disconnect(SIGNAL(finished(QNetworkReply*)));
+	emit
+	(subscribeGroupsFinished(success));
+	reply->deleteLater();
+}
+
+void SiilihaiProtocol::sendThreadData(QList<ForumMessage> &fms) {
+	if (fms.isEmpty()) {
+		emit sendThreadDataFinished(false);
+	}
+	ForumMessage message = fms.first();
+	QNetworkRequest req(sendThreadDataUrl);
+	QDomDocument doc("SiilihaiML");
+	QDomElement root = doc.createElement("ThreadData");
+	doc.appendChild(root);
+
+	QDomElement forumTag = doc.createElement("forum");
+	root.appendChild(forumTag);
+
+	QDomText t = doc.createTextNode(QString().number(message.forumid));
+	forumTag.appendChild(t);
+
+	QDomElement groupTag = doc.createElement("group");
+	root.appendChild(groupTag);
+
+	t = doc.createTextNode(message.groupid);
+	groupTag.appendChild(t);
+
+	// Sort 'em to threads:
+	QMap<QString, QList<ForumMessage*> > threadedMessages;
+	for(int i=0;i<fms.size();i++)
+		{
+			if(message.read)
+				threadedMessages[fms[i].threadid].append(&fms[i]);
+		}
+	// Send thread data
+	QMapIterator<QString, QList<ForumMessage*> > i(threadedMessages);
+	while (i.hasNext()) {
+		i.next();
+		QDomElement threadTag = doc.createElement("thread");
+		threadTag.setAttribute("id", i.key());
+		ForumMessage *messagePtr;
+		foreach(messagePtr, i.value()) {
+			if(messagePtr->read) {
+				QDomElement messageTag = doc.createElement("message");
+				messageTag.setAttribute("id", messagePtr->id);
+				threadTag.appendChild(messageTag);
+			}
+		}
+		root.appendChild(threadTag);
+	}
+	QString xml = doc.toString();
+	sendThreadDataData = doc.toByteArray();
+	qDebug() << "TX xml: " << xml;
+
+	connect(&nam, SIGNAL(finished(QNetworkReply*)), this,
+			SLOT(replySendThreadData(QNetworkReply*)));
+	nam.post(req, sendThreadDataData);
+}
+
+void SiilihaiProtocol::replySendThreadData(QNetworkReply *reply) {
+	bool success = reply->error() == QNetworkReply::NoError;
+	nam.disconnect(SIGNAL(finished(QNetworkReply*)));
+	emit
+	(sendThreadDataFinished(success));
+	reply->deleteLater();
+}
+
 void SiilihaiProtocol::replyListParsers(QNetworkReply *reply) {
 	QString docs = QString().fromUtf8(reply->readAll());
 	QList<ForumParser> parsers;
@@ -192,8 +303,8 @@ void SiilihaiProtocol::replyListParsers(QNetworkReply *reply) {
 			parser.parser_name = n.firstChildElement("name").text();
 			parser.parser_status
 					= QString(n.firstChildElement("status").text()).toInt();
-			parser.parser_type
-					= QString(n.firstChildElement("parser_type").text()).toInt();
+			parser.parser_type = QString(
+					n.firstChildElement("parser_type").text()).toInt();
 			parsers.append(parser);
 			n = n.nextSibling();
 		}
@@ -366,15 +477,16 @@ void SiilihaiProtocol::replySendParserReport(QNetworkReply *reply) {
 	if (reply->error() == QNetworkReply::NoError) {
 		QDomDocument doc;
 		doc.setContent(docs);
-		QString successStr  = doc.firstChild().toElement().text();
-		if(successStr == "true") success = true;
+		QString successStr = doc.firstChild().toElement().text();
+		if (successStr == "true")
+			success = true;
 	} else {
-		qDebug() << Q_FUNC_INFO << " network error: " << reply->errorString();
-	}
-	nam.disconnect(SIGNAL(finished(QNetworkReply*)));
-	emit
-	(sendParserReportFinished(success));
-	reply->deleteLater();
+qDebug	() << Q_FUNC_INFO << " network error: " << reply->errorString();
+}
+nam.disconnect(SIGNAL(finished(QNetworkReply*)));
+emit
+(sendParserReportFinished(success));
+reply->deleteLater();
 }
 
 void SiilihaiProtocol::sendParserReport(ParserReport pr) {

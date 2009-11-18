@@ -29,6 +29,9 @@ public slots:
 	void loginFinished(bool success, QString motd);
 	void listParsersFinished(QList <ForumParser> parsers);
 	void getParserFinished(ForumParser parser);
+	void subscribeGroupsFinished(bool success);
+	void sendThreadDataFinished(bool success);
+
 private:
 	void runParserEngineTests();
 	void runProtocolTests();

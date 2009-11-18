@@ -28,6 +28,43 @@ void LibSiilihaiTests::loginFinished(bool success, QString motd) {
 	connect(&protocol, SIGNAL(listParsersFinished(QList <ForumParser>)), this,
 			SLOT(listParsersFinished(QList <ForumParser>)));
 	// protocol.listParsers();
+	connect(&protocol, SIGNAL(subscribeGroupsFinished(bool)), this,
+			SLOT(subscribeGroupsFinished(bool)));
+	ForumGroup fg;
+	fg.parser = 2;
+	fg.id = "kekk";
+	QMap <bool, ForumGroup> fgs;
+	fgs.insert(true, fg);
+	fg.id = "jou";
+	fgs.insert(false, fg);
+	protocol.subscribeGroups(fgs);
+}
+
+void LibSiilihaiTests::subscribeGroupsFinished(bool success) {
+	qDebug() << Q_FUNC_INFO << success;
+	QList<ForumMessage> fms;
+	ForumMessage fm;
+	fm.forumid = 2;
+	fm.groupid = "kekk";
+	fm.threadid = "threadi";
+	fm.id = "messaggi";
+	fm.read = true;
+	fms.append(fm);
+	fm.id = "messaggi2";
+	fm.read = false;
+	fms.append(fm);
+	fm.id = "messaggi3";
+	fm.threadid = "toinenthreadi";
+	fm.read = true;
+	fms.append(fm);
+	connect(&protocol, SIGNAL(sendThreadDataFinished(bool)), this,
+			SLOT(sendThreadDataFinished(bool)));
+	protocol.sendThreadData(fms);
+}
+
+void LibSiilihaiTests::sendThreadDataFinished(bool success) {
+	qDebug() << Q_FUNC_INFO << success;
+	emit(testsFinished());
 }
 
 void LibSiilihaiTests::listParsersFinished(QList<ForumParser> parsers) {
@@ -84,10 +121,9 @@ void LibSiilihaiTests::runTests() {
 	params["keke"] = "joo + jääöäöä 123 ;:;:&#/#%&/#¤&#&##&xxxx";
 	params["pier"] = "true";
 	HttpPost::setPostParameters(new QNetworkRequest(), params);
-
+	*/
 	runProtocolTests();
-	return;
-*/
+
 	QString
 			html =
 					"<body><test>foo%%foo</test>\n\tkekekee<num>123&x=y</num><test>keke</test>kekekee<num>666</num></body>";
@@ -145,5 +181,4 @@ void LibSiilihaiTests::runTests() {
 	 pm.findMatches(html, pattern);
 	 */
 
-	emit(testsFinished());
 }

@@ -1,13 +1,13 @@
 Source: libsiilihai
-Section: unknown
+Section: libs
 Priority: extra
 Maintainer: Ville Ranki <ville.ranki@iki.fi>
-Build-Depends: debhelper (>= 5), libqt4-dev
+Build-Depends: debhelper (>= 5), libqt4-dev, libqt4-test
 Standards-Version: 3.8.0
 Homepage: http://www.siilihai.com/
 
 Package: libsiilihai
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}, libqt4-sql-sqlite, libqt4-xml
 Description: Siilihai forum reader support library
  Contains library for creating Siilihai web forum reader UI:s.

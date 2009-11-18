@@ -1,6 +1,8 @@
 TEMPLATE = lib
-VERSION = 0.6
+VERSION = 0.7.5
 TARGET = siilihai
+# probably a bad idea
+PREFIX = /usr
 CONFIG += create_prl
 CONFIG += debug
 QMAKE_CXXFLAGS += -g
@@ -8,10 +10,6 @@ QT += core \
     sql \
     xml \
     network
-
-# \
-# webkit \
-# testlib
 QT -= gui
 HEADERS += parserreport.h \
     forumrequest.h \

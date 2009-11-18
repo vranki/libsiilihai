@@ -424,7 +424,8 @@ bool ForumDatabase::markMessageRead(const ForumMessage &message) {
 }
 
 bool ForumDatabase::markMessageRead(const ForumMessage &message, bool read) {
-	Q_ASSERT(message.isSane());
+	if(!message.isSane())
+		return false;
 	QSqlQuery query;
 	query.prepare(
 			"UPDATE messages SET read=? WHERE(forumid=? AND groupid=? AND threadid=? AND messageid=?)");
@@ -495,15 +496,16 @@ bool ForumDatabase::markForumRead(const int forumid, bool read) {
 }
 
 bool ForumDatabase::markGroupRead(const ForumGroup &group, bool read) {
-	QList<ForumThread> threads = listThreads(group);
-	ForumThread thread;
-	foreach(thread, threads) {
-		QList<ForumMessage> messages = listMessages(thread);
-		ForumMessage message;
-		foreach(message, messages) {
-			message.read = read;
-			markMessageRead(message, read);
-		}
+	qDebug() << Q_FUNC_INFO << " " << group.toString() << ", " << read;
+	QSqlQuery query;
+	query.prepare(
+			"UPDATE messages SET read=? WHERE(forumid=? AND groupid=?)");
+	query.addBindValue(read);
+	query.addBindValue(group.parser);
+	query.addBindValue(group.id);
+	if (!query.exec()) {
+		qDebug() << "Setting group read failed: " << query.lastError().text();
+		return false;
 	}
 	return true;
 }
