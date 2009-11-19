@@ -6,6 +6,7 @@ ForumSession::ForumSession(QObject *parent) :
 	nam = 0;
 	cookieJar = 0;
 	currentListPage = 0;
+	pm = 0;
 	loggedIn = false;
 	cookieFetched = false;
 	clearAuthentications();
@@ -66,6 +67,7 @@ void ForumSession::loginReply(QNetworkReply *reply) {
 }
 
 void ForumSession::performListGroups(QString &html) {
+	Q_ASSERT(pm);
 	emit receivedHtml(html);
 	QList<ForumGroup> groups;
 	pm->setPattern(fpar.group_list_pattern);
@@ -515,6 +517,7 @@ QString ForumSession::getLoginUrl() {
 }
 
 void ForumSession::setParser(ForumParser &fop) {
+	// Sanity check can't be done here as it would break parser maker
 	fpar = fop;
 }
 

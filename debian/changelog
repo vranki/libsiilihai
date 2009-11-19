@@ -1,3 +1,9 @@
+libsiilihai (0.7.5-2) unstable; urgency=low
+
+  * Trying to get this thing thru to Maemo
+  
+ -- Ville Ranki <ville.ranki@iki.fi>  Fri, 13 Nov 2009 20:29:43 +0300
+
 libsiilihai (0.7.5-1) unstable; urgency=low
 
   * Second Ubuntu release, possibly first Maemo release

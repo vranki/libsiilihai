@@ -327,7 +327,6 @@ void SiilihaiProtocol::replyListSubscriptions(QNetworkReply *reply) {
 		qDebug() << docs;
 		QDomNode n = doc.firstChild().firstChild();
 		while (!n.isNull()) {
-			qDebug() << "tag is " << n.toElement().text();
 			int id = QString(n.toElement().text()).toInt();
 			subscriptions.append(id);
 			n = n.nextSibling();
