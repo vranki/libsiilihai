@@ -14,6 +14,7 @@
 #include "forumrequest.h"
 #include "forumsubscription.h"
 #include "forumgroup.h"
+#include "forumthread.h"
 #include "forummessage.h"
 #include "httppost.h"
 #include "parserreport.h"
@@ -34,9 +35,11 @@ public:
 	void listSubscriptions();
 	void getParser(const int id);
 	void subscribeForum(const ForumSubscription &fs, bool unsubscribe = false);
-	void subscribeGroups(QMap<bool, ForumGroup> &fgs);
+	void subscribeGroups(QList<ForumGroup> &fgs);
 	void sendThreadData(QList<ForumMessage> &fms);
 	void saveParser(const ForumParser &parser);
+	void getSyncSummary();
+	void getThreadData(const ForumGroup &grp);
 public slots:
 	void sendParserReport(ParserReport pr);
 	void replyLogin(QNetworkReply *reply);
@@ -49,6 +52,9 @@ public slots:
 	void replySendParserReport(QNetworkReply *reply);
 	void replySubscribeGroups(QNetworkReply *reply);
 	void replySendThreadData(QNetworkReply *reply);
+	void replyGetSyncSummary(QNetworkReply *reply);
+	void replyGetThreadData(QNetworkReply *reply);
+
 signals:
 	void loginFinished(bool success, QString motd);
 	void listParsersFinished(QList<ForumParser> parsers);
@@ -60,6 +66,10 @@ signals:
 	void sendParserReportFinished(bool success);
 	void subscribeGroupsFinished(bool success);
 	void sendThreadDataFinished(bool success);
+	void serverGroupStatus(QList<ForumGroup> grps);
+	void serverThreadData(ForumThread &thread);
+	void serverMessageData(ForumMessage &message);
+	void getThreadDataFinished(bool success);
 
 private:
 	QString clientKey;
@@ -67,10 +77,12 @@ private:
 	QString baseUrl;
 	QByteArray loginData, listParsersData, saveParserData, getParserData,
 			subscribeForumData, listRequestsData, registerData, listSubscriptionsData,
-			sendParserReportData, subscribeGroupsData, sendThreadDataData;
+			sendParserReportData, subscribeGroupsData, sendThreadDataData, getThreadDataData,
+			syncSummaryData;
 	QUrl listParsersUrl, loginUrl, getParserUrl, saveParserUrl,
 			subscribeForumUrl, listRequestsUrl, registerUrl, listSubscriptionsUrl,
-			sendParserReportUrl, subscribeGroupsUrl, sendThreadDataUrl;
+			sendParserReportUrl, subscribeGroupsUrl, sendThreadDataUrl, getThreadDataUrl, syncSummaryUrl;
+	ForumGroup threadSummaryGroup;
 };
 
 #endif /* SIILIHAIPROTOCOL_H_ */

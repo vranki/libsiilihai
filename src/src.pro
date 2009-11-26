@@ -1,6 +1,7 @@
 TEMPLATE = lib
-VERSION = 0.7.5
+VERSION = 0.7.9
 TARGET = siilihai
+
 # probably a bad idea
 PREFIX = /usr
 CONFIG += create_prl
@@ -11,7 +12,8 @@ QT += core \
     xml \
     network
 QT -= gui
-HEADERS += parserreport.h \
+HEADERS += syncmaster.h \
+    parserreport.h \
     forumrequest.h \
     forummessage.h \
     forumthread.h \
@@ -25,7 +27,8 @@ HEADERS += parserreport.h \
     parserengine.h \
     forumparser.h \
     patternmatcher.h
-SOURCES += parserreport.cpp \
+SOURCES += syncmaster.cpp \
+    parserreport.cpp \
     forumrequest.cpp \
     forummessage.cpp \
     forumthread.cpp \

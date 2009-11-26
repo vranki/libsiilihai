@@ -149,6 +149,8 @@ void SiilihaiProtocol::setBaseURL(QString &bu) {
 	sendParserReportUrl = QUrl(baseUrl + "api/sendparserreport.xml");
 	subscribeGroupsUrl = QUrl(baseUrl + "api/subscribegroups.xml");
 	sendThreadDataUrl = QUrl(baseUrl + "api/threaddata.xml");
+	syncSummaryUrl = QUrl(baseUrl + "api/syncsummary.xml");
+	getThreadDataUrl = syncSummaryUrl;//QUrl(baseUrl + "api/getthreaddata.xml");
 	nam.setProxy(QNetworkProxy::applicationProxy());
 }
 
@@ -180,11 +182,13 @@ void SiilihaiProtocol::replySubscribeForum(QNetworkReply *reply) {
 	reply->deleteLater();
 }
 
-void SiilihaiProtocol::subscribeGroups(QMap<bool, ForumGroup> &fgs) {
+void SiilihaiProtocol::subscribeGroups(QList<ForumGroup> &fgs) {
+	qDebug() << Q_FUNC_INFO;
 	if (fgs.isEmpty()) {
 		emit subscribeGroupsFinished(false);
+		return;
 	}
-	ForumGroup first = fgs.begin().value();
+	ForumGroup first = fgs[0];
 	QNetworkRequest req(subscribeGroupsUrl);
 	QDomDocument doc("SiilihaiML");
 	QDomElement root = doc.createElement("SubscribeGroups");
@@ -196,19 +200,19 @@ void SiilihaiProtocol::subscribeGroups(QMap<bool, ForumGroup> &fgs) {
 	QDomText t = doc.createTextNode(QString().number(first.parser));
 	forumTag.appendChild(t);
 
-	QMapIterator<bool, ForumGroup> i(fgs);
-	while (i.hasNext()) {
-		i.next();
-		QDomElement subTag;
-		if (i.key()) {
-			subTag = doc.createElement("subscribe");
-		} else {
-			subTag = doc.createElement("unsubscribe");
+	foreach(ForumGroup g, fgs)
+		{
+			QDomElement subTag;
+			if (g.subscribed) {
+				subTag = doc.createElement("subscribe");
+				subTag.setAttribute("changeset", g.changeset);
+			} else {
+				subTag = doc.createElement("unsubscribe");
+			}
+			root.appendChild(subTag);
+			QDomText t = doc.createTextNode(g.id);
+			subTag.appendChild(t);
 		}
-		root.appendChild(subTag);
-		QDomText t = doc.createTextNode(i.value().id);
-		subTag.appendChild(t);
-	}
 	QString xml = doc.toString();
 	subscribeGroupsData = doc.toByteArray();
 	qDebug() << "TX xml: " << xml;
@@ -227,6 +231,7 @@ void SiilihaiProtocol::replySubscribeGroups(QNetworkReply *reply) {
 }
 
 void SiilihaiProtocol::sendThreadData(QList<ForumMessage> &fms) {
+	qDebug() << Q_FUNC_INFO;
 	if (fms.isEmpty()) {
 		emit sendThreadDataFinished(false);
 	}
@@ -250,25 +255,27 @@ void SiilihaiProtocol::sendThreadData(QList<ForumMessage> &fms) {
 
 	// Sort 'em to threads:
 	QMap<QString, QList<ForumMessage*> > threadedMessages;
-	for(int i=0;i<fms.size();i++)
-		{
-			if(message.read)
-				threadedMessages[fms[i].threadid].append(&fms[i]);
-		}
+	for (int i = 0; i < fms.size(); i++) {
+		if (fms[i].read)
+			threadedMessages[fms[i].threadid].append(&fms[i]);
+	}
+
 	// Send thread data
 	QMapIterator<QString, QList<ForumMessage*> > i(threadedMessages);
 	while (i.hasNext()) {
 		i.next();
 		QDomElement threadTag = doc.createElement("thread");
 		threadTag.setAttribute("id", i.key());
+		threadTag.setAttribute("changeset", 0);
 		ForumMessage *messagePtr;
-		foreach(messagePtr, i.value()) {
-			if(messagePtr->read) {
-				QDomElement messageTag = doc.createElement("message");
-				messageTag.setAttribute("id", messagePtr->id);
-				threadTag.appendChild(messageTag);
+		foreach(messagePtr, i.value())
+			{
+				if (messagePtr->read) {
+					QDomElement messageTag = doc.createElement("message");
+					messageTag.setAttribute("id", messagePtr->id);
+					threadTag.appendChild(messageTag);
+				}
 			}
-		}
 		root.appendChild(threadTag);
 	}
 	QString xml = doc.toString();
@@ -477,10 +484,11 @@ void SiilihaiProtocol::replySendParserReport(QNetworkReply *reply) {
 		QDomDocument doc;
 		doc.setContent(docs);
 		QString successStr = doc.firstChild().toElement().text();
-		if (successStr == "true")
+		if (successStr == "true") {
 			success = true;
-	} else {
-qDebug	() << Q_FUNC_INFO << " network error: " << reply->errorString();
+		} else {
+qDebug		() << Q_FUNC_INFO << " network error: " << reply->errorString();
+	}
 }
 nam.disconnect(SIGNAL(finished(QNetworkReply*)));
 emit
@@ -506,4 +514,124 @@ void SiilihaiProtocol::sendParserReport(ParserReport pr) {
 
 QString SiilihaiProtocol::baseURL() {
 	return baseUrl;
+}
+
+void SiilihaiProtocol::getSyncSummary() {
+	qDebug() << Q_FUNC_INFO;
+	QNetworkRequest req(syncSummaryUrl);
+	QHash<QString, QString> params;
+
+	if (!clientKey.isNull()) {
+		params.insert("client_key", clientKey);
+	}
+	syncSummaryData = HttpPost::setPostParameters(&req, params);
+	connect(&nam, SIGNAL(finished(QNetworkReply*)), this,
+			SLOT(replyGetSyncSummary(QNetworkReply*)));
+	nam.post(req, syncSummaryData);
+}
+
+void SiilihaiProtocol::replyGetSyncSummary(QNetworkReply *reply) {
+	QString docs = QString().fromUtf8(reply->readAll());
+	qDebug() << Q_FUNC_INFO << docs;
+	QList<ForumGroup> grps;
+	if (reply->error() == QNetworkReply::NoError) {
+		QDomDocument doc;
+		doc.setContent(docs);
+		QDomElement re = doc.firstChild().toElement();
+		for (int i = 0; i < re.childNodes().size(); i++) {
+			QDomElement forumElement = re.childNodes().at(i).toElement();
+			int forumid = forumElement.attribute("id").toInt();
+			for (int j = 0; j < forumElement.childNodes().size(); j++) {
+				QDomElement groupElement =
+						forumElement.childNodes().at(j).toElement();
+				QString groupid = groupElement.attribute("id");
+				int changeset = groupElement.text().toInt();
+				ForumGroup g;
+				g.parser = forumid;
+				g.id = groupid;
+				g.changeset = changeset;
+				grps.append(g);
+			}
+		}
+	} else {
+		qDebug() << "replyGetSyncSummary network error: "
+				<< reply->errorString();
+	}
+	nam.disconnect(SIGNAL(finished(QNetworkReply*)));
+	reply->deleteLater();
+	emit serverGroupStatus(grps);
+}
+
+void SiilihaiProtocol::getThreadData(const ForumGroup &grp) {
+	QNetworkRequest req(getThreadDataUrl);
+	QHash<QString, QString> params;
+	params.insert("forum_id", QString().number(grp.parser));
+	params.insert("group_id", grp.id);
+
+	if (!clientKey.isNull()) {
+		params.insert("client_key", clientKey);
+	}
+	threadSummaryGroup = grp;
+	getThreadDataData = HttpPost::setPostParameters(&req, params);
+	connect(&nam, SIGNAL(finished(QNetworkReply*)), this,
+			SLOT(replyGetThreadData(QNetworkReply*)));
+	nam.post(req, getThreadDataData);
+}
+
+void SiilihaiProtocol::replyGetThreadData(QNetworkReply *reply) {
+	qDebug() << Q_FUNC_INFO;
+	QString docs = QString().fromUtf8(reply->readAll());
+	qDebug() << docs;
+	QMap<ForumThread, QList<ForumMessage> > threadData;
+
+	if (reply->error() == QNetworkReply::NoError) {
+		QDomDocument doc;
+		doc.setContent(docs);
+		QDomElement re = doc.firstChild().toElement();
+		for (int j = 0; j < re.childNodes().size(); j++) {
+			QDomElement forumElement = re.childNodes().at(j).toElement();
+			int forumid = forumElement.attribute("id").toInt();
+			for (int k = 0; k < forumElement.childNodes().size(); k++) {
+				QDomElement groupElement =
+						forumElement.childNodes().at(k).toElement();
+				QString groupid = groupElement.attribute("id");
+				int groupChangeset =
+						groupElement.attribute("changeset").toInt();
+
+				for (int l = 0; l < groupElement.childNodes().size(); l++) {
+					QDomElement threadElement =
+							groupElement.childNodes().at(l).toElement();
+					QString threadid = threadElement.attribute("id");
+					int threadChangeset =
+							threadElement.attribute("changeset").toInt();
+
+					ForumThread t;
+					t.forumid = forumid;
+					t.groupid = groupid;
+					t.id = threadid;
+					t.changeset = threadChangeset;
+					emit serverThreadData(t);
+
+					for (int m = 0; m < threadElement.childNodes().size(); m++) {
+						QDomElement messageElement =
+								threadElement.childNodes().at(m).toElement();
+						QString messageid = messageElement.attribute("id");
+						ForumMessage msg;
+						msg.id = messageid;
+						msg.read = true;
+						msg.threadid = threadid;
+						msg.groupid = groupid;
+						msg.forumid = forumid;
+						emit serverMessageData(msg);
+					}
+				}
+			}
+		}
+	} else {
+		qDebug() << "replyGetThreadSummary network error: "
+				<< reply->errorString();
+	}
+	nam.disconnect(SIGNAL(finished(QNetworkReply*)));
+	reply->deleteLater();
+	emit getThreadDataFinished(reply->error() == QNetworkReply::NoError);
 }

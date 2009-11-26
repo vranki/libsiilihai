@@ -132,6 +132,7 @@ void ParserEngine::listGroupsFinished(QList<ForumGroup> groups) {
 			} else {
 				groupsToUpdateQueue.enqueue(groups[g]);
 			}
+			groups[g].changeset = 1;
 			fdb->addGroup(groups[g]);
 		}
 	}
@@ -191,6 +192,7 @@ void ParserEngine::listThreadsFinished(QList<ForumThread> threads,
 		}
 		if (!foundInDb) {
 			threadsChanged = true;
+			threads[t].changeset = 1;
 			fdb->addThread(threads[t]);
 			threadsToUpdateQueue.enqueue(threads[t]);
 		}

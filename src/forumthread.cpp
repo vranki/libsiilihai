@@ -3,6 +3,7 @@
 ForumThread::ForumThread() {
 	forumid = -1;
 	id = QString::null;
+	changeset = -1;
 }
 
 ForumThread::~ForumThread() {
@@ -13,5 +14,5 @@ QString ForumThread::toString() const {
 }
 
 bool ForumThread::isSane() const {
-	return (groupid.length() > 0 && name.length() > 0 && id.length() > 0);
+	return (groupid.length() > 0 && forumid > 0 && id.length() > 0);
 }

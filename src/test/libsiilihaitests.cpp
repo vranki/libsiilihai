@@ -1,7 +1,7 @@
 #include "libsiilihaitests.h"
 
 LibSiilihaiTests::LibSiilihaiTests(QObject *parent) :
-	QObject(parent), fdb(parent), pdb(parent), fses(parent), engine(&fdb, parent) {
+	QObject(parent), fdb(parent), pdb(parent), fses(parent), engine(&fdb, parent), sm(parent, fdb, protocol) {
 }
 
 LibSiilihaiTests::~LibSiilihaiTests() {
@@ -28,6 +28,10 @@ void LibSiilihaiTests::loginFinished(bool success, QString motd) {
 	connect(&protocol, SIGNAL(listParsersFinished(QList <ForumParser>)), this,
 			SLOT(listParsersFinished(QList <ForumParser>)));
 	// protocol.listParsers();
+	//protocol.getSyncSummary();
+	sm.startSync();
+	//sm.endSync();
+	/*
 	connect(&protocol, SIGNAL(subscribeGroupsFinished(bool)), this,
 			SLOT(subscribeGroupsFinished(bool)));
 	ForumGroup fg;
@@ -38,6 +42,7 @@ void LibSiilihaiTests::loginFinished(bool success, QString motd) {
 	fg.id = "jou";
 	fgs.insert(false, fg);
 	protocol.subscribeGroups(fgs);
+	*/
 }
 
 void LibSiilihaiTests::subscribeGroupsFinished(bool success) {
@@ -108,15 +113,16 @@ void LibSiilihaiTests::runForumSession() {
 
 void LibSiilihaiTests::runTests() {
 	qDebug() << "Helloz";
-	/*
+
 	db = QSqlDatabase::addDatabase("QSQLITE");
-	db.setDatabaseName(QDir::homePath() + "/siilihai.db");
+	db.setDatabaseName(QDir::homePath() + "/.siilihai.db");
 	if (!db.open()) {
 		qDebug() << "Unable to open db!";
 		return;
 	}
 	QVERIFY(pdb.openDatabase());
 	QVERIFY(fdb.openDatabase());
+	/*
 	QHash<QString, QString> params;
 	params["keke"] = "joo + jääöäöä 123 ;:;:&#/#%&/#¤&#&##&xxxx";
 	params["pier"] = "true";

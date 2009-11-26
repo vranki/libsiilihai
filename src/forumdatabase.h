@@ -10,19 +10,25 @@
 
 class ForumDatabase : public QObject {
 	Q_OBJECT
+
 public:
 	ForumDatabase(QObject *parent);
 	virtual ~ForumDatabase();
-	bool openDatabase( );
+	bool openDatabase();
+	void resetDatabase();
 	bool addForum(const ForumSubscription &fs);
 	bool deleteForum(const int forumid);
 	QList <ForumSubscription> listSubscriptions();
 	ForumSubscription getSubscription(int id);
 	QList <ForumGroup> listGroups(const int parser);
+	ForumGroup getGroup(const int forum, QString id);
 	QList <ForumThread> listThreads(const ForumGroup &group);
+	ForumThread getThread(const int forum, QString groupid, QString threadid);
 	QList <ForumMessage> listMessages(const ForumThread &thread);
+	ForumMessage getMessage(const int forum, QString groupid, QString threadid, QString messageid);
 	bool addThread(const ForumThread &thread);
 	bool deleteThread(const ForumThread &thread);
+	bool updateThread(const ForumThread &thread);
 	bool addMessage(const ForumMessage &message);
 	bool updateMessage(const ForumMessage &message);
 	bool deleteMessage(const ForumMessage &message);
@@ -33,6 +39,7 @@ public:
 	int unreadIn(const ForumGroup &fg);
 	bool markForumRead(const int forumid, bool read);
 	bool markGroupRead(const ForumGroup &group, bool read);
+	int schemaVersion();
 public slots:
 	bool markMessageRead(const ForumMessage &message);
 	bool markMessageRead(const ForumMessage &message, bool read);

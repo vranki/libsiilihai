@@ -13,6 +13,7 @@ public:
 	QString id;
 	QString lastchange;
 	bool subscribed;
+	int changeset;
 };
 
 #endif

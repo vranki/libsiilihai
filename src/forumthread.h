@@ -19,6 +19,7 @@ public:
 	int ordernum;
 	QString name;
 	QString lastchange;
+	int changeset;
 	QString toString() const;
 	bool isSane() const;
 };

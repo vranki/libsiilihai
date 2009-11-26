@@ -15,7 +15,7 @@
 #include "forumsession.h"
 #include "parserengine.h"
 #include "httppost.h"
-
+#include "syncmaster.h"
 
 class LibSiilihaiTests : public QObject {
 	Q_OBJECT
@@ -45,6 +45,7 @@ private:
 	ForumSubscription fsub;
 	ForumSession fses;
 	ParserEngine engine;
+	SyncMaster sm;
 };
 
 #endif /* LIBSIILIHAITESTS_H_ */
