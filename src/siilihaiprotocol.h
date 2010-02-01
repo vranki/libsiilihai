@@ -35,11 +35,11 @@ public:
 	void listSubscriptions();
 	void getParser(const int id);
 	void subscribeForum(const ForumSubscription &fs, bool unsubscribe = false);
-	void subscribeGroups(QList<ForumGroup> &fgs);
-	void sendThreadData(QList<ForumMessage> &fms);
+	void subscribeGroups(QList<ForumGroup*> &fgs);
+	void sendThreadData(QList<ForumMessage*> &fms);
 	void saveParser(const ForumParser &parser);
 	void getSyncSummary();
-	void getThreadData(const ForumGroup &grp);
+	void getThreadData(ForumGroup *grp);
 public slots:
 	void sendParserReport(ParserReport pr);
 	void replyLogin(QNetworkReply *reply);
@@ -82,7 +82,7 @@ private:
 	QUrl listParsersUrl, loginUrl, getParserUrl, saveParserUrl,
 			subscribeForumUrl, listRequestsUrl, registerUrl, listSubscriptionsUrl,
 			sendParserReportUrl, subscribeGroupsUrl, sendThreadDataUrl, getThreadDataUrl, syncSummaryUrl;
-	ForumGroup threadSummaryGroup;
+	ForumGroup *threadSummaryGroup;
 };
 
 #endif /* SIILIHAIPROTOCOL_H_ */

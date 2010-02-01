@@ -3,12 +3,12 @@
 SyncMaster::SyncMaster(QObject *parent, ForumDatabase &fd,
 		SiilihaiProtocol &prot) :
 	QObject(parent), fdb(fd), protocol(prot) {
-	connect(&protocol, SIGNAL(serverGroupStatus(QList<ForumGroup>)), this,
-			SLOT(serverGroupStatus(QList<ForumGroup>)));
-	connect(&protocol, SIGNAL(serverThreadData(ForumThread&)), this,
-			SLOT(serverThreadData(ForumThread&)));
-	connect(&protocol, SIGNAL(serverMessageData(ForumMessage&)), this,
-			SLOT(serverMessageData(ForumMessage&)));
+	connect(&protocol, SIGNAL(serverGroupStatus(QList<ForumGroup*>)), this,
+			SLOT(serverGroupStatus(QList<ForumGroup*>)));
+	connect(&protocol, SIGNAL(serverThreadData(ForumThread*)), this,
+			SLOT(serverThreadData(ForumThread*)));
+	connect(&protocol, SIGNAL(serverMessageData(ForumMessage*)), this,
+			SLOT(serverMessageData(ForumMessage*)));
 }
 
 SyncMaster::~SyncMaster() {
@@ -20,11 +20,10 @@ void SyncMaster::startSync() {
 
 void SyncMaster::endSync() {
 	qDebug( ) << Q_FUNC_INFO;
-	QList<ForumSubscription> fsubs = fdb.listSubscriptions();
-	foreach(ForumSubscription fsub, fsubs)
+	QList<ForumSubscription*> fsubs = fdb.listSubscriptions();
+	foreach(ForumSubscription *fsub, fsubs)
 		{
-			QList<ForumGroup> grps = fdb.listGroups(fsub.parser);
-			foreach(ForumGroup grp, grps)
+			foreach(ForumGroup *grp, fdb.listGroups(fsub))
 				{
 					groupsToUpload.append(grp);
 				}
@@ -32,25 +31,25 @@ void SyncMaster::endSync() {
 	processGroups();
 }
 
-void SyncMaster::serverGroupStatus(QList<ForumGroup> grps) {
-qDebug	() << Q_FUNC_INFO << grps.size();
+void SyncMaster::serverGroupStatus(QList<ForumGroup*> grps) {
+	qDebug() << Q_FUNC_INFO << grps.size();
 
-	foreach(ForumGroup grp, grps) {
-		if(grp.parser <= 0 || grp.id.length() == 0) {
+	foreach(ForumGroup *grp, grps) {
+		if(grp->subscription()->parser() <= 0 || grp->id().length() == 0) {
 			qDebug() << "Insane group, skipping";
 			return;
 		}
 
-		ForumGroup dbGroup = fdb.getGroup(grp.parser, grp.id);
-		if(!dbGroup.isSane()) {
+		ForumGroup *dbGroup = fdb.getGroup(grp->subscription()->parser(), grp->id());
+		if(!dbGroup) {
 			qDebug() << "Group not in db, skipping";
 			return;
 		}
-		qDebug() << "changesets: db " << dbGroup.changeset << " server " << grp.changeset;
-		if(dbGroup.changeset > grp.changeset) {
+		qDebug() << "changesets: db " << dbGroup->changeset() << " server " << grp->changeset();
+		if(dbGroup->changeset() > grp->changeset()) {
 			qDebug() << "DB has newer changeset - uploading";
 			groupsToUpload.append(dbGroup);
-		} else if(dbGroup.changeset < grp.changeset) {
+		} else if(dbGroup->changeset() < grp->changeset()) {
 			qDebug() << "Server has newer changeset - downloading";
 			groupsToDownload.append(dbGroup);
 		} else {
@@ -77,10 +76,10 @@ void SyncMaster::processGroups() {
 	// groupsToUpload.clear();
 	// groupsToDownload.clear();
 	if (groupsToUpload.isEmpty() && groupsToDownload.isEmpty()) {
-		QList<ForumSubscription> fsubs = fdb.listSubscriptions();
-		foreach(ForumSubscription fsub, fsubs)
+		QList<ForumSubscription*> fsubs = fdb.listSubscriptions();
+		foreach(ForumSubscription *fsub, fsubs)
 			{
-				forumsToUpload.insert(fsub.parser);
+				forumsToUpload.insert(fsub);
 			}
 	}
 	if (!groupsToUpload.isEmpty()) {
@@ -99,8 +98,8 @@ void SyncMaster::downloadNextGroup(bool success) {
 		syncFinished(false);
 		return;
 	}
-	ForumGroup gtodl = groupsToDownload.takeFirst();
-	qDebug() << "Going to dl group " << gtodl.toString();
+	ForumGroup *gtodl = groupsToDownload.takeFirst();
+	qDebug() << "Going to dl group " << gtodl->toString();
 	connect(&protocol, SIGNAL(sendThreadDataFinished(bool)), this,
 			SLOT(sendThreadDataFinished(bool)));
 	protocol.getThreadData(gtodl);
@@ -128,19 +127,19 @@ void SyncMaster::uploadNextGroup(bool success) {
 	// Update next forum
 	if (!forumsToUpload.isEmpty()) {
 		qDebug() << Q_FUNC_INFO << "still got forums to upload - subscribing groups in next";
-		int gtosub = *forumsToUpload.begin();
+		ForumSubscription *gtosub = *forumsToUpload.begin();
 		forumsToUpload.remove(gtosub);
-		QList<ForumGroup> groups = fdb.listGroups(gtosub);
+		QList<ForumGroup*> groups = fdb.listGroups(gtosub);
 		connect(&protocol, SIGNAL(subscribeGroupsFinished(bool)), this,
 				SLOT(uploadNextGroup(bool)));
 		protocol.subscribeGroups(groups);
-		foreach(ForumGroup group, groups)
+		foreach(ForumGroup *group, groups)
 			{
-				if (group.subscribed) {
-					QList<ForumThread> threads = fdb.listThreads(group);
-					foreach(ForumThread thread, threads)
+				if (group->subscribed()) {
+					QList<ForumThread*> threads = fdb.listThreads(group);
+					foreach(ForumThread* thread, threads)
 						{
-							QList<ForumMessage> messages = fdb.listMessages(
+							QList<ForumMessage*> messages = fdb.listMessages(
 									thread);
 							messagesToUpload.append(messages);
 						}
@@ -163,41 +162,41 @@ void SyncMaster::sendThreadDataFinished(bool success) {
 	}
 }
 
-void SyncMaster::serverThreadData(ForumThread &thread) {
-	qDebug() << Q_FUNC_INFO << thread.toString();
-	if (thread.isSane()) {
-		ForumThread dbThread = fdb.getThread(thread.forumid, thread.groupid,
-				thread.id);
-		if (dbThread.isSane()) { // Thread already found, merge it
-			dbThread.changeset = thread.changeset;
+void SyncMaster::serverThreadData(ForumThread *thread) {
+	qDebug() << Q_FUNC_INFO << thread->toString();
+	if (thread->isSane()) {
+		ForumThread *dbThread = fdb.getThread(thread->group()->subscription()->parser(), thread->group()->id(),
+				thread->id());
+		if (dbThread) { // Thread already found, merge it
+			dbThread->setChangeset(thread->changeset());
 			fdb.updateThread(dbThread);
 		} else { // thread hasn't been found yet!
 			fdb.addThread(thread);
 		}
 	} else {
-		qDebug() << "Got invalid thread!" << thread.toString();
+		qDebug() << "Got invalid thread!" << thread->toString();
 		Q_ASSERT(false);
 	}
 }
 
-void SyncMaster::serverMessageData(ForumMessage &message) {
-	qDebug() << Q_FUNC_INFO << message.toString();
-	if (message.isSane()) {
-		ForumMessage dbMessage = fdb.getMessage(message.forumid,
-				message.groupid, message.threadid, message.id);
-		if (dbMessage.isSane()) { // Thread already found, merge it
+void SyncMaster::serverMessageData(ForumMessage *message) {
+	qDebug() << Q_FUNC_INFO << message->toString();
+	if (message->isSane()) {
+		ForumMessage *dbMessage = fdb.getMessage(message->thread()->group()->subscription()->parser(),
+				message->thread()->group()->id(), message->thread()->id(), message->id());
+		if (dbMessage->isSane()) { // Thread already found, merge it
 			fdb.markMessageRead(dbMessage);
 		} else { // thread hasn't been found yet!
 			fdb.addMessage(message);
 		}
 	} else {
-		qDebug() << "Got invalid message!" << message.toString();
+		qDebug() << "Got invalid message!" << message->toString();
 		Q_ASSERT(false);
 	}
 
 }
 
-void SyncMaster::threadChanged(ForumThread &thread) {
-qDebug() << Q_FUNC_INFO << thread.toString();
+void SyncMaster::threadChanged(ForumThread *thread) {
+qDebug() << Q_FUNC_INFO << thread->toString();
 
 }

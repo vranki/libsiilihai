@@ -158,12 +158,12 @@ void SiilihaiProtocol::subscribeForum(const ForumSubscription &fs,
 		bool unsubscribe) {
 	QNetworkRequest req(subscribeForumUrl);
 	QHash<QString, QString> params;
-	params.insert("parser_id", QString().number(fs.parser));
+	params.insert("parser_id", QString().number(fs.parser()));
 	if (unsubscribe) {
 		params.insert("unsubscribe", "yes");
 	} else {
-		params.insert("latest_threads", QString().number(fs.latest_threads));
-		params.insert("latest_messages", QString().number(fs.latest_messages));
+		params.insert("latest_threads", QString().number(fs.latest_threads()));
+		params.insert("latest_messages", QString().number(fs.latest_messages()));
 	}
 	if (!clientKey.isNull()) {
 		params.insert("client_key", clientKey);
@@ -182,13 +182,13 @@ void SiilihaiProtocol::replySubscribeForum(QNetworkReply *reply) {
 	reply->deleteLater();
 }
 
-void SiilihaiProtocol::subscribeGroups(QList<ForumGroup> &fgs) {
+void SiilihaiProtocol::subscribeGroups(QList<ForumGroup*> &fgs) {
 	qDebug() << Q_FUNC_INFO;
 	if (fgs.isEmpty()) {
 		emit subscribeGroupsFinished(false);
 		return;
 	}
-	ForumGroup first = fgs[0];
+	ForumGroup *first = fgs[0];
 	QNetworkRequest req(subscribeGroupsUrl);
 	QDomDocument doc("SiilihaiML");
 	QDomElement root = doc.createElement("SubscribeGroups");
@@ -197,20 +197,20 @@ void SiilihaiProtocol::subscribeGroups(QList<ForumGroup> &fgs) {
 	QDomElement forumTag = doc.createElement("forum");
 	root.appendChild(forumTag);
 
-	QDomText t = doc.createTextNode(QString().number(first.parser));
+	QDomText t = doc.createTextNode(QString().number(first->subscription()->parser()));
 	forumTag.appendChild(t);
 
-	foreach(ForumGroup g, fgs)
+	foreach(ForumGroup *g, fgs)
 		{
 			QDomElement subTag;
-			if (g.subscribed) {
+			if (g->subscribed()) {
 				subTag = doc.createElement("subscribe");
-				subTag.setAttribute("changeset", g.changeset);
+				subTag.setAttribute("changeset", g->changeset());
 			} else {
 				subTag = doc.createElement("unsubscribe");
 			}
 			root.appendChild(subTag);
-			QDomText t = doc.createTextNode(g.id);
+			QDomText t = doc.createTextNode(g->id());
 			subTag.appendChild(t);
 		}
 	QString xml = doc.toString();
@@ -230,12 +230,12 @@ void SiilihaiProtocol::replySubscribeGroups(QNetworkReply *reply) {
 	reply->deleteLater();
 }
 
-void SiilihaiProtocol::sendThreadData(QList<ForumMessage> &fms) {
+void SiilihaiProtocol::sendThreadData(QList<ForumMessage*> &fms) {
 	qDebug() << Q_FUNC_INFO;
 	if (fms.isEmpty()) {
 		emit sendThreadDataFinished(false);
 	}
-	ForumMessage message = fms.first();
+	ForumMessage *message = fms.first();
 	QNetworkRequest req(sendThreadDataUrl);
 	QDomDocument doc("SiilihaiML");
 	QDomElement root = doc.createElement("ThreadData");
@@ -244,20 +244,20 @@ void SiilihaiProtocol::sendThreadData(QList<ForumMessage> &fms) {
 	QDomElement forumTag = doc.createElement("forum");
 	root.appendChild(forumTag);
 
-	QDomText t = doc.createTextNode(QString().number(message.forumid));
+	QDomText t = doc.createTextNode(QString().number(message->thread()->group()->subscription()->parser()));
 	forumTag.appendChild(t);
 
 	QDomElement groupTag = doc.createElement("group");
 	root.appendChild(groupTag);
 
-	t = doc.createTextNode(message.groupid);
+	t = doc.createTextNode(message->thread()->group()->id());
 	groupTag.appendChild(t);
 
 	// Sort 'em to threads:
 	QMap<QString, QList<ForumMessage*> > threadedMessages;
 	for (int i = 0; i < fms.size(); i++) {
-		if (fms[i].read)
-			threadedMessages[fms[i].threadid].append(&fms[i]);
+		if (fms[i]->read())
+			threadedMessages[fms[i]->thread()->id()].append(fms[i]);
 	}
 
 	// Send thread data
@@ -270,9 +270,9 @@ void SiilihaiProtocol::sendThreadData(QList<ForumMessage> &fms) {
 		ForumMessage *messagePtr;
 		foreach(messagePtr, i.value())
 			{
-				if (messagePtr->read) {
+				if (messagePtr->read()) {
 					QDomElement messageTag = doc.createElement("message");
-					messageTag.setAttribute("id", messagePtr->id);
+					messageTag.setAttribute("id", messagePtr->id());
 					threadTag.appendChild(messageTag);
 				}
 			}
@@ -534,6 +534,7 @@ void SiilihaiProtocol::replyGetSyncSummary(QNetworkReply *reply) {
 	QString docs = QString().fromUtf8(reply->readAll());
 	qDebug() << Q_FUNC_INFO << docs;
 	QList<ForumGroup> grps;
+	/* @todo fix later
 	if (reply->error() == QNetworkReply::NoError) {
 		QDomDocument doc;
 		doc.setContent(docs);
@@ -553,20 +554,22 @@ void SiilihaiProtocol::replyGetSyncSummary(QNetworkReply *reply) {
 				grps.append(g);
 			}
 		}
+
 	} else {
 		qDebug() << "replyGetSyncSummary network error: "
 				<< reply->errorString();
 	}
+	*/
 	nam.disconnect(SIGNAL(finished(QNetworkReply*)));
 	reply->deleteLater();
 	emit serverGroupStatus(grps);
 }
 
-void SiilihaiProtocol::getThreadData(const ForumGroup &grp) {
+void SiilihaiProtocol::getThreadData(ForumGroup *grp) {
 	QNetworkRequest req(getThreadDataUrl);
 	QHash<QString, QString> params;
-	params.insert("forum_id", QString().number(grp.parser));
-	params.insert("group_id", grp.id);
+	params.insert("forum_id", QString().number(grp->subscription()->parser()));
+	params.insert("group_id", grp->id());
 
 	if (!clientKey.isNull()) {
 		params.insert("client_key", clientKey);
@@ -604,26 +607,23 @@ void SiilihaiProtocol::replyGetThreadData(QNetworkReply *reply) {
 					QString threadid = threadElement.attribute("id");
 					int threadChangeset =
 							threadElement.attribute("changeset").toInt();
-
+/* @todo fix
 					ForumThread t;
 					t.forumid = forumid;
 					t.groupid = groupid;
 					t.id = threadid;
 					t.changeset = threadChangeset;
 					emit serverThreadData(t);
-
 					for (int m = 0; m < threadElement.childNodes().size(); m++) {
 						QDomElement messageElement =
 								threadElement.childNodes().at(m).toElement();
 						QString messageid = messageElement.attribute("id");
-						ForumMessage msg;
-						msg.id = messageid;
-						msg.read = true;
-						msg.threadid = threadid;
-						msg.groupid = groupid;
-						msg.forumid = forumid;
+						ForumMessage msg(thr);
+						msg.setId(messageid);
+						msg.setRead(true);
 						emit serverMessageData(msg);
 					}
+*/
 				}
 			}
 		}

@@ -73,13 +73,11 @@ void ForumSession::performListGroups(QString &html) {
 	pm->setPattern(fpar.group_list_pattern);
 	QList<QHash<QString, QString> > matches = pm->findMatches(html);
 	for (int i = 0; i < matches.size(); i++) {
-		ForumGroup fg;
+		ForumGroup fg(fsub);
 		QHash<QString, QString> match = matches[i];
-
-		fg.parser = fpar.id;
-		fg.id = match["%a"];
-		fg.name = match["%b"];
-		fg.lastchange = match["%c"];
+		fg.setId(match["%a"]);
+		fg.setName(match["%b"]);
+		fg.setLastchange(match["%c"]);
 		groups.append(fg);
 	}
 	operationInProgress = FSONoOp;
@@ -152,11 +150,11 @@ void ForumSession::loginToForum() {
 		return;
 	}
 
-	if (fsub.username.length() <= 0 || fsub.password.length() <= 0) {
+	if (fsub->username().length() <= 0 || fsub->password().length() <= 0) {
 		qDebug() << "Warning, no credentials supplied. Logging in should fail.";
 	}
 
-	qDebug() << "u/p: " << fsub.username << "/" << fsub.password;
+	qDebug() << "u/p: " << fsub->username() << "/" << fsub->password();
 	QUrl loginUrl(getLoginUrl());
 	if (fpar.login_type == ForumParser::LoginTypeHttpPost) {
 		QNetworkRequest req;
@@ -166,8 +164,8 @@ void ForumSession::loginToForum() {
 				QString::SkipEmptyParts);
 		for (int i = 0; i < loginParamPairs.size(); ++i) {
 			QString paramPair = loginParamPairs.at(i);
-			paramPair = paramPair.replace("%u", fsub.username);
-			paramPair = paramPair.replace("%p", fsub.password);
+			paramPair = paramPair.replace("%u", fsub->username());
+			paramPair = paramPair.replace("%p", fsub->password());
 			qDebug() << "Param Pair: " << paramPair;
 
 			if (paramPair.contains('=')) {
@@ -203,7 +201,7 @@ void ForumSession::fetchCookie() {
 	nam->post(req, emptyData);
 }
 
-void ForumSession::initialize(ForumParser &fop, ForumSubscription &fos,
+void ForumSession::initialize(ForumParser &fop, ForumSubscription *fos,
 		PatternMatcher *matcher) {
 	fsub = fos;
 	fpar = fop;
@@ -251,8 +249,8 @@ void ForumSession::updateThreadPage() {
 	nam->post(req, emptyData);
 }
 
-void ForumSession::listThreads(ForumGroup group) {
-	qDebug() << "ForumSession::UpdateGroup: " << group.toString();
+void ForumSession::listThreads(ForumGroup *group) {
+	qDebug() << "ForumSession::UpdateGroup: " << group->toString();
 
 	if (operationInProgress != FSONoOp && operationInProgress
 			!= FSOUpdateThreads) {
@@ -268,8 +266,8 @@ void ForumSession::listThreads(ForumGroup group) {
 	updateGroupPage();
 }
 
-void ForumSession::listMessages(ForumThread thread) {
-	qDebug() << "ForumSession::UpdateThread: " << thread.toString();
+void ForumSession::listMessages(ForumThread *thread) {
+	qDebug() << "ForumSession::UpdateThread: " << thread->toString();
 
 	if (operationInProgress != FSONoOp && operationInProgress
 			!= FSOUpdateMessages) {
@@ -310,21 +308,18 @@ void ForumSession::performListMessages(QString &html) {
 	QList<QHash<QString, QString> > matches = pm->findMatches(html);
 	qDebug() << "ListMessages Found " << matches.size() << " matches";
 	for (int i = 0; i < matches.size(); i++) {
-		ForumMessage fm;
+		ForumMessage fm(currentThread);
 		QHash<QString, QString> match = matches[i];
-		fm.forumid = fpar.id;
-		fm.groupid = currentThread.groupid;
-		fm.threadid = currentThread.id;
-		fm.read = false;
-		fm.id = match["%a"];
-		fm.subject = match["%b"];
-		fm.body = match["%c"];
-		fm.author = match["%d"];
-		fm.lastchange = match["%e"];
+		fm.setRead(false);
+		fm.setId(match["%a"]);
+		fm.setSubject(match["%b"]);
+		fm.setBody(match["%c"]);
+		fm.setAuthor(match["%d"]);
+		fm.setLastchange(match["%e"]);
 		if (fpar.supportsMessageUrl()) {
-			fm.url = getMessageUrl(fm);
+			fm.setUrl(getMessageUrl(&fm));
 		} else {
-			fm.url = currentMessagesUrl;
+			fm.setUrl(currentMessagesUrl);
 		}
 		if (fm.isSane()) {
 			newMessages.append(fm);
@@ -338,14 +333,14 @@ void ForumSession::performListMessages(QString &html) {
 	for (int i = 0; i < newMessages.size(); i++) {
 		bool messageFound = false;
 		for (int j = 0; j < messages.size(); j++) {
-			if (newMessages[i].id == messages[j].id) {
+			if (newMessages[i].id() == messages[j].id()) {
 				messageFound = true;
 			}
 		}
 		if (!messageFound) {
 			newMessagesFound = true;
-			newMessages[i].ordernum = messages.size();
-			if (messages.size() < fsub.latest_messages) {
+			newMessages[i].setOrdernum(messages.size());
+			if (messages.size() < fsub->latest_messages()) {
 				messages.append(newMessages[i]);
 			} else {
 				qDebug()
@@ -380,7 +375,7 @@ void ForumSession::performListMessages(QString &html) {
 	if (operationInProgress == FSONoOp) {
 		qDebug() << "clearing messages, size " << messages.size();
 		messages.clear();
-		currentThread.id = -1;
+		currentThread = 0;
 	}
 }
 
@@ -399,12 +394,12 @@ QString ForumSession::statusReport() {
 			+ QString().number(threads.size()) + "\n" + "Messages: "
 			+ QString().number(messages.size()) + "\n" + "Page: "
 			+ QString().number(currentListPage) + "\n" + "Group: "
-			+ currentGroup.toString() + "\n" + "Thread: "
-			+ currentThread.toString() + "\n";
+			+ currentGroup->toString() + "\n" + "Thread: "
+			+ currentThread->toString() + "\n";
 }
 
 void ForumSession::listThreadsReply(QNetworkReply *reply) {
-	qDebug() << Q_FUNC_INFO << currentGroup.toString();
+	qDebug() << Q_FUNC_INFO << currentGroup->toString();
 	qDebug() << statusReport();
 	disconnect(nam, SIGNAL(finished(QNetworkReply*)), this,
 			SLOT(listThreadsReply(QNetworkReply*)));
@@ -426,13 +421,11 @@ void ForumSession::performListThreads(QString &html) {
 	QList<QHash<QString, QString> > matches = pm->findMatches(html);
 	qDebug() << "ListThreads Found " << matches.size() << " matches";
 	for (int i = 0; i < matches.size(); i++) {
-		ForumThread ft;
+		ForumThread ft(currentGroup);
 		QHash<QString, QString> match = matches[i];
-		ft.forumid = fpar.id;
-		ft.groupid = currentGroup.id;
-		ft.id = match["%a"];
-		ft.name = match["%b"];
-		ft.lastchange = match["%c"];
+		ft.setId(match["%a"]);
+		ft.setName(match["%b"]);
+		ft.setLastchange(match["%c"]);
 		if (ft.isSane()) {
 			newThreads.append(ft);
 		} else {
@@ -445,14 +438,14 @@ void ForumSession::performListThreads(QString &html) {
 	for (int i = 0; i < newThreads.size(); i++) {
 		bool threadFound = false;
 		for (int j = 0; j < threads.size(); j++) {
-			if (newThreads[i].id == threads[j].id) {
+			if (newThreads[i].id() == threads[j].id()) {
 				threadFound = true;
 			}
 		}
 		if (!threadFound) {
 			newThreadsFound = true;
-			newThreads[i].ordernum = threads.size();
-			if (threads.size() < fsub.latest_threads) {
+			newThreads[i].setOrdernum(threads.size());
+			if (threads.size() < fsub->latest_threads()) {
 				threads.append(newThreads[i]);
 			} else {
 				qDebug()
@@ -484,7 +477,7 @@ void ForumSession::performListThreads(QString &html) {
 	}
 	if (operationInProgress == FSONoOp) {
 		threads.clear();
-		currentThread.id = -1;
+		currentThread = 0;
 	}
 }
 
@@ -497,17 +490,18 @@ void ForumSession::cancelOperation() {
 	currentListPage = -1;
 	threads.clear();
 	messages.clear();
-	currentGroup.id = QString::null;
-	currentThread.id = QString::null;
+	currentGroup = 0;
+	currentThread = 0;
 }
 
-QString ForumSession::getMessageUrl(const ForumMessage &msg) {
+// @todo could be in forummessage?
+QString ForumSession::getMessageUrl(const ForumMessage *msg) {
 	QUrl url = QUrl();
 
 	QString urlString = fpar.view_message_path;
-	urlString = urlString.replace("%g", currentGroup.id);
-	urlString = urlString.replace("%t", currentThread.id);
-	urlString = urlString.replace("%m", msg.id);
+	urlString = urlString.replace("%g", currentGroup->id());
+	urlString = urlString.replace("%t", currentThread->id());
+	urlString = urlString.replace("%m", msg->id());
 	urlString = fpar.forumUrlWithoutEnd() + urlString;
 	return urlString;
 }
@@ -521,9 +515,9 @@ void ForumSession::setParser(ForumParser &fop) {
 	fpar = fop;
 }
 
-QString ForumSession::getThreadListUrl(const ForumGroup &grp, int page) {
+QString ForumSession::getThreadListUrl(const ForumGroup *grp, int page) {
 	QString urlString = fpar.thread_list_path;
-	urlString = urlString.replace("%g", grp.id);
+	urlString = urlString.replace("%g", grp->id());
 	if (fpar.supportsThreadPages()) {
 		if (page < 0)
 			page = fpar.thread_list_page_start;
@@ -533,10 +527,10 @@ QString ForumSession::getThreadListUrl(const ForumGroup &grp, int page) {
 	return urlString;
 }
 
-QString ForumSession::getMessageListUrl(const ForumThread &thread, int page) {
+QString ForumSession::getMessageListUrl(const ForumThread *thread, int page) {
 	QString urlString = fpar.view_thread_path;
-	urlString = urlString.replace("%g", thread.groupid);
-	urlString = urlString.replace("%t", thread.id);
+	urlString = urlString.replace("%g", thread->group()->id());
+	urlString = urlString.replace("%t", thread->id());
 	if (fpar.supportsMessagePages()) {
 		if (page < 0)
 			page = fpar.view_thread_page_start;
@@ -550,17 +544,17 @@ void ForumSession::authenticationRequired(QNetworkReply * reply,
 		QAuthenticator * authenticator) {
 	qDebug() << Q_FUNC_INFO;
 
-	if (fsub.username.length() <= 0 || fsub.password.length() <= 0) {
+	if (fsub->username().length() <= 0 || fsub->password().length() <= 0) {
 		qDebug() << "FAIL: no credentials given for subscription "
-				<< fsub.toString();
+				<< fsub->toString();
 		cancelOperation();
 		emit networkFailure(
 				"Server requested for username and password for forum "
-						+ fsub.name + " but you haven't provided them.");
+						+ fsub->name() + " but you haven't provided them.");
 	} else {
 		qDebug() << "Gave credentials to server";
-		authenticator->setUser(fsub.username);
-		authenticator->setPassword(fsub.password);
+		authenticator->setUser(fsub->username());
+		authenticator->setPassword(fsub->password());
 	}
 }
 
@@ -589,7 +583,7 @@ bool ForumSession::prepareForUse() {
 		fetchCookie();
 		return true;
 	}
-	if (!loggedIn && fpar.supportsLogin() && fsub.username.length() > 0 && fsub.password.length() > 0) {
+	if (!loggedIn && fpar.supportsLogin() && fsub->username().length() > 0 && fsub->password().length() > 0) {
 		loginToForum();
 		return true;
 	}

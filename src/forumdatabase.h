@@ -3,9 +3,10 @@
 #include <QObject>
 #include <QtSql>
 #include <QList>
+#include <QMap>
+#include "forumsubscription.h"
 #include "forumgroup.h"
 #include "forumthread.h"
-#include "forumsubscription.h"
 #include "forummessage.h"
 
 class ForumDatabase : public QObject {
@@ -16,35 +17,61 @@ public:
 	virtual ~ForumDatabase();
 	bool openDatabase();
 	void resetDatabase();
-	bool addForum(const ForumSubscription &fs);
-	bool deleteForum(const int forumid);
-	QList <ForumSubscription> listSubscriptions();
-	ForumSubscription getSubscription(int id);
-	QList <ForumGroup> listGroups(const int parser);
-	ForumGroup getGroup(const int forum, QString id);
-	QList <ForumThread> listThreads(const ForumGroup &group);
-	ForumThread getThread(const int forum, QString groupid, QString threadid);
-	QList <ForumMessage> listMessages(const ForumThread &thread);
-	ForumMessage getMessage(const int forum, QString groupid, QString threadid, QString messageid);
-	bool addThread(const ForumThread &thread);
-	bool deleteThread(const ForumThread &thread);
-	bool updateThread(const ForumThread &thread);
-	bool addMessage(const ForumMessage &message);
-	bool updateMessage(const ForumMessage &message);
-	bool deleteMessage(const ForumMessage &message);
-	bool addGroup(const ForumGroup &grp);
-	bool updateGroup(const ForumGroup &grp);
-	bool deleteGroup(const ForumGroup &grp);
-	int unreadIn(const ForumSubscription &fs);
-	int unreadIn(const ForumGroup &fg);
-	bool markForumRead(const int forumid, bool read);
-	bool markGroupRead(const ForumGroup &group, bool read);
+	ForumSubscription* addForum(ForumSubscription *fs);
+	bool deleteForum(ForumSubscription *sub);
+	QList <ForumSubscription*> listSubscriptions();
+	ForumSubscription* getSubscription(int id);
+
+	// QList <ForumGroup*> listGroups(const int parser);
+	QList <ForumGroup*> listGroups(ForumSubscription *fs);
+	ForumGroup* getGroup(const int forum, QString id);
+	ForumGroup* addGroup(const ForumGroup *grp);
+	bool updateGroup(ForumGroup *grp);
+	bool deleteGroup(ForumGroup *grp);
+
+	QList <ForumThread*> listThreads(ForumGroup *group);
+	ForumThread* getThread(const int forum, QString groupid, QString threadid);
+	ForumThread* addThread(const ForumThread *thread);
+	bool deleteThread(ForumThread *thread);
+	bool updateThread(ForumThread *thread);
+
+	QList <ForumMessage*> listMessages(ForumThread *thread);
+	ForumMessage* getMessage(const int forum, QString groupid, QString threadid, QString messageid);
+	ForumMessage * addMessage(ForumMessage *message);
+	bool updateMessage(ForumMessage *message);
+	bool deleteMessage(ForumMessage *message);
+
+	int unreadIn(const ForumSubscription *fs);
+	int unreadIn(const ForumGroup *fg);
+	void markForumRead(ForumSubscription *fs, bool read);
+	bool markGroupRead(ForumGroup *group, bool read);
 	int schemaVersion();
 public slots:
-	bool markMessageRead(const ForumMessage &message);
-	bool markMessageRead(const ForumMessage &message, bool read);
+	void markMessageRead(ForumMessage *message);
+	void markMessageRead(ForumMessage *message, bool read);
+signals:
+	void subscriptionAdded(ForumSubscription *sub);
+	void subscriptionFound(ForumSubscription *sub);
+	void subscriptionUpdated(ForumSubscription *sub);
+	void subscriptionDeleted(ForumSubscription *sub);
+	void groupAdded(ForumGroup *grp);
+	void groupFound(ForumGroup *grp);
+	void groupDeleted(ForumGroup *grp);
+	void groupUpdated(ForumGroup *grp);
+	void threadFound(ForumThread *thr);
+	void threadAdded(ForumThread *thr);
+	void threadDeleted(ForumThread *thr);
+	void threadUpdated(ForumThread *thr);
+	void messageFound(ForumMessage *msg);
+	void messageAdded(ForumMessage *msg);
+	void messageDeleted(ForumMessage *msg);
+	void messageUpdated(ForumMessage *msg);
 private:
-	void bindMessageValues(QSqlQuery &query, const ForumMessage &message);
+	void bindMessageValues(QSqlQuery &query, const ForumMessage *message);
+	QMap<int, ForumSubscription*> subscriptions;
+	QMap<ForumSubscription*, QMap<QString, ForumGroup*> > groups;
+	QMap<ForumGroup*, QMap<QString, ForumThread*> > threads;
+	QMap<ForumThread*, QMap<QString, ForumMessage*> > messages;
 };
 
 #endif /* FORUMDATABASE_H_ */

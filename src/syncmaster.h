@@ -17,14 +17,14 @@ public:
 	void startSync();
 	void endSync();
 public slots:
-	void serverGroupStatus(QList<ForumGroup> grps);
+	void serverGroupStatus(QList<ForumGroup*> grps);
 	// void serverThreadStatus(ForumThread thread);
-	void threadChanged(ForumThread &thread);
+	void threadChanged(ForumThread *thread);
 	void uploadNextGroup(bool success);
 	void downloadNextGroup(bool success);
 	void sendThreadDataFinished(bool success);
-	void serverThreadData(ForumThread &thread);
-	void serverMessageData(ForumMessage &message);
+	void serverThreadData(ForumThread *thread);
+	void serverMessageData(ForumMessage *message);
 
 signals:
 	void syncFinished(bool success);
@@ -34,13 +34,13 @@ private:
 
 	ForumDatabase &fdb;
 	SiilihaiProtocol &protocol;
-	QList<ForumGroup> serversGroups;
-	QList<ForumThread> serversThreads;
-	QQueue<ForumGroup> groupsToUpload;
-	QQueue<ForumGroup> groupsToDownload;
-	QSet<ForumThread> changedThreads;
-	QSet<int> forumsToUpload;
-	QQueue<ForumMessage> messagesToUpload;
+	QList<ForumGroup*> serversGroups;
+	QList<ForumThread*> serversThreads;
+	QQueue<ForumGroup*> groupsToUpload;
+	QQueue<ForumGroup*> groupsToDownload;
+	QSet<ForumThread*> changedThreads;
+	QSet<ForumSubscription*> forumsToUpload;
+	QQueue<ForumMessage*> messagesToUpload;
 };
 
 #endif /* SYNCMASTER_H_ */

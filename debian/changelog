@@ -1,3 +1,9 @@
+libsiilihai (0.8-1) unstable; urgency=low
+
+  * Major update & cleanup
+  
+ -- Ville Ranki <ville.ranki@iki.fi>  Sun, 31 Jan 2010 20:29:43 +0300
+
 libsiilihai (0.7.9-2) unstable; urgency=low
 
   * New database schema & preparations for sync support
