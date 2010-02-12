@@ -56,9 +56,9 @@ public slots:
 	void authenticationRequired ( QNetworkReply * reply, QAuthenticator * authenticator );
 
 signals:
-	void listGroupsFinished(QList<ForumGroup> groups);
-	void listThreadsFinished(QList<ForumThread> threads, ForumGroup *group);
-	void listMessagesFinished(QList<ForumMessage> messages, ForumThread *thread);
+	void listGroupsFinished(QList<ForumGroup> &groups);
+	void listThreadsFinished(QList<ForumThread> &threads, ForumGroup *group);
+	void listMessagesFinished(QList<ForumMessage> &messages, ForumThread *thread);
 	void groupUpdated(QList<ForumThread> threads);
 	void networkFailure(QString message);
 	void loginFinished(bool success);

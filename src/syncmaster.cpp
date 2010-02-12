@@ -3,12 +3,14 @@
 SyncMaster::SyncMaster(QObject *parent, ForumDatabase &fd,
 		SiilihaiProtocol &prot) :
 	QObject(parent), fdb(fd), protocol(prot) {
+	/*
 	connect(&protocol, SIGNAL(serverGroupStatus(QList<ForumGroup*>)), this,
 			SLOT(serverGroupStatus(QList<ForumGroup*>)));
 	connect(&protocol, SIGNAL(serverThreadData(ForumThread*)), this,
 			SLOT(serverThreadData(ForumThread*)));
 	connect(&protocol, SIGNAL(serverMessageData(ForumMessage*)), this,
 			SLOT(serverMessageData(ForumMessage*)));
+			*/
 }
 
 SyncMaster::~SyncMaster() {

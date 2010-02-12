@@ -637,7 +637,10 @@ bool ForumDatabase::updateGroup(ForumGroup *grp) {
 }
 
 void ForumDatabase::markMessageRead(ForumMessage *message) {
-	return markMessageRead(message, true);
+
+    if(message) {
+        markMessageRead(message, true);
+    }
 }
 
 void ForumDatabase::markMessageRead(ForumMessage *message, bool read) {

@@ -393,9 +393,9 @@ QString ForumSession::statusReport() {
 	return "Operation: " + op + " in " + fpar.toString() + "\n" + "Threads: "
 			+ QString().number(threads.size()) + "\n" + "Messages: "
 			+ QString().number(messages.size()) + "\n" + "Page: "
-			+ QString().number(currentListPage) + "\n" + "Group: "
+                        + QString().number(currentListPage)/* + "\n" + "Group: "
 			+ currentGroup->toString() + "\n" + "Thread: "
-			+ currentThread->toString() + "\n";
+                        + currentThread->toString() + "\n"*/;
 }
 
 void ForumSession::listThreadsReply(QNetworkReply *reply) {
