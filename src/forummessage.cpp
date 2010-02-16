@@ -27,7 +27,7 @@ ForumMessage& ForumMessage::operator=(const ForumMessage& o) {
 	return *this;
 }
 
-ForumMessage::ForumMessage(const ForumMessage& o) {
+ForumMessage::ForumMessage(const ForumMessage& o) : QObject() {
 	*this = o;
 }
 

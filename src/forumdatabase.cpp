@@ -555,8 +555,8 @@ bool ForumDatabase::deleteMessage(ForumMessage *message) {
 		qDebug() << "Deleting message failed: " << query.lastError().text();
 		return false;
 	}
-	messages[message->thread()].remove(message->id());
-	emit messageDeleted(message);
+        emit messageDeleted(message);
+        messages[message->thread()].remove(message->id());
 	qDebug() << "Message " << message->toString() << " deleted";
 	message->deleteLater();
 	return true;
@@ -646,8 +646,8 @@ void ForumDatabase::markMessageRead(ForumMessage *message) {
 void ForumDatabase::markMessageRead(ForumMessage *message, bool read) {
 	Q_ASSERT(message);
 	qDebug() << Q_FUNC_INFO;
-	if (!message->isSane())
-		return;
+        Q_ASSERT(message->isSane());
+
 	QSqlQuery query;
 	query.prepare(
 			"UPDATE messages SET read=? WHERE(forumid=? AND groupid=? AND threadid=? AND messageid=?)");
@@ -729,8 +729,10 @@ bool ForumDatabase::markGroupRead(ForumGroup *group, bool read) {
 			msg->setRead(read);
 			emit messageUpdated(msg);
 		}
+                emit threadUpdated(ft);
 	}
-	return false;
+        emit groupUpdated(group);
+        return true;
 }
 
 int ForumDatabase::schemaVersion() {
