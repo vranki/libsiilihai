@@ -35,7 +35,10 @@ ForumGroup::~ForumGroup() {
 }
 
 QString ForumGroup::toString() const {
-	return QString().number(subscription()->parser()) + "/" + _id + ": " + _name;
+    QString parser = "Unknown";
+    if(subscription())
+        parser = QString().number(subscription()->parser());
+    return parser + "/" + _id + ": " + _name;
 }
 
 bool ForumGroup::isSane() const {

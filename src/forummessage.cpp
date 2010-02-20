@@ -36,8 +36,19 @@ bool ForumMessage::isSane() const {
 }
 
 QString ForumMessage::toString() const {
-	return QString().number(thread()->group()->subscription()->parser()) + "/" +
-	thread()->group()->id() + "/" + thread()->id() + "/" + id() + ": " + subject();
+    QString parser = "Unknown";
+    QString group = "Unknown";
+    QString thread = "Unknown";
+    if(_thread) {
+        thread = _thread->id();
+        if(_thread->group()) {
+            group = _thread->group()->id();
+            if(_thread->group()->subscription())
+                parser = QString().number(_thread->group()->subscription()->parser());
+        }
+    }
+    return QString().number(_thread->group()->subscription()->parser()) + "/" +
+            _thread->group()->id() + "/" + _thread->id() + "/" + id() + ": " + subject();
 }
 
 ForumThread* ForumMessage::thread() const { return _thread; }

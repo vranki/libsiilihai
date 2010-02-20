@@ -79,6 +79,7 @@ void ForumDatabase::resetDatabase() {
     query.exec("DROP TABLE groups");
     query.exec("DROP TABLE threads");
     query.exec("DROP TABLE messages");
+    query.exec("DROP INDEX idx_messages");
 }
 
 bool ForumDatabase::openDatabase() {
@@ -97,8 +98,8 @@ bool ForumDatabase::openDatabase() {
             return false;
         }
         if (!query.exec("CREATE TABLE groups ("
-			"forumid INTEGER REFERENCES forums(parser), "
-			"groupid VARCHAR NOT NULL, "
+                        "forumid INTEGER REFERENCES forums(parser), "
+                        "groupid VARCHAR NOT NULL, "
 			"name VARCHAR, "
 			"lastchange VARCHAR, "
 			"subscribed BOOLEAN, "
@@ -109,9 +110,9 @@ bool ForumDatabase::openDatabase() {
             return false;
         }
         if (!query.exec("CREATE TABLE threads ("
-			"forumid INTEGER REFERENCES forums(forumid), "
-			"groupid VARCHAR REFERENCES groups(groupid), "
-			"threadid VARCHAR NOT NULL, "
+                        "forumid INTEGER REFERENCES forums(forumid), "
+                        "groupid VARCHAR REFERENCES groups(groupid), "
+                        "threadid VARCHAR NOT NULL, "
 			"ordernum INTEGER, "
 			"name VARCHAR, "
 			"lastchange VARCHAR, "
@@ -122,10 +123,10 @@ bool ForumDatabase::openDatabase() {
             return false;
         }
         if (!query.exec("CREATE TABLE messages ("
-			"forumid INTEGER REFERENCES forums(forumid), "
-			"groupid VARCHAR REFERENCES groups(groupid), "
-			"threadid VARCHAR REFERENCES threads(threadid), "
-			"messageid VARCHAR NOT NULL, "
+                        "forumid INTEGER REFERENCES forums(forumid), "
+                        "groupid VARCHAR REFERENCES groups(groupid), "
+                        "threadid VARCHAR REFERENCES threads(threadid), "
+                        "messageid VARCHAR NOT NULL, "
 			"ordernum INTEGER, "
 			"url VARCHAR, "
 			"subject VARCHAR, "
@@ -136,6 +137,10 @@ bool ForumDatabase::openDatabase() {
 			"PRIMARY KEY (forumid, groupid, threadid, messageid)"
 			")")) {
             qDebug() << "Couldn't create messages table!";
+            return false;
+        }
+        if (!query.exec("CREATE INDEX idx_messages ON messages(threadid)")) {
+            qDebug() << "Couldn't create messages index!";
             return false;
         }
     }
@@ -159,7 +164,7 @@ bool ForumDatabase::openDatabase() {
     }
     foreach(ForumSubscription *sub, subscriptions) {
         // Load groups
-        query.prepare("SELECT groupid,name,lastchange,subscribed,changeset FROM groups WHERE forum.parser=?");
+        query.prepare("SELECT groupid,name,lastchange,subscribed,changeset FROM groups WHERE forumid=?");
         query.addBindValue(sub->parser());
 
         if (query.exec()) {
@@ -181,7 +186,7 @@ bool ForumDatabase::openDatabase() {
     // Load threads
     foreach(ForumSubscription *sub, subscriptions) {
         foreach(ForumGroup *grp, groups[sub]) {
-            query.prepare("SELECT threadid,ordernum,name,lastchange,changeset FROM threads WHERE forums.parser=? AND groups.groupid=? ORDER BY ordernum");
+            query.prepare("SELECT threadid,ordernum,name,lastchange,changeset FROM threads WHERE forumid=? AND groupid=? ORDER BY ordernum");
             query.addBindValue(grp->subscription()->parser());
             query.addBindValue(grp->id());
 
@@ -207,7 +212,14 @@ bool ForumDatabase::openDatabase() {
     foreach(ForumSubscription *sub, subscriptions) {
         foreach(ForumGroup *grp, groups[sub]) {
             foreach(ForumThread *thread, threads[grp]) {
-                query.prepare("SELECT messageid,ordernum,url,subject,author,lastchange,body,read FROM messages WHERE forums.parser=? AND groups.groupid=? AND threads.threadid=? ORDER BY ordernum");
+                qDebug() << "Listing messages in " << thread->toString();
+/*
+                query.prepare("SELECT messageid,messages.ordernum,url,subject,author,messages.lastchange,read FROM messages "\
+                              "INNER JOIN threads ON messages.threadid=threads.threadid INNER JOIN groups ON threads.groupid=groups.groupid WHERE "\
+                              "groups.forumid=? AND threads.groupid=? AND messages.threadid=? AND messages.threadid=threads.threadid AND groups.groupid=threads.groupid ORDER BY messages.ordernum");
+*/
+                query.prepare("SELECT messageid,ordernum,url,subject,author,lastchange,body,read FROM messages WHERE "\
+                              "forumid=? AND groupid=? AND threadid=? ORDER BY ordernum");
                 query.addBindValue(thread->group()->subscription()->parser());
                 query.addBindValue(thread->group()->id());
                 query.addBindValue(thread->id());
@@ -275,7 +287,8 @@ ForumGroup* ForumDatabase::addGroup(const ForumGroup *grp) {
     query.addBindValue(grp->subscribed());
     query.addBindValue(grp->changeset());
     if (!query.exec()) {
-        qDebug() << "Adding group failed: " << query.lastError().text();
+        qDebug() << "Adding group failed: " << query.lastError().text() << grp->toString();
+        Q_ASSERT(0);
         return 0;
     }
     Q_ASSERT(subscriptions[grp->subscription()->parser()] == grp->subscription());
@@ -619,5 +632,5 @@ bool ForumDatabase::markGroupRead(ForumGroup *group, bool read) {
 }
 
 int ForumDatabase::schemaVersion() {
-    return 1;
+    return 2;
 }

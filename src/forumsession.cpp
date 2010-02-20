@@ -7,6 +7,7 @@ ForumSession::ForumSession(QObject *parent) :
 	cookieJar = 0;
 	currentListPage = 0;
 	pm = 0;
+        fsub = 0;
 	loggedIn = false;
 	cookieFetched = false;
 	clearAuthentications();
@@ -203,6 +204,7 @@ void ForumSession::fetchCookie() {
 
 void ForumSession::initialize(ForumParser &fop, ForumSubscription *fos,
 		PatternMatcher *matcher) {
+    Q_ASSERT(fos);
 	fsub = fos;
 	fpar = fop;
 

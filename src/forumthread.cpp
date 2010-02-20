@@ -32,8 +32,15 @@ ForumThread& ForumThread::operator=(const ForumThread& o) {
 
 
 QString ForumThread::toString() const {
-	return QString().number(group()->subscription()->parser()) + "/" + group()->id() +
-	"/" + id() + ": " + name();
+    QString tparser = "Unknown";
+    QString tgroup = "Unknown";
+    if(group()) {
+        tgroup = group()->id();
+        if(group()->subscription())
+            tparser = QString().number(group()->subscription()->parser());
+    }
+    return tparser + "/" + tgroup +
+            "/" + id() + ": " + name();
 }
 
 bool ForumThread::isSane() const {

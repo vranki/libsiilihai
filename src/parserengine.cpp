@@ -65,7 +65,9 @@ void ParserEngine::updateNextChangedGroup() {
 	Q_ASSERT(updateAll);
 
 	if (groupsToUpdateQueue.size() > 0) {
-		session.listThreads(groupsToUpdateQueue.dequeue());
+            ForumGroup *grp=groupsToUpdateQueue.dequeue();
+            Q_ASSERT(grp);
+            session.listThreads(grp);
 	} else {
 		qDebug() << "No more changed groups - end of update.";
 		updateAll = false;
@@ -125,8 +127,7 @@ void ParserEngine::listGroupsFinished(QList<ForumGroup> &groups) {
 			}
 		}
 		if (!foundInDb) {
-			qDebug() << "Group " << grp.toString()
-					<< " not found in db - adding.";
+                        qDebug() << "Group " << grp.toString()	<< " not found in db - adding.";
 			groupsChanged = true;
 			grp.setChangeset(1);
 			// DON'T set lastchange when only updating group list.
@@ -185,11 +186,13 @@ void ParserEngine::listThreadsFinished(QList<ForumThread> &threads,
 	foreach(ForumThread thr, threads) {
 		bool foundInDb = false;
 		foreach (ForumThread *dbthread, dbthreads) {
+                    Q_ASSERT(dbthread);
 			if (dbthread->id() == thr.id()) {
 				foundInDb = true;
 				if ((dbthread->lastchange() != thr.lastchange()) || forceUpdate) {
 					Q_ASSERT(dbthread->group() == thr.group());
 					dbthread->operator=(thr);
+                                        Q_ASSERT(dbthread);
 					threadsToUpdateQueue.enqueue(dbthread);
 					qDebug() << "Thread " << dbthread->toString()
 							<< " has been changed, adding to list";
@@ -199,7 +202,9 @@ void ParserEngine::listThreadsFinished(QList<ForumThread> &threads,
 		if (!foundInDb) {
 			threadsChanged = true;
 			thr.setChangeset(1);
-			threadsToUpdateQueue.enqueue(fdb->addThread(&thr));
+                        ForumThread *addedThread = fdb->addThread(&thr);
+                        Q_ASSERT(addedThread);
+                        threadsToUpdateQueue.enqueue(addedThread);
 		}
 	}
 
