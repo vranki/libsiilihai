@@ -1,18 +1,76 @@
 #include "forumthread.h"
 
-ForumThread::ForumThread() {
-	forumid = -1;
-	id = QString::null;
-	changeset = -1;
+ForumThread::ForumThread() : QObject() {
+	_group = 0;
+	_id = QString::null;
+	_changeset = -1;
+	_ordernum = 0;
 }
 
 ForumThread::~ForumThread() {
 }
 
+ForumThread::ForumThread(ForumGroup *grp) : QObject(grp) {
+	ForumThread();
+	_group = grp;
+}
+
+ForumThread::ForumThread(const ForumThread& o) : QObject() {
+	*this = o;
+}
+
+ForumThread& ForumThread::operator=(const ForumThread& o) {
+	_group = o._group;
+	_id = o._id;
+	_name = o._name;
+	_lastchange = o._lastchange;
+	_changeset = o._changeset;
+	_ordernum = o._ordernum;
+
+	return *this;
+}
+
+
 QString ForumThread::toString() const {
-	return QString().number(forumid) + "/" + groupid + "/" + id + ": " + name;
+	return QString().number(group()->subscription()->parser()) + "/" + group()->id() +
+	"/" + id() + ": " + name();
 }
 
 bool ForumThread::isSane() const {
-	return (groupid.length() > 0 && forumid > 0 && id.length() > 0);
+	return (_group && _id.length() > 0);
+}
+
+QString ForumThread::id() const {
+	return _id;
+}
+int ForumThread::ordernum() const {
+	return _ordernum;
+}
+QString ForumThread::name() const {
+	return _name;
+}
+QString ForumThread::lastchange() const {
+	return _lastchange;
+}
+int ForumThread::changeset() const {
+	return _changeset;
+}
+ForumGroup *ForumThread::group() const {
+	return _group;
+}
+
+void ForumThread::setId(QString nid) {
+	_id = nid;
+	}
+void ForumThread::setOrdernum(int on) {
+	_ordernum = on;
+	}
+void ForumThread::setName(QString nname) {
+	_name = nname;
+	}
+void ForumThread::setLastchange(QString lc) {
+	_lastchange = lc ;
+	}
+void ForumThread::setChangeset(int cs) {
+	_changeset = cs;
 }

@@ -10,7 +10,7 @@ LibSiilihaiTests::~LibSiilihaiTests() {
 void LibSiilihaiTests::runParserEngineTests() {
 	qDebug("Parserenginetests..");
 	engine.setParser(fp);
-	engine.setSubscription(fsub);
+	engine.setSubscription(&fsub);
 	engine.updateForum(false);
 }
 
@@ -47,6 +47,7 @@ void LibSiilihaiTests::loginFinished(bool success, QString motd) {
 
 void LibSiilihaiTests::subscribeGroupsFinished(bool success) {
 	qDebug() << Q_FUNC_INFO << success;
+	/*
 	QList<ForumMessage> fms;
 	ForumMessage fm;
 	fm.forumid = 2;
@@ -65,6 +66,7 @@ void LibSiilihaiTests::subscribeGroupsFinished(bool success) {
 	connect(&protocol, SIGNAL(sendThreadDataFinished(bool)), this,
 			SLOT(sendThreadDataFinished(bool)));
 	protocol.sendThreadData(fms);
+	*/
 }
 
 void LibSiilihaiTests::sendThreadDataFinished(bool success) {
@@ -97,31 +99,33 @@ void LibSiilihaiTests::runForumSession() {
 
 	QVERIFY(fp.id > 0);
 	if (fdb.listSubscriptions().size() == 0) {
-		fsub.parser = fp.id;
-		fsub.name = fp.parser_name;
-		fsub.latest_threads = 10;
-		fsub.latest_messages = 10;
-		fsub.username = QString::null;
-		fdb.addForum(fsub);
+		fsub.setParser(fp.id);
+		fsub.setName(fp.parser_name);
+		fsub.setLatestThreads(10);
+		fsub.setLatestMessages(10);
+		fsub.setUsername(QString::null);
+		fdb.addForum(&fsub);
 	}
 	fsub = fdb.listSubscriptions()[0];
 	runParserEngineTests();
 	return;
-	fses.initialize(fp, fsub);
+	fses.initialize(fp, &fsub);
 	fses.listGroups();
 }
 
 void LibSiilihaiTests::runTests() {
-	qDebug() << "Helloz";
+	// QString db = QDir::homePath() + "/.siilihai.db";
+	QString dbfile = "siilihai-test.db";
+	qDebug() << "Helloz, using database " << dbfile;
 
 	db = QSqlDatabase::addDatabase("QSQLITE");
-	db.setDatabaseName(QDir::homePath() + "/.siilihai.db");
+	db.setDatabaseName(dbfile);
 	if (!db.open()) {
 		qDebug() << "Unable to open db!";
 		return;
 	}
-	QVERIFY(pdb.openDatabase());
-	QVERIFY(fdb.openDatabase());
+	runForumDatabaseTests();
+	return;
 	/*
 	QHash<QString, QString> params;
 	params["keke"] = "joo + jääöäöä 123 ;:;:&#/#%&/#¤&#&##&xxxx";
@@ -187,4 +191,64 @@ void LibSiilihaiTests::runTests() {
 	 pm.findMatches(html, pattern);
 	 */
 
+}
+
+void LibSiilihaiTests::groupFound(ForumGroup *grp) {
+	// qDebug() << "Group found: " << grp->toString();
+}
+
+void LibSiilihaiTests::runForumDatabaseTests() {
+	QVERIFY(pdb.openDatabase());
+	QVERIFY(fdb.openDatabase());
+
+	connect(&fdb, SIGNAL(groupFound(ForumGroup*)), this, SLOT(groupFound(ForumGroup*)));
+
+	qDebug() << "=== Deleting forums ====";
+	foreach(ForumSubscription *fs, fdb.listSubscriptions()) {
+		fdb.deleteForum(fs);
+	}
+	qDebug() << "=== End delete ====";
+
+	ForumSubscription fs(this);
+	fs.setParser(42);
+	fs.setName("Test Subscription");
+	fs.setLatestMessages(11);
+	fs.setLatestThreads(11);
+	ForumGroup fg(fdb.addForum(&fs));
+	fg.setId("G666");
+	fg.setName("Test group");
+	fg.setSubscribed(true);
+	ForumThread ft(fdb.addGroup(&fg));
+	ft.setId("T1000");
+	ft.setName("Test Thread");
+	ft.setOrdernum(0);
+	ForumMessage fm(fdb.addThread(&ft));
+	fm.setId("M000");
+	fm.setSubject("Test Message");
+	fm.setAuthor("Tester");
+	Q_ASSERT(fdb.addMessage(&fm));
+
+	qDebug() << "===Listing db contents====";
+	QList <ForumSubscription*> fss = fdb.listSubscriptions();
+	foreach (ForumSubscription* fs, fss) {
+		qDebug() << "FS: " << fs->toString() << " @ " << fs;
+		QList <ForumGroup*> fgs = fdb.listGroups(fs);
+		foreach (ForumGroup* fg, fgs) {
+			qDebug() << "\tFG: " << fg->toString() << " @ " << fg;
+			QList <ForumThread*> fts = fdb.listThreads(fg);
+			foreach (ForumThread* ft, fts) {
+				qDebug() << "\t\tFT: " << ft->toString() << " @ " << ft;
+				QList <ForumMessage*> fms = fdb.listMessages(ft);
+				foreach (ForumMessage* fm, fms) {
+					qDebug() << "\t\t\tFM: " << fm->toString() << " @ " << fm;
+				}
+			}
+		}
+	}
+	qDebug() << "=== End list ====";
+	qDebug() << "=== Deleting forums ====";
+	foreach(ForumSubscription *fs, fdb.listSubscriptions()) {
+		fdb.deleteForum(fs);
+	}
+	qDebug() << "=== End delete ====";
 }

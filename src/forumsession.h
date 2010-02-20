@@ -1,10 +1,3 @@
-/*
- * forumsession.h
- *
- *  Created on: Sep 28, 2009
- *      Author: vranki
- */
-
 #ifndef FORUMSESSION_H_
 #define FORUMSESSION_H_
 #include <QObject>
@@ -34,19 +27,19 @@ public:
 
 	ForumSession(QObject *parent=0);
 	virtual ~ForumSession();
-	void initialize(ForumParser &fop, ForumSubscription &fos, PatternMatcher *matcher=0);
+	void initialize(ForumParser &fop, ForumSubscription *fos, PatternMatcher *matcher=0);
 	void clearAuthentications();
 	void setParser(ForumParser &fop);
 	void listGroups();
-	void listThreads(ForumGroup group);
-	void listMessages(ForumThread thread);
+	void listThreads(ForumGroup *group);
+	void listMessages(ForumThread *thread);
 	void loginToForum();
 
 
-	QString getMessageUrl(const ForumMessage &msg);
+	QString getMessageUrl(const ForumMessage *msg);
 	QString getLoginUrl();
-	QString getThreadListUrl(const ForumGroup &grp, int page=-1);
-	QString getMessageListUrl(const ForumThread &thread, int page=-1);
+	QString getThreadListUrl(const ForumGroup *grp, int page=-1);
+	QString getMessageListUrl(const ForumThread *thread, int page=-1);
 
 	void performListGroups(QString &html);
 	void performListThreads(QString &html);
@@ -63,9 +56,9 @@ public slots:
 	void authenticationRequired ( QNetworkReply * reply, QAuthenticator * authenticator );
 
 signals:
-	void listGroupsFinished(QList<ForumGroup> groups);
-	void listThreadsFinished(QList<ForumThread> threads, ForumGroup group);
-	void listMessagesFinished(QList<ForumMessage> messages, ForumThread thread);
+	void listGroupsFinished(QList<ForumGroup> &groups);
+	void listThreadsFinished(QList<ForumThread> &threads, ForumGroup *group);
+	void listMessagesFinished(QList<ForumMessage> &messages, ForumThread *thread);
 	void groupUpdated(QList<ForumThread> threads);
 	void networkFailure(QString message);
 	void loginFinished(bool success);
@@ -81,15 +74,15 @@ private:
 	QString statusReport();
 	PatternMatcher *pm;
 	ForumParser fpar;
-	ForumSubscription fsub;
+	ForumSubscription *fsub;
 	QNetworkAccessManager *nam;
 	QByteArray emptyData, loginData;
 	bool cookieFetched, loggedIn;
 	ForumSessionOperation operationInProgress;
 	QNetworkCookieJar *cookieJar;
 	int currentListPage;
-	ForumGroup currentGroup;
-	ForumThread currentThread;
+	ForumGroup *currentGroup;
+	ForumThread *currentThread;
 	QList<ForumThread> threads;
 	QList<ForumMessage> messages;
 	QString currentMessagesUrl;

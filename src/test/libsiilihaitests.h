@@ -31,11 +31,12 @@ public slots:
 	void getParserFinished(ForumParser parser);
 	void subscribeGroupsFinished(bool success);
 	void sendThreadDataFinished(bool success);
-
+	void groupFound(ForumGroup *grp);
 private:
 	void runParserEngineTests();
 	void runProtocolTests();
 	void runForumSession();
+	void runForumDatabaseTests();
 
 	SiilihaiProtocol protocol;
 	ForumDatabase fdb;
