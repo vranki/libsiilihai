@@ -19,7 +19,7 @@
 #include "httppost.h"
 #include "parserreport.h"
 
-#define CLIENT_VERSION "0.7.9"
+#define CLIENT_VERSION "development"
 
 class SiilihaiProtocol: public QObject {
 Q_OBJECT
