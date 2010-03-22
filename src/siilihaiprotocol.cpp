@@ -154,16 +154,16 @@ void SiilihaiProtocol::setBaseURL(QString &bu) {
 	nam.setProxy(QNetworkProxy::applicationProxy());
 }
 
-void SiilihaiProtocol::subscribeForum(const ForumSubscription &fs,
+void SiilihaiProtocol::subscribeForum(const ForumSubscription *fs,
 		bool unsubscribe) {
 	QNetworkRequest req(subscribeForumUrl);
-	QHash<QString, QString> params;
-	params.insert("parser_id", QString().number(fs.parser()));
+        QHash<QString, QString> params;
+        params.insert("parser_id", QString().number(fs->parser()));
 	if (unsubscribe) {
 		params.insert("unsubscribe", "yes");
 	} else {
-		params.insert("latest_threads", QString().number(fs.latest_threads()));
-		params.insert("latest_messages", QString().number(fs.latest_messages()));
+                params.insert("latest_threads", QString().number(fs->latest_threads()));
+                params.insert("latest_messages", QString().number(fs->latest_messages()));
 	}
 	if (!clientKey.isNull()) {
 		params.insert("client_key", clientKey);

@@ -2,7 +2,6 @@
 
 ParserEngine::ParserEngine(ForumDatabase *fd, QObject *parent) :
 	QObject(parent), session(this) {
-	sessionInitialized = false;
 	connect(&session, SIGNAL(listGroupsFinished(QList<ForumGroup>&)), this,
 			SLOT(listGroupsFinished(QList<ForumGroup>&)));
 	connect(&session,
@@ -17,7 +16,10 @@ ParserEngine::ParserEngine(ForumDatabase *fd, QObject *parent) :
 	fdb = fd;
 	updateAll = false;
 	forceUpdate = false;
+        sessionInitialized = false;
 	forumBusy = 0;
+        largestGroupsToUpdateQueue = 0;
+        largestThreadsToUpdateQueue = 0;
 }
 
 ParserEngine::~ParserEngine() {

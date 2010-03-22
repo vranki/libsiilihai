@@ -34,7 +34,7 @@ public:
 	void listRequests();
 	void listSubscriptions();
 	void getParser(const int id);
-	void subscribeForum(const ForumSubscription &fs, bool unsubscribe = false);
+        void subscribeForum(const ForumSubscription *fs, bool unsubscribe = false);
 	void subscribeGroups(QList<ForumGroup*> &fgs);
 	void sendThreadData(QList<ForumMessage*> &fms);
 	void saveParser(const ForumParser &parser);

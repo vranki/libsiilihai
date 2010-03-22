@@ -5,12 +5,10 @@ ForumGroup::ForumGroup() : QObject() {
 	_subscribed = false;
 	_changeset = -1;
 	_subscription = 0;
+        _name = "";
+        _lastchange = "";
 }
-/*
-ForumGroup::ForumGroup(QObject *parent) : QObject(parent){
-	ForumGroup();
-}
-*/
+
 ForumGroup::ForumGroup(ForumSubscription *sub) : QObject(sub) {
 	ForumGroup();
 	_subscription = sub;
@@ -44,11 +42,7 @@ QString ForumGroup::toString() const {
 bool ForumGroup::isSane() const {
 	return (_id.length() > 0 && _name.length() > 0 && _subscription);
 }
-/*
-ForumSubscription* ForumGroup::subscription() const {
-	return _subscription;
-}
-*/
+
 QString ForumGroup::name() const {
 	return _name;
 }
@@ -70,7 +64,6 @@ ForumSubscription* ForumGroup::subscription() const {
 	return _subscription;
 }
 
-//void ForumGroup::setSubscription(ForumSubscription *sub) { _subscription = sub; }
 void ForumGroup::setName(QString name) { _name = name; }
 void ForumGroup::setId(QString id) { _id = id; }
 void ForumGroup::setLastchange(QString lc) { _lastchange = lc; }

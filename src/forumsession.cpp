@@ -33,8 +33,9 @@ QString ForumSession::convertCharset(const QByteArray &src) {
 }
 
 void ForumSession::listGroupsReply(QNetworkReply *reply) {
-	qDebug() << Q_FUNC_INFO;
-	qDebug() << statusReport();
+    if(operationInProgress == FSONoOp) return;
+    qDebug() << Q_FUNC_INFO;
+    qDebug() << statusReport();
 
 	disconnect(nam, SIGNAL(finished(QNetworkReply*)), this,
 			SLOT(listGroupsReply(QNetworkReply*)));
@@ -50,6 +51,8 @@ void ForumSession::listGroupsReply(QNetworkReply *reply) {
 }
 
 void ForumSession::loginReply(QNetworkReply *reply) {
+    if(operationInProgress == FSONoOp) return;
+
 	qDebug() << Q_FUNC_INFO;
 	qDebug() << statusReport();
 
@@ -101,6 +104,8 @@ void ForumSession::performLogin(QString &html) {
 }
 
 void ForumSession::fetchCookieReply(QNetworkReply *reply) {
+    if(operationInProgress == FSONoOp) return;
+
 	qDebug() << Q_FUNC_INFO;
 	qDebug() << statusReport();
 
@@ -288,6 +293,8 @@ void ForumSession::listMessages(ForumThread *thread) {
 }
 
 void ForumSession::listMessagesReply(QNetworkReply *reply) {
+    if(operationInProgress == FSONoOp) return;
+
 	qDebug() << Q_FUNC_INFO;
 	qDebug() << statusReport();
 	disconnect(nam, SIGNAL(finished(QNetworkReply*)), this,
@@ -401,17 +408,18 @@ QString ForumSession::statusReport() {
 }
 
 void ForumSession::listThreadsReply(QNetworkReply *reply) {
-	qDebug() << Q_FUNC_INFO << currentGroup->toString();
-	qDebug() << statusReport();
-	disconnect(nam, SIGNAL(finished(QNetworkReply*)), this,
-			SLOT(listThreadsReply(QNetworkReply*)));
-	if (reply->error() != QNetworkReply::NoError) {
-		emit(networkFailure(reply->errorString()));
-		cancelOperation();
-		return;
-	}
-	QString data = convertCharset(reply->readAll());
-	performListThreads(data);
+    if(operationInProgress == FSONoOp) return;
+    qDebug() << Q_FUNC_INFO << currentGroup->toString();
+    qDebug() << statusReport();
+    disconnect(nam, SIGNAL(finished(QNetworkReply*)), this,
+               SLOT(listThreadsReply(QNetworkReply*)));
+    if (reply->error() != QNetworkReply::NoError) {
+        emit(networkFailure(reply->errorString()));
+        cancelOperation();
+        return;
+    }
+    QString data = convertCharset(reply->readAll());
+    performListThreads(data);
 }
 
 void ForumSession::performListThreads(QString &html) {
@@ -544,7 +552,9 @@ QString ForumSession::getMessageListUrl(const ForumThread *thread, int page) {
 
 void ForumSession::authenticationRequired(QNetworkReply * reply,
 		QAuthenticator * authenticator) {
-	qDebug() << Q_FUNC_INFO;
+    if(operationInProgress == FSONoOp) return;
+
+    qDebug() << Q_FUNC_INFO;
 
 	if (fsub->username().length() <= 0 || fsub->password().length() <= 0) {
 		qDebug() << "FAIL: no credentials given for subscription "

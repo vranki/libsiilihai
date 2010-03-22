@@ -11,9 +11,9 @@ bool ForumDatabase::deleteForum(ForumSubscription *sub) {
     Q_ASSERT(sub);
     Q_ASSERT(subscriptions[sub->parser()]);
 
-    foreach(ForumGroup* g, listGroups(sub)) {
-        deleteGroup(g);
-    }
+    while(!groups[sub].isEmpty())
+        deleteGroup(groups[sub].begin().value());
+
     Q_ASSERT(groups[sub].isEmpty());
 
     QSqlQuery query;
@@ -466,9 +466,8 @@ bool ForumDatabase::deleteGroup(ForumGroup *grp) {
     Q_ASSERT(grp->isSane());
     Q_ASSERT(groups[grp->subscription()].contains(grp->id()));
 
-    foreach(ForumThread *ft, threads[grp]){
-        deleteThread(ft);
-    }
+    while(!threads[grp].isEmpty())
+        deleteThread(threads[grp].begin().value());
 
     QSqlQuery query;
     query.prepare("DELETE FROM groups WHERE (forumid=? AND groupid=?)");
@@ -493,9 +492,8 @@ bool ForumDatabase::deleteThread(ForumThread *thread) {
                 << thread->toString();
     }
 
-    foreach(ForumMessage *fm, messages[thread]){
-        deleteMessage(fm);
-    }
+    while(!messages[thread].isEmpty())
+        deleteMessage(messages[thread].begin().value());
 
     QSqlQuery query;
     query.prepare(
