@@ -1,5 +1,5 @@
 TEMPLATE = lib
-VERSION = 0.8.0
+VERSION = 0.8.2
 TARGET = siilihai
 
 # probably a bad idea
