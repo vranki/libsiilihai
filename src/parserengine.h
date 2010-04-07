@@ -52,7 +52,7 @@ private:
 	ForumDatabase *fdb;
 	QQueue<ForumGroup*> groupsToUpdateQueue;
 	QQueue<ForumThread*> threadsToUpdateQueue;
-	int largestGroupsToUpdateQueue, largestThreadsToUpdateQueue;
+//	int largestGroupsToUpdateQueue, largestThreadsToUpdateQueue;
 };
 
 #endif /* PARSERENGINE_H_ */

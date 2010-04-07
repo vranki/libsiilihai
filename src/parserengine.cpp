@@ -18,8 +18,6 @@ ParserEngine::ParserEngine(ForumDatabase *fd, QObject *parent) :
 	forceUpdate = false;
         sessionInitialized = false;
 	forumBusy = 0;
-        largestGroupsToUpdateQueue = 0;
-        largestThreadsToUpdateQueue = 0;
 }
 
 ParserEngine::~ParserEngine() {
@@ -37,8 +35,6 @@ void ParserEngine::updateForum(bool force) {
 	qDebug() << "updateForum() called for forum " << parser.toString();
 	forceUpdate = force;
 	setBusy(true);
-	largestGroupsToUpdateQueue = 0;
-	largestThreadsToUpdateQueue = 0;
 
 	updateAll = true;
 	if (!sessionInitialized)
@@ -55,8 +51,6 @@ void ParserEngine::networkFailure(QString message) {
 void ParserEngine::updateGroupList() {
 	setBusy(true);
 	updateAll = false;
-	largestGroupsToUpdateQueue = 0;
-	largestThreadsToUpdateQueue = 0;
 	if (!sessionInitialized)
 		session.initialize(parser, subscription);
 	session.listGroups();
@@ -294,22 +288,6 @@ void ParserEngine::setBusy(bool busy) {
 
 void ParserEngine::updateCurrentProgress() {
 	float progress = -1;
-
-	int gsize = groupsToUpdateQueue.size();
-	int tsize = threadsToUpdateQueue.size();
-	if (gsize > largestGroupsToUpdateQueue)
-		largestGroupsToUpdateQueue = gsize;
-	if (tsize > largestThreadsToUpdateQueue)
-		largestThreadsToUpdateQueue = tsize;
-
-	if (largestGroupsToUpdateQueue > 0) {
-		float lgroups = largestGroupsToUpdateQueue;
-		float lthreads = largestThreadsToUpdateQueue;
-		float groups = gsize;
-		float threads = tsize;
-
-		progress = groups / lgroups;
-	}
 	emit statusChanged(subscription, forumBusy, progress);
 }
 

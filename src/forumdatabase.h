@@ -4,10 +4,13 @@
 #include <QtSql>
 #include <QList>
 #include <QMap>
+#include <QTimer>
 #include "forumsubscription.h"
 #include "forumgroup.h"
 #include "forumthread.h"
 #include "forummessage.h"
+
+#define FDB_TEST 0
 
 class ForumDatabase : public QObject {
     Q_OBJECT
@@ -48,6 +51,7 @@ public:
 public slots:
     void markMessageRead(ForumMessage *message);
     void markMessageRead(ForumMessage *message, bool read);
+
 signals:
     void subscriptionAdded(ForumSubscription *sub);
     void subscriptionFound(ForumSubscription *sub);
@@ -71,6 +75,18 @@ private:
     QMap<ForumSubscription*, QMap<QString, ForumGroup*> > groups;
     QMap<ForumGroup*, QMap<QString, ForumThread*> > threads;
     QMap<ForumThread*, QMap<QString, ForumMessage*> > messages;
+
+#ifdef FDB_TEST
+public slots:
+    void updateTest();
+private:
+    QTimer testTimer;
+    int testPhase;
+    ForumSubscription *testSub;
+    ForumGroup *testGroup;
+    ForumThread *testThread;
+    ForumMessage *testMessage[3];
+#endif
 };
 
 #endif /* FORUMDATABASE_H_ */

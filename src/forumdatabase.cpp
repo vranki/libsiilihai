@@ -244,6 +244,11 @@ bool ForumDatabase::openDatabase() {
             }
         }
     }
+#ifdef FDB_TEST
+    testPhase = 0;
+    connect(&testTimer, SIGNAL(timeout()), this, SLOT(updateTest()));
+    testTimer.start(2000);
+#endif
     return true;
 }
 
@@ -634,3 +639,92 @@ bool ForumDatabase::markGroupRead(ForumGroup *group, bool read) {
 int ForumDatabase::schemaVersion() {
     return 3;
 }
+
+#ifdef FDB_TEST
+void ForumDatabase::updateTest() {
+    qDebug() << Q_FUNC_INFO << "Phase" << testPhase;
+    if(testPhase==0) {
+        testSub = new ForumSubscription(this);
+        testSub->setParser(0);
+        testSub->setName("Test Sub");
+        testSub->setLatestThreads(20);
+        testSub->setLatestMessages(20);
+        subscriptions[0] = testSub;
+        emit subscriptionFound(testSub);
+    } else if(testPhase==1) {
+        testGroup = new ForumGroup(testSub);
+        testGroup->setName("A Group");
+        testGroup->setId("a_group_id");
+        testGroup->setSubscribed(true);
+        groups[testSub][testGroup->id()] = testGroup;
+        emit groupFound(testGroup);
+    } else if(testPhase==2) {
+        testThread = new ForumThread(testGroup);
+        testThread->setName("A Thread");
+        testThread->setId("a_thread_id");
+        testThread->setOrdernum(0);
+        threads[testGroup][testThread->id()] = testThread;
+        emit threadFound(testThread);
+    } else if(testPhase==3) {
+        testMessage[0] = new ForumMessage(testThread);
+        testMessage[0]->setSubject("A message");
+        testMessage[0]->setId("a_message_id");
+        testMessage[0]->setOrdernum(0);
+        testMessage[0]->setAuthor("TestAuthor");
+        testMessage[0]->setBody("Hello from test!");
+        testMessage[0]->setRead(false);
+        messages[testThread][testMessage[0]->id()] = testMessage[0];
+        emit messageFound(testMessage[0]);
+    } else if(testPhase==4) {
+        testMessage[1] = new ForumMessage(testThread);
+        testMessage[1]->setSubject("B message");
+        testMessage[1]->setId("b_message_id");
+        testMessage[1]->setOrdernum(1);
+        testMessage[1]->setAuthor("TestAuthorB");
+        testMessage[1]->setBody("Hello from test B!");
+        testMessage[1]->setRead(false);
+        messages[testThread][testMessage[1]->id()] = testMessage[1];
+        emit messageFound(testMessage[1]);
+    } else if(testPhase==5) {
+        testMessage[2] = new ForumMessage(testThread);
+        testMessage[2]->setSubject("C message");
+        testMessage[2]->setId("c_message_id");
+        testMessage[2]->setOrdernum(2);
+        testMessage[2]->setAuthor("TestAuthorC");
+        testMessage[2]->setBody("Hello from test C!");
+        testMessage[2]->setRead(false);
+        messages[testThread][testMessage[2]->id()] = testMessage[2];
+        emit messageFound(testMessage[2]);
+    } else if(testPhase==6) {
+        testMessage[0]->setSubject("Subject changed");
+        testMessage[0]->setRead(true);
+        emit messageUpdated(testMessage[0]);
+    } else if(testPhase==7) {
+        emit messageDeleted(testMessage[0]);
+        messages[testThread].remove(testMessage[0]->id());
+        testMessage[0]->deleteLater();
+    } else if(testPhase==8) {
+        emit messageDeleted(testMessage[2]);
+        messages[testThread].remove(testMessage[2]->id());
+        testMessage[2]->deleteLater();
+    } else if(testPhase==9) {
+        emit messageDeleted(testMessage[1]);
+        messages[testThread].remove(testMessage[1]->id());
+        testMessage[1]->deleteLater();
+    } else if(testPhase==10) {
+        emit threadDeleted(testThread);
+        threads[testGroup].remove(testThread->id());
+        testThread->deleteLater();
+    } else if(testPhase==11) {
+        emit groupDeleted(testGroup);
+        groups[testSub].remove(testGroup->id());
+        testGroup->deleteLater();
+    } else if(testPhase==12) {
+        emit subscriptionDeleted(testSub);
+        subscriptions.remove(0);
+        testSub->deleteLater();
+    }
+    testPhase++;
+    if(testPhase==13) testPhase = 0;
+}
+#endif
