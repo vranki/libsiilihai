@@ -17,15 +17,15 @@ public:
 	void startSync();
 	void endSync();
 public slots:
-	void serverGroupStatus(QList<ForumGroup*> grps);
+        void serverGroupStatus(QList<ForumGroup> &grps);
 	// void serverThreadStatus(ForumThread thread);
 	void threadChanged(ForumThread *thread);
-	void uploadNextGroup(bool success);
-	void downloadNextGroup(bool success);
+//	void uploadNextGroup(bool success);
+//	void downloadNextGroup(bool success);
 	void sendThreadDataFinished(bool success);
 	void serverThreadData(ForumThread *thread);
 	void serverMessageData(ForumMessage *message);
-
+        void getThreadDataFinished(bool success);
 signals:
 	void syncFinished(bool success);
 

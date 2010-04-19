@@ -100,7 +100,7 @@ void LibSiilihaiTests::runForumSession() {
 	QVERIFY(fp.id > 0);
 	if (fdb.listSubscriptions().size() == 0) {
 		fsub.setParser(fp.id);
-		fsub.setName(fp.parser_name);
+		fsub.setAlias(fp.parser_name);
 		fsub.setLatestThreads(10);
 		fsub.setLatestMessages(10);
 		fsub.setUsername(QString::null);
@@ -211,7 +211,7 @@ void LibSiilihaiTests::runForumDatabaseTests() {
 
 	ForumSubscription fs(this);
 	fs.setParser(42);
-	fs.setName("Test Subscription");
+	fs.setAlias("Test Subscription");
 	fs.setLatestMessages(11);
 	fs.setLatestThreads(11);
 	ForumGroup fg(fdb.addForum(&fs));

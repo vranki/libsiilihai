@@ -26,7 +26,7 @@ public:
     ForumSubscription* getSubscription(int id);
 
     QList <ForumGroup*> listGroups(ForumSubscription *fs);
-    ForumGroup* getGroup(const int forum, QString id);
+    ForumGroup* getGroup(ForumSubscription *fs, QString id);
     ForumGroup* addGroup(const ForumGroup *grp);
     bool updateGroup(ForumGroup *grp);
     bool deleteGroup(ForumGroup *grp);

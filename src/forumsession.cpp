@@ -562,7 +562,7 @@ void ForumSession::authenticationRequired(QNetworkReply * reply,
 		cancelOperation();
 		emit networkFailure(
 				"Server requested for username and password for forum "
-						+ fsub->name() + " but you haven't provided them.");
+						+ fsub->alias() + " but you haven't provided them.");
 	} else {
 		qDebug() << "Gave credentials to server";
 		authenticator->setUser(fsub->username());

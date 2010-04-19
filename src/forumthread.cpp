@@ -2,9 +2,9 @@
 
 ForumThread::ForumThread() : QObject() {
     _group = 0;
-    _id = QString::null;
+    _id = _name = _lastchange = QString::null;
     _changeset = -1;
-    _ordernum = 0;
+    _ordernum = -1;
     _hasMoreMessages = _getAllMessages = false;
 }
 

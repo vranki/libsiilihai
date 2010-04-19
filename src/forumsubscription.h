@@ -21,25 +21,27 @@ public:
 	bool isSane() const;
 	QString toString() const;
 	void setParser(int parser);
-	void setName(QString name);
+        void setAlias(QString alias);
 	void setUsername(QString username);
 	void setPassword(QString password);
 	void setLatestThreads(unsigned int lt);
 	void setLatestMessages(unsigned int lm);
+        void setAuthenticated(bool na);
 	int parser() const;
-	QString name() const;
+        QString alias() const;
 	QString username() const;
 	QString password() const;
 	unsigned int latest_threads() const;
 	unsigned int latest_messages() const;
+        bool authenticated() const; // True if username & password should be set
 private:
 	int _parser;
-	QString _name;
+        QString _alias;
 	QString _username;
 	QString _password;
 	unsigned int _latestThreads;
 	unsigned int _latestMessages;
-//	QList<ForumGroup*> _groups;
+        bool _authenticated;
 };
 
 #endif /* FORUMSUBSCRIPTION_H_ */

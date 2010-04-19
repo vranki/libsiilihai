@@ -2,7 +2,9 @@
 
 ForumMessage::ForumMessage() : QObject()  {
 	_thread = 0;
-	_id = QString::null;
+        _id = _subject = _author = _body = _lastchange = QString::null;
+        _ordernum = -1;
+        _read = false;
 }
 
 ForumMessage::~ForumMessage() {

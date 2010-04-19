@@ -2,10 +2,11 @@
 
 ForumSubscription::ForumSubscription() : QObject() {
 	_parser = -1;
-	_name = QString::null;
+        _alias = QString::null;
 	_latestThreads = 0;
 	_latestMessages = 0;
-}
+        _authenticated = false;
+    }
 
 ForumSubscription::ForumSubscription(QObject *parent) : QObject(parent) {
 	ForumSubscription();
@@ -13,7 +14,7 @@ ForumSubscription::ForumSubscription(QObject *parent) : QObject(parent) {
 
 ForumSubscription& ForumSubscription::operator=(const ForumSubscription& other) {
 	_parser = other._parser;
-	_name = other._name;
+        _alias = other._alias;
 	_username = other._username;
 	_password = other._password;
 	_latestThreads = other._latestThreads;
@@ -30,18 +31,18 @@ ForumSubscription::~ForumSubscription() {
 }
 
 bool ForumSubscription::isSane() const {
-	return (_parser > 0 && _name.length() > 0 && _latestMessages > 0 && _latestThreads > 0);
+        return (_parser > 0 && _alias.length() > 0 && _latestMessages > 0 && _latestThreads > 0);
 }
 
 QString ForumSubscription::toString() const {
-	return QString("Subscription to ") + QString().number(_parser) + " (" + _name + ")";
+        return QString("Subscription to ") + QString().number(_parser) + " (" + _alias + ")";
 }
 
 int ForumSubscription::parser() const {
 	return _parser;
 }
-QString ForumSubscription::name() const {
-	return _name;
+QString ForumSubscription::alias() const {
+        return _alias;
 }
 QString ForumSubscription::username() const {
 	return _username;
@@ -55,11 +56,15 @@ unsigned int ForumSubscription::latest_threads() const {
 unsigned int ForumSubscription::latest_messages() const {
 	return _latestMessages;
 }
+
+bool ForumSubscription::authenticated() const {
+    return _authenticated;
+}
 void ForumSubscription::setParser(int parser) {
 	_parser = parser;
 }
-void ForumSubscription::setName(QString name) {
-	_name = name;
+void ForumSubscription::setAlias(QString name) {
+        _alias = name;
 }
 void ForumSubscription::setUsername(QString username) {
 	_username = username;
@@ -74,24 +79,6 @@ void ForumSubscription::setLatestMessages(unsigned int lm) {
 	_latestMessages = lm;
 }
 
-/*
-QList <ForumGroup*> ForumSubscription::children() const {
-	return _groups;
+void ForumSubscription::setAuthenticated(bool na) {
+    _authenticated = na;
 }
-
-void ForumSubscription::addGroup(ForumGroup *grp) {
-	qDebug() << Q_FUNC_INFO;
-	// Q_ASSERT(!_groups.contains(grp->id()));
-	_groups.append(grp);
-	// grp->setSubscription(this);
-	emit groupAdded(grp);
-}
-
-void ForumSubscription::deleteGroup(ForumGroup *grp) {
-	qDebug() << Q_FUNC_INFO;
-	Q_ASSERT(_groups.contains(grp->id()));
-
-	_groups.erase(_groups.find(grp->id()));
-	emit groupDeleted(grp);
-}
-*/
