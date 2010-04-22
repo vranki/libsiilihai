@@ -7,7 +7,6 @@
 class ForumThread : public QObject {
     Q_OBJECT
 public:
-    ForumThread();
     ForumThread(ForumGroup *grp);
     virtual ~ForumThread();
     ForumThread& operator=(const ForumThread&);
@@ -29,7 +28,7 @@ public:
     void setChangeset(int cs);
     void setHasMoreMessages(bool hmm);
     void setGetAllMessages(bool gam);
-
+    void setGroup(ForumGroup *ng);
     QString toString() const;
     bool isSane() const;
 

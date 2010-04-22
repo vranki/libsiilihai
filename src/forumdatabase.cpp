@@ -11,10 +11,10 @@ bool ForumDatabase::deleteForum(ForumSubscription *sub) {
     Q_ASSERT(sub);
     Q_ASSERT(subscriptions[sub->parser()]);
 
-    while(!groups[sub].isEmpty())
-        deleteGroup(groups[sub].begin().value());
+    while(!groups.value(sub).isEmpty())
+        deleteGroup(groups.value(sub).begin().value());
 
-    Q_ASSERT(groups[sub].isEmpty());
+    Q_ASSERT(groups.value(sub).isEmpty());
 
     QSqlQuery query;
     query.prepare("DELETE FROM forums WHERE (parser=?)");
@@ -38,7 +38,7 @@ ForumSubscription* ForumDatabase::addForum(ForumSubscription *fs) {
     Q_ASSERT(fs);
     qDebug() << Q_FUNC_INFO << fs->toString();
     Q_ASSERT(fs->isSane());
-    Q_ASSERT(!subscriptions[fs->parser()]);
+    Q_ASSERT(!subscriptions.value(fs->parser()));
     QSqlQuery query;
     query.prepare("INSERT INTO forums("
                   "parser, name, username, password, latest_threads, latest_messages"
@@ -255,7 +255,7 @@ bool ForumDatabase::openDatabase() {
 
 QList <ForumGroup*> ForumDatabase::listGroups(ForumSubscription *sub) {
     if(groups.contains(sub)) {
-        return groups[sub].values();
+        return groups.value(sub).values();
     } else {
         return QList<ForumGroup*>();
     }
@@ -264,30 +264,31 @@ QList <ForumGroup*> ForumDatabase::listGroups(ForumSubscription *sub) {
 ForumGroup* ForumDatabase::getGroup(ForumSubscription *fs, QString id) {
     ForumGroup *fg = 0;
     if(groups.contains(fs))
-        if(groups[fs].contains(id))
-            fg = groups[fs][id];
+        if(groups.value(fs).contains(id))
+            fg = groups.value(fs).value(id);
     return fg;
 }
 
 QList<ForumThread*> ForumDatabase::listThreads(ForumGroup *group) {
     if(threads.contains(group)) {
-        return threads[group].values();
+        return threads.value(group).values();
     } else {
+        Q_ASSERT(false);
         return QList<ForumThread*>();
     }
 }
 
 ForumThread* ForumDatabase::getThread(const int forum, QString groupid,
                                       QString threadid) {
-    ForumSubscription *fs = subscriptions[forum];
+    ForumSubscription *fs = subscriptions.value(forum);
     Q_ASSERT(fs);
     Q_ASSERT(groups.contains(fs));
-    ForumGroup *fg = *groups[fs].find(groupid);
+    ForumGroup *fg = *groups.value(fs).find(groupid);
     Q_ASSERT(fg);
 
     if(threads.contains(fg)) {
-        if(threads[fg].contains(threadid)) {
-            return threads[fg][threadid];
+        if(threads.value(fg).contains(threadid)) {
+            return threads.value(fg).value(threadid);
         }
     }
     return 0;
@@ -295,7 +296,7 @@ ForumThread* ForumDatabase::getThread(const int forum, QString groupid,
 
 QList<ForumMessage*> ForumDatabase::listMessages(ForumThread *thread) {
     if(messages.contains(thread)) {
-        return messages[thread].values();
+        return messages.value(thread).values();
     } else {
         return QList<ForumMessage*>();
     }
@@ -307,9 +308,9 @@ ForumGroup* ForumDatabase::addGroup(const ForumGroup *grp) {
     Q_ASSERT(grp->isSane());
     ForumSubscription *sub = getSubscription(grp->subscription()->parser());
     Q_ASSERT(sub);
-
+    Q_ASSERT(sub == grp->subscription());
     if(groups.contains(sub)) {
-        Q_ASSERT(!groups[sub].contains(grp->id()));
+        Q_ASSERT(!groups.value(sub).contains(grp->id()));
     }
 
     QSqlQuery query;
@@ -326,7 +327,7 @@ ForumGroup* ForumDatabase::addGroup(const ForumGroup *grp) {
         Q_ASSERT(0);
         return 0;
     }
-    Q_ASSERT(subscriptions[sub->parser()] == grp->subscription());
+    Q_ASSERT(subscriptions.value(sub->parser()) == grp->subscription());
     ForumGroup *nfg = new ForumGroup(sub);
     nfg->operator=(*grp);
     groups[sub][nfg->id()] = nfg;
@@ -342,7 +343,8 @@ ForumThread * ForumDatabase::addThread(const ForumThread *thread) {
     qDebug() << Q_FUNC_INFO << thread->toString();
     Q_ASSERT(thread->isSane());
     Q_ASSERT(groups.contains(thread->group()->subscription()));
-    Q_ASSERT(groups[thread->group()->subscription()][thread->group()->id()] == thread->group());
+    Q_ASSERT(groups.value(thread->group()->subscription()).value(thread->group()->id()) == thread->group());
+    Q_ASSERT(thread->group());
     QSqlQuery query;
     query.prepare(
             "SELECT * FROM threads WHERE forumid=? AND groupid=? AND threadid=?");
@@ -353,6 +355,7 @@ ForumThread * ForumDatabase::addThread(const ForumThread *thread) {
     query.exec();
     if (query.next()) {
         qDebug() << "Trying to add duplicate thread! " << thread->toString();
+        Q_ASSERT(false);
         return 0;
     }
 
@@ -371,7 +374,7 @@ ForumThread * ForumDatabase::addThread(const ForumThread *thread) {
         return 0;
     }
     ForumGroup *grp = thread->group();
-    Q_ASSERT(!threads[grp].contains(thread->id()));
+    Q_ASSERT(!threads.value(grp).contains(thread->id()));
     ForumThread *th = new ForumThread(grp);
     th->operator=(*thread);
     threads[grp][th->id()] = th;
@@ -383,8 +386,9 @@ ForumThread * ForumDatabase::addThread(const ForumThread *thread) {
 
 bool ForumDatabase::updateThread(ForumThread *thread) {
     Q_ASSERT(thread);
+    qDebug() << Q_FUNC_INFO << thread->toString();
     Q_ASSERT(threads.contains(thread->group()));
-    Q_ASSERT(threads[thread->group()][thread->id()] == thread);
+    Q_ASSERT(threads.value(thread->group()).value(thread->id()) == thread);
     Q_ASSERT(thread->isSane());
     QSqlQuery query;
     query.prepare(
@@ -393,11 +397,12 @@ bool ForumDatabase::updateThread(ForumThread *thread) {
     query.addBindValue(thread->ordernum());
     query.addBindValue(thread->lastchange());
     query.addBindValue(thread->changeset());
+    query.addBindValue(thread->hasMoreMessages());
+    query.addBindValue(thread->getAllMessages());
+    // Where
     query.addBindValue(thread->group()->subscription()->parser());
     query.addBindValue(thread->group()->id());
     query.addBindValue(thread->id());
-    query.addBindValue(thread->hasMoreMessages());
-    query.addBindValue(thread->getAllMessages());
 
     if (!query.exec()) {
         qDebug() << "Updating thread " << thread->toString() << " failed: "
@@ -415,10 +420,25 @@ ForumMessage* ForumDatabase::addMessage(ForumMessage *message) {
     ForumThread *thread = getThread(message->thread()->group()->subscription()->parser(),
                                     message->thread()->group()->id(), message->thread()->id());
     Q_ASSERT(thread);
+    Q_ASSERT(message->thread() == thread);
     if(messages.contains(thread)) {
         Q_ASSERT(!messages[thread].contains(message->id()));
     }
     QSqlQuery query;
+
+    query.prepare(
+            "SELECT * FROM messages WHERE forumid=? AND groupid=? AND threadid=? AND messageid=?");
+    query.addBindValue(message->thread()->group()->subscription()->parser());
+    query.addBindValue(message->thread()->group()->id());
+    query.addBindValue(message->thread()->id());
+    query.addBindValue(message->id());
+
+    query.exec();
+    if (query.next()) {
+        qDebug() << "Trying to add duplicate message! " << thread->toString();
+        Q_ASSERT(false);
+        return 0;
+    }
     query.prepare("INSERT INTO messages(forumid, groupid, threadid, messageid,"
                   " ordernum, url, subject, author, lastchange, body, read) VALUES "
                   "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
@@ -444,7 +464,7 @@ ForumMessage* ForumDatabase::getMessage(const int forum, QString groupid,
     ForumThread *thr = getThread(forum, groupid, threadid);
     Q_ASSERT(thr);
     if(messages.contains(thr)) {
-        return messages[thr][messageid];
+        return messages.value(thr).value(messageid);
     } else {
         return 0;
     }
@@ -468,7 +488,7 @@ void ForumDatabase::bindMessageValues(QSqlQuery &query,
 bool ForumDatabase::updateMessage(ForumMessage *message) {
     Q_ASSERT(message);
     Q_ASSERT(messages.contains(message->thread()));
-    Q_ASSERT(messages[message->thread()][message->id()]==message);
+    Q_ASSERT(messages.value(message->thread()).value(message->id())==message);
     QSqlQuery query;
     query.prepare(
             "UPDATE messages SET forumid=?, groupid=?, threadid=?, messageid=?,"
@@ -515,8 +535,8 @@ bool ForumDatabase::deleteGroup(ForumGroup *grp) {
     Q_ASSERT(grp->isSane());
     Q_ASSERT(groups[grp->subscription()].contains(grp->id()));
 
-    while(!threads[grp].isEmpty())
-        deleteThread(threads[grp].begin().value());
+    while(!threads.value(grp).isEmpty())
+        deleteThread(threads.value(grp).begin().value());
 
     QSqlQuery query;
     query.prepare("DELETE FROM groups WHERE (forumid=? AND groupid=?)");
@@ -646,7 +666,7 @@ int ForumDatabase::unreadIn(const ForumGroup *fg) {
 
 ForumSubscription *ForumDatabase::getSubscription(int id) {
     Q_ASSERT(id > 0);
-    return subscriptions[id];
+    return subscriptions.value(id);
 }
 
 void ForumDatabase::markForumRead(ForumSubscription *fs, bool read) {

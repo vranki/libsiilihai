@@ -27,7 +27,8 @@ void SiilihaiProtocol::setBaseURL(QString &bu) {
     subscribeGroupsUrl = QUrl(baseUrl + "api/subscribegroups.xml");
     sendThreadDataUrl = QUrl(baseUrl + "api/threaddata.xml");
     syncSummaryUrl = QUrl(baseUrl + "api/syncsummary.xml");
-    getThreadDataUrl = syncSummaryUrl;//QUrl(baseUrl + "api/getthreaddata.xml");
+    getThreadDataUrl = syncSummaryUrl;
+    userSettingsUrl = QUrl(baseUrl + "api/usersettings.xml");
     nam.setProxy(QNetworkProxy::applicationProxy());
 }
 
@@ -166,6 +167,7 @@ void SiilihaiProtocol::replyLogin(QNetworkReply *reply) {
     disconnect(&nam, SIGNAL(finished(QNetworkReply*)), this,
                SLOT(replyLogin(QNetworkReply*)));
     QString docs = QString().fromUtf8(reply->readAll());
+    qDebug() << docs;
     QString ck = QString::null;
     QString motd = QString::null;
     bool syncEnabled = false;
@@ -175,7 +177,7 @@ void SiilihaiProtocol::replyLogin(QNetworkReply *reply) {
         QDomElement re = doc.firstChild().toElement();
         ck = re.firstChildElement("client_key").text();
         motd = re.firstChildElement("motd").text();
-        syncEnabled = !re.firstChildElement("sync_enabled").isNull();
+        syncEnabled = re.firstChildElement("sync_enabled").text() == "true";
     } else {
         qDebug() << Q_FUNC_INFO << "replyLogin network error: " << reply->errorString();
     }
@@ -669,5 +671,48 @@ void SiilihaiProtocol::replySendThreadData(QNetworkReply *reply) {
     qDebug() << Q_FUNC_INFO << success;
     nam.disconnect(SIGNAL(finished(QNetworkReply*)));
     emit sendThreadDataFinished(success);
+    reply->deleteLater();
+}
+
+void SiilihaiProtocol::setUserSettings(UserSettings *us) {
+    qDebug() << Q_FUNC_INFO;
+    QNetworkRequest req(userSettingsUrl);
+    QHash<QString, QString> params;
+    if(us) {
+        if(us->syncEnabled) {
+            params.insert("sync_enabled", "true");
+        } else {
+            params.insert("sync_enabled", "false");
+        }
+        if (!clientKey.isNull()) {
+            params.insert("client_key", clientKey);
+        }
+    }
+    userSettingsData = HttpPost::setPostParameters(&req, params);
+    connect(&nam, SIGNAL(finished(QNetworkReply*)), this,
+            SLOT(replyUserSettings(QNetworkReply*)));
+    nam.post(req, userSettingsData);
+}
+
+void SiilihaiProtocol::getUserSettings() {
+    setUserSettings(0);
+}
+
+void SiilihaiProtocol::replyUserSettings(QNetworkReply *reply) {
+    QString docs = QString().fromUtf8(reply->readAll());
+    qDebug() << docs;
+    UserSettings usettings;
+    if (reply->error() == QNetworkReply::NoError) {
+        QDomDocument doc;
+        doc.setContent(docs);
+        QString syncEnabledStr = doc.firstChildElement("sync_enabled").text();
+        usettings.syncEnabled = !syncEnabledStr.isNull();
+    } else {
+        qDebug() << Q_FUNC_INFO << "Network error:" << reply->errorString();
+        emit userSettingsReceived(false, &usettings);
+    }
+    emit userSettingsReceived(true, &usettings);
+    disconnect(&nam, SIGNAL(finished(QNetworkReply*)), this,
+               SLOT(replyUserSettings(QNetworkReply*)));
     reply->deleteLater();
 }

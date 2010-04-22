@@ -18,6 +18,7 @@
 #include "forummessage.h"
 #include "httppost.h"
 #include "parserreport.h"
+#include "usersettings.h"
 
 #define CLIENT_VERSION "0.9.0"
 
@@ -37,6 +38,9 @@ public:
     void subscribeForum(const ForumSubscription *fs, bool unsubscribe = false);
     void subscribeGroups(QList<ForumGroup*> &fgs);
     void saveParser(const ForumParser &parser);
+
+    void setUserSettings(UserSettings *us);
+    void getUserSettings();
 
     // Messages must be in same group!
     void sendThreadData(QList<ForumMessage*> &fms);
@@ -59,6 +63,8 @@ public slots:
     void replyGetSyncSummary(QNetworkReply *reply);
     void replyGetThreadData(QNetworkReply *reply);
 
+    void replyUserSettings(QNetworkReply *reply);
+
 signals:
     void loginFinished(bool success, QString motd, bool syncEnabled);
     void listParsersFinished(QList<ForumParser> parsers);
@@ -69,6 +75,8 @@ signals:
     void listSubscriptionsFinished(QList<int> subscriptions);
     void sendParserReportFinished(bool success);
     void subscribeGroupsFinished(bool success);
+
+    void userSettingsReceived(bool success, UserSettings *newSettings);
 
     // Sync stuff:
     void sendThreadDataFinished(bool success);
@@ -84,10 +92,11 @@ private:
     QByteArray loginData, listParsersData, saveParserData, getParserData,
     subscribeForumData, listRequestsData, registerData, listSubscriptionsData,
     sendParserReportData, subscribeGroupsData, sendThreadDataData, getThreadDataData,
-    syncSummaryData;
+    syncSummaryData, userSettingsData;
     QUrl listParsersUrl, loginUrl, getParserUrl, saveParserUrl,
     subscribeForumUrl, listRequestsUrl, registerUrl, listSubscriptionsUrl,
-    sendParserReportUrl, subscribeGroupsUrl, sendThreadDataUrl, getThreadDataUrl, syncSummaryUrl;
+    sendParserReportUrl, subscribeGroupsUrl, sendThreadDataUrl, getThreadDataUrl, syncSummaryUrl,
+    userSettingsUrl;
     ForumGroup *getThreadDataGroup;
 };
 

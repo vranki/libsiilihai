@@ -1,33 +1,29 @@
 #include "forumgroup.h"
 
-ForumGroup::ForumGroup() : QObject() {
-	_id = QString::null;
-	_subscribed = false;
-	_changeset = -1;
-	_subscription = 0;
-        _name = "";
-        _lastchange = "";
-}
-
 ForumGroup::ForumGroup(ForumSubscription *sub) : QObject(sub) {
-	ForumGroup();
-	_subscription = sub;
+    _subscription = sub;
+    _id = "";
+    _subscribed = false;
+    _changeset = -1;
+    _name = "";
+    _lastchange = "";
 }
 
 ForumGroup::ForumGroup(const ForumGroup& o) : QObject() {
-	*this = o;
+    *this = o;
 }
 
 ForumGroup& ForumGroup::operator=(const ForumGroup& o) {
-	_subscription = o._subscription;
-	_id = o._id;
-	_name = o._name;
-	_lastchange = o._lastchange;
-	_subscribed = o._subscribed;
-	_changeset = o._changeset;
+    _subscription = o._subscription;
+    _id = o._id;
+    _name = o._name;
+    _lastchange = o._lastchange;
+    _subscribed = o._subscribed;
+    _changeset = o._changeset;
 
-	return *this;
+    return *this;
 }
+
 
 ForumGroup::~ForumGroup() {
 }
@@ -40,28 +36,28 @@ QString ForumGroup::toString() const {
 }
 
 bool ForumGroup::isSane() const {
-	return (_id.length() > 0 && _name.length() > 0 && _subscription);
+    return (_id.length() > 0 && _name.length() > 0 && _subscription);
 }
 
 QString ForumGroup::name() const {
-	return _name;
+    return _name;
 }
 
 QString ForumGroup::id() const {
-	return _id;
+    return _id;
 }
 QString ForumGroup::lastchange() const {
-	return _lastchange;
+    return _lastchange;
 }
 bool ForumGroup::subscribed() const {
-	return _subscribed;
+    return _subscribed;
 }
 int ForumGroup::changeset() const {
-	return _changeset;
+    return _changeset;
 }
 
 ForumSubscription* ForumGroup::subscription() const {
-	return _subscription;
+    return _subscription;
 }
 
 void ForumGroup::setName(QString name) { _name = name; }

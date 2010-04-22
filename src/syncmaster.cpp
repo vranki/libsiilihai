@@ -113,66 +113,6 @@ void SyncMaster::processGroups() {
     }
 }
 
-/*
-void SyncMaster::downloadNextGroup(bool success) {
-    qDebug() << Q_FUNC_INFO;
-    if (!success) {
-        qDebug() << Q_FUNC_INFO << "Failed!";
-        emit
-		syncFinished(false);
-        return;
-    }
-    ForumGroup *gtodl = groupsToDownload.takeFirst();
-    qDebug() << "Going to dl group " << gtodl->toString();
-    connect(&protocol, SIGNAL(sendThreadDataFinished(bool)), this,
-            SLOT(sendThreadDataFinished(bool)));
-    protocol.getThreadData(gtodl);
-}
-
-void SyncMaster::uploadNextGroup(bool success) {
-    qDebug() << Q_FUNC_INFO;
-    disconnect(&protocol, SIGNAL(subscribeGroupsFinished(bool)), this,
-               SLOT(uploadNextGroup(bool)));
-    disconnect(&protocol, SIGNAL(sendThreadDataFinished(bool)), this,
-               SLOT(sendThreadDataFinished(bool)));
-    if (!success) {
-        qDebug() << Q_FUNC_INFO << "Failed!";
-        emit syncFinished(false);
-        return;
-    }
-    // Check for messages to upload
-    if (!messagesToUpload.isEmpty()) {
-        connect(&protocol, SIGNAL(sendThreadDataFinished(bool)), this,
-                SLOT(sendThreadDataFinished(bool)));
-        protocol.sendThreadData(messagesToUpload);
-        return;
-    }
-    // Update next forum
-    if (!forumsToUpload.isEmpty()) {
-        qDebug() << Q_FUNC_INFO << "still got forums to upload - subscribing groups in next";
-        ForumSubscription *gtosub = *forumsToUpload.begin();
-        forumsToUpload.remove(gtosub);
-        QList<ForumGroup*> groups = fdb.listGroups(gtosub);
-        connect(&protocol, SIGNAL(subscribeGroupsFinished(bool)), this,
-                SLOT(uploadNextGroup(bool)));
-        protocol.subscribeGroups(groups);
-        foreach(ForumGroup *group, groups)
-        {
-            if (group->subscribed()) {
-                QList<ForumThread*> threads = fdb.listThreads(group);
-                foreach(ForumThread* thread, threads)
-                {
-                    QList<ForumMessage*> messages = fdb.listMessages(thread);
-                    messagesToUpload.append(messages);
-                }
-            }
-        }
-    } else {
-        qDebug() << Q_FUNC_INFO << "emitting sync finished";
-        emit syncFinished(true);
-    }
-}
-*/
 void SyncMaster::sendThreadDataFinished(bool success) {
     qDebug() << Q_FUNC_INFO << success;
     disconnect(&protocol, SIGNAL(sendThreadDataFinished(bool)), this, SLOT(sendThreadDataFinished(bool)));
@@ -193,6 +133,9 @@ void SyncMaster::serverThreadData(ForumThread *thread) {
             dbThread->setChangeset(thread->changeset());
             fdb.updateThread(dbThread);
         } else { // thread hasn't been found yet!
+            ForumGroup *dbGroup = fdb.getGroup(fdb.getSubscription(thread->group()->subscription()->parser()), thread->group()->id());
+            Q_ASSERT(dbGroup);
+            thread->setGroup(dbGroup);
             fdb.addThread(thread);
         }
     } else {
@@ -212,6 +155,11 @@ void SyncMaster::serverMessageData(ForumMessage *message) {
                 fdb.updateMessage(dbMessage);
             }
         } else { // message hasn't been found yet!
+            ForumThread *dbThread = fdb.getThread(message->thread()->group()->subscription()->parser(),
+                                                 message->thread()->group()->id(),
+                                                 message->thread()->id());
+            Q_ASSERT(dbThread);
+            message->setThread(dbThread);
             fdb.addMessage(message);
         }
     } else {

@@ -21,71 +21,70 @@
 #include "forummessage.h"
 
 class ForumSession : public QObject {
-	Q_OBJECT
+    Q_OBJECT
 public:
-	enum ForumSessionOperation { FSONoOp, FSOListGroups, FSOUpdateThreads, FSOUpdateMessages };
+    enum ForumSessionOperation { FSONoOp, FSOListGroups, FSOUpdateThreads, FSOUpdateMessages };
 
-	ForumSession(QObject *parent=0);
-	virtual ~ForumSession();
-	void initialize(ForumParser &fop, ForumSubscription *fos, PatternMatcher *matcher=0);
-	void clearAuthentications();
-	void setParser(ForumParser &fop);
-	void listGroups();
-	void listThreads(ForumGroup *group);
-	void listMessages(ForumThread *thread);
-	void loginToForum();
+    ForumSession(QObject *parent=0);
+    virtual ~ForumSession();
+    void initialize(ForumParser &fop, ForumSubscription *fos, PatternMatcher *matcher=0);
+    void clearAuthentications();
+    void setParser(ForumParser &fop);
+    void listGroups();
+    void listThreads(ForumGroup *group);
+    void listMessages(ForumThread *thread);
+    void loginToForum();
 
 
-	QString getMessageUrl(const ForumMessage *msg);
-	QString getLoginUrl();
-	QString getThreadListUrl(const ForumGroup *grp, int page=-1);
-	QString getMessageListUrl(const ForumThread *thread, int page=-1);
+    QString getMessageUrl(const ForumMessage *msg);
+    QString getLoginUrl();
+    QString getThreadListUrl(const ForumGroup *grp, int page=-1);
+    QString getMessageListUrl(const ForumThread *thread, int page=-1);
 
-	void performListGroups(QString &html);
-	void performListThreads(QString &html);
-	void performListMessages(QString &html);
-	void performLogin(QString &html);
+    void performListGroups(QString &html);
+    void performListThreads(QString &html);
+    void performListMessages(QString &html);
+    void performLogin(QString &html);
 
 public slots:
-	void listGroupsReply(QNetworkReply *reply);
-	void listThreadsReply(QNetworkReply *reply);
-	void listMessagesReply(QNetworkReply *reply);
-	void fetchCookieReply(QNetworkReply *reply);
-	void loginReply(QNetworkReply *reply);
-	void cancelOperation();
-	void authenticationRequired ( QNetworkReply * reply, QAuthenticator * authenticator );
+    void listGroupsReply(QNetworkReply *reply);
+    void listThreadsReply(QNetworkReply *reply);
+    void listMessagesReply(QNetworkReply *reply);
+    void fetchCookieReply(QNetworkReply *reply);
+    void loginReply(QNetworkReply *reply);
+    void cancelOperation();
+    void authenticationRequired ( QNetworkReply * reply, QAuthenticator * authenticator );
 
 signals:
-	void listGroupsFinished(QList<ForumGroup> &groups);
-	void listThreadsFinished(QList<ForumThread> &threads, ForumGroup *group);
-	void listMessagesFinished(QList<ForumMessage> &messages, ForumThread *thread);
-	void groupUpdated(QList<ForumThread> threads);
-	void networkFailure(QString message);
-	void loginFinished(bool success);
-	void receivedHtml(const QString &data);
+    void listGroupsFinished(QList<ForumGroup*> &groups);
+    void listThreadsFinished(QList<ForumThread*> &threads, ForumGroup *group);
+    void listMessagesFinished(QList<ForumMessage*> &messages, ForumThread *thread);
+    void networkFailure(QString message);
+    void loginFinished(bool success);
+    void receivedHtml(const QString &data);
 
 private:
-	bool prepareForUse(); // get cookie & login if needed
-	void nextOperation();
-	void fetchCookie();
-	void updateGroupPage();
-	void updateThreadPage();
-	QString convertCharset(const QByteArray &src);
-	QString statusReport();
-	PatternMatcher *pm;
-	ForumParser fpar;
-	ForumSubscription *fsub;
-	QNetworkAccessManager *nam;
-	QByteArray emptyData, loginData;
-	bool cookieFetched, loggedIn;
-	ForumSessionOperation operationInProgress;
-	QNetworkCookieJar *cookieJar;
-	int currentListPage;
-	ForumGroup *currentGroup;
-	ForumThread *currentThread;
-	QList<ForumThread> threads;
-	QList<ForumMessage> messages;
-	QString currentMessagesUrl;
+    bool prepareForUse(); // get cookie & login if needed
+    void nextOperation();
+    void fetchCookie();
+    void updateGroupPage();
+    void updateThreadPage();
+    QString convertCharset(const QByteArray &src);
+    QString statusReport();
+    PatternMatcher *pm;
+    ForumParser fpar;
+    ForumSubscription *fsub;
+    QNetworkAccessManager *nam;
+    QByteArray emptyData, loginData;
+    bool cookieFetched, loggedIn;
+    ForumSessionOperation operationInProgress;
+    QNetworkCookieJar *cookieJar;
+    int currentListPage;
+    ForumGroup *currentGroup;
+    ForumThread *currentThread;
+    QList<ForumThread*> threads;
+    QList<ForumMessage*> messages; // Represents messages in thread listMessages
+    QString currentMessagesUrl;
 };
 
 #endif /* FORUMSESSION_H_ */

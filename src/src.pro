@@ -26,7 +26,8 @@ HEADERS += syncmaster.h \
     siilihaiprotocol.h \
     parserengine.h \
     forumparser.h \
-    patternmatcher.h
+    patternmatcher.h \
+    usersettings.h
 SOURCES += syncmaster.cpp \
     parserreport.cpp \
     forumrequest.cpp \
@@ -41,7 +42,8 @@ SOURCES += syncmaster.cpp \
     siilihaiprotocol.cpp \
     parserengine.cpp \
     forumparser.cpp \
-    patternmatcher.cpp
+    patternmatcher.cpp \
+    usersettings.cpp
 BINDIR = $$PREFIX/bin
 LIBDIR = $$PREFIX/lib
 DATADIR = $$PREFIX/share

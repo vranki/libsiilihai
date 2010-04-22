@@ -1,19 +1,14 @@
 #include "forumthread.h"
 
-ForumThread::ForumThread() : QObject() {
-    _group = 0;
-    _id = _name = _lastchange = QString::null;
-    _changeset = -1;
-    _ordernum = -1;
-    _hasMoreMessages = _getAllMessages = false;
-}
-
 ForumThread::~ForumThread() {
 }
 
 ForumThread::ForumThread(ForumGroup *grp) : QObject(grp) {
-    ForumThread();
     _group = grp;
+    _id = _name = _lastchange = "";
+    _changeset = -1;
+    _ordernum = -1;
+    _hasMoreMessages = _getAllMessages = false;
 }
 
 ForumThread::ForumThread(const ForumThread& o) : QObject() {
@@ -45,7 +40,7 @@ QString ForumThread::toString() const {
 }
 
 bool ForumThread::isSane() const {
-    return (_group && _id.length() > 0);
+    return (_group && _id.length() > 0 && _ordernum < 1000);
 }
 
 QString ForumThread::id() const {
@@ -97,4 +92,7 @@ void ForumThread::setHasMoreMessages(bool hmm) {
 
 void ForumThread::setGetAllMessages(bool gam) {
     _getAllMessages = gam;
+}
+void ForumThread::setGroup(ForumGroup *ng) {
+    _group = ng;
 }

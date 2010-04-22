@@ -1,40 +1,35 @@
 #include "forummessage.h"
 
-ForumMessage::ForumMessage() : QObject()  {
-	_thread = 0;
-        _id = _subject = _author = _body = _lastchange = QString::null;
-        _ordernum = -1;
-        _read = false;
-}
-
 ForumMessage::~ForumMessage() {
 }
 
 ForumMessage::ForumMessage(ForumThread *thr) : QObject(thr) {
-	ForumMessage();
-	_thread = thr;
+    _thread = thr;
+    _id = _subject = _author = _body = _lastchange = "";
+    _ordernum = -1;
+    _read = false;
 }
 
 ForumMessage& ForumMessage::operator=(const ForumMessage& o) {
-	_id = o._id;
-	_ordernum = o._ordernum;
-	_url = o._url;
-	_subject = o._subject;
-	_author = o._author;
-	_lastchange = o._lastchange;
-	_body = o._body;
-	_read = o._read;
-	_thread = o._thread;
+    _id = o._id;
+    _ordernum = o._ordernum;
+    _url = o._url;
+    _subject = o._subject;
+    _author = o._author;
+    _lastchange = o._lastchange;
+    _body = o._body;
+    _read = o._read;
+    _thread = o._thread;
 
-	return *this;
+    return *this;
 }
 
 ForumMessage::ForumMessage(const ForumMessage& o) : QObject() {
-	*this = o;
+    *this = o;
 }
 
 bool ForumMessage::isSane() const {
-	return (_thread!=0 && _id.length()>0);
+    return (_thread && _id.length()>0 && _ordernum < 1000);
 }
 
 QString ForumMessage::toString() const {
@@ -49,8 +44,9 @@ QString ForumMessage::toString() const {
                 parser = QString().number(_thread->group()->subscription()->parser());
         }
     }
+
     return QString().number(_thread->group()->subscription()->parser()) + "/" +
-            _thread->group()->id() + "/" + _thread->id() + "/" + id() + ": " + subject();
+            _thread->group()->id() + "/" + _thread->id() + "/" + id() + ": " + subject() + "/ Read:" + QString().number(_read);
 }
 
 ForumThread* ForumMessage::thread() const { return _thread; }
@@ -71,3 +67,4 @@ void ForumMessage::setAuthor(QString na) { _author = na ; }
 void ForumMessage::setLastchange(QString nlc) { _lastchange = nlc ; }
 void ForumMessage::setBody(QString nb) { _body = nb ; }
 void ForumMessage::setRead(bool nr) { _read = nr ; }
+void ForumMessage::setThread(ForumThread *nt) { _thread = nt; };
