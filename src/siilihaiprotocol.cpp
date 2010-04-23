@@ -7,6 +7,7 @@ SiilihaiProtocol::SiilihaiProtocol(QObject *parent) :
 }
 
 SiilihaiProtocol::~SiilihaiProtocol() {
+    disconnect(&nam, SIGNAL(finished(QNetworkReply*))); // useless
 }
 
 QString SiilihaiProtocol::baseURL() {
@@ -493,7 +494,7 @@ void SiilihaiProtocol::replyGetSyncSummary(QNetworkReply *reply) {
                SLOT(replyGetSyncSummary(QNetworkReply*)));
 
     QList<ForumGroup> grps;
-    ForumSubscription sub(this);
+    QList<ForumSubscription*> subs;
     if (reply->error() == QNetworkReply::NoError) {
         QDomDocument doc;
         doc.setContent(docs);
@@ -502,23 +503,25 @@ void SiilihaiProtocol::replyGetSyncSummary(QNetworkReply *reply) {
             QDomElement forumElement = re.childNodes().at(i).toElement();
             int forumid = forumElement.attribute("id").toInt();
             if(forumid > 0) {
-                sub.setParser(forumid);
-                sub.setAlias(forumElement.attribute("alias"));
-                sub.setLatestThreads(forumElement.attribute("latest_threads").toInt());
-                sub.setLatestMessages(forumElement.attribute("latest_messages").toInt());
-                sub.setAuthenticated(forumElement.hasAttribute("authenticated"));
+                ForumSubscription *sub = new ForumSubscription(this);
+                sub->setParser(forumid);
+                sub->setAlias(forumElement.attribute("alias"));
+                sub->setLatestThreads(forumElement.attribute("latest_threads").toInt());
+                sub->setLatestMessages(forumElement.attribute("latest_messages").toInt());
+                sub->setAuthenticated(forumElement.hasAttribute("authenticated"));
 
                 for (int j = 0; j < forumElement.childNodes().size(); j++) {
                     QDomElement groupElement =
                             forumElement.childNodes().at(j).toElement();
                     QString groupid = groupElement.attribute("id");
                     int changeset = groupElement.text().toInt();
-                    ForumGroup g(&sub);
+                    ForumGroup g(sub);
                     g.setId(groupid);
                     g.setChangeset(changeset);
                     g.setSubscribed(true);
                     grps.append(g);
                 }
+                subs.append(sub);
             }
         }
     } else {
@@ -528,6 +531,8 @@ void SiilihaiProtocol::replyGetSyncSummary(QNetworkReply *reply) {
     reply->deleteLater();
     // @todo errors?
     emit serverGroupStatus(grps);
+    qDeleteAll(subs);
+    subs.clear();
 }
 
 void SiilihaiProtocol::getThreadData(ForumGroup *grp) {
@@ -669,8 +674,13 @@ void SiilihaiProtocol::sendThreadData(QList<ForumMessage*> &fms) {
 void SiilihaiProtocol::replySendThreadData(QNetworkReply *reply) {
     bool success = reply->error() == QNetworkReply::NoError;
     qDebug() << Q_FUNC_INFO << success;
+
     nam.disconnect(SIGNAL(finished(QNetworkReply*)));
     emit sendThreadDataFinished(success);
+    if(reply->error() != QNetworkReply::NoError) {
+        qDebug() << Q_FUNC_INFO << " network error: "
+                << reply->errorString();
+    }
     reply->deleteLater();
 }
 

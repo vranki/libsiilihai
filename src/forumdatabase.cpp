@@ -273,7 +273,6 @@ QList<ForumThread*> ForumDatabase::listThreads(ForumGroup *group) {
     if(threads.contains(group)) {
         return threads.value(group).values();
     } else {
-        Q_ASSERT(false);
         return QList<ForumThread*>();
     }
 }
@@ -710,7 +709,7 @@ void ForumDatabase::updateTest() {
     if(testPhase==0) {
         testSub = new ForumSubscription(this);
         testSub->setParser(0);
-        testSub->setName("Test Sub");
+        testSub->setAlias("Test Sub");
         testSub->setLatestThreads(20);
         testSub->setLatestMessages(20);
         subscriptions[0] = testSub;
@@ -760,35 +759,47 @@ void ForumDatabase::updateTest() {
         messages[testThread][testMessage[2]->id()] = testMessage[2];
         emit messageFound(testMessage[2]);
     } else if(testPhase==6) {
-        testMessage[0]->setSubject("Subject changed");
+        testMessage[0]->setSubject("A Subject changed");
         testMessage[0]->setRead(true);
         emit messageUpdated(testMessage[0]);
     } else if(testPhase==7) {
+        testMessage[2]->setSubject("C Moved to first in thread");
+        testMessage[2]->setOrdernum(0);
+        emit messageUpdated(testMessage[2]);
+    } else if(testPhase==8) {
+        testMessage[2]->setSubject("C Moved to 3rd");
+        testMessage[2]->setOrdernum(3);
+        emit messageUpdated(testMessage[2]);
+    } else if(testPhase==9) {
+        testMessage[1]->setSubject("B Moved to first");
+        testMessage[1]->setOrdernum(0);
+        emit messageUpdated(testMessage[1]);
+    } else if(testPhase==10) {
         emit messageDeleted(testMessage[0]);
         messages[testThread].remove(testMessage[0]->id());
         testMessage[0]->deleteLater();
-    } else if(testPhase==8) {
+    } else if(testPhase==11) {
         emit messageDeleted(testMessage[2]);
         messages[testThread].remove(testMessage[2]->id());
         testMessage[2]->deleteLater();
-    } else if(testPhase==9) {
+    } else if(testPhase==12) {
         emit messageDeleted(testMessage[1]);
         messages[testThread].remove(testMessage[1]->id());
         testMessage[1]->deleteLater();
-    } else if(testPhase==10) {
+    } else if(testPhase==13) {
         emit threadDeleted(testThread);
         threads[testGroup].remove(testThread->id());
         testThread->deleteLater();
-    } else if(testPhase==11) {
+    } else if(testPhase==14) {
         emit groupDeleted(testGroup);
         groups[testSub].remove(testGroup->id());
         testGroup->deleteLater();
-    } else if(testPhase==12) {
+    } else if(testPhase==15) {
         emit subscriptionDeleted(testSub);
         subscriptions.remove(0);
         testSub->deleteLater();
     }
     testPhase++;
-    if(testPhase==13) testPhase = 0;
+    if(testPhase==16) testPhase = 0;
 }
 #endif
