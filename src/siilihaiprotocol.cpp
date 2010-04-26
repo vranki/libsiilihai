@@ -388,7 +388,7 @@ void SiilihaiProtocol::replySubscribeForum(QNetworkReply *reply) {
 void SiilihaiProtocol::subscribeGroups(QList<ForumGroup*> &fgs) {
     qDebug() << Q_FUNC_INFO;
     if (fgs.isEmpty()) {
-        emit subscribeGroupsFinished(false);
+        emit subscribeGroupsFinished(true);
         return;
     }
     ForumGroup *first = fgs[0];
@@ -616,7 +616,7 @@ void SiilihaiProtocol::replyGetThreadData(QNetworkReply *reply) {
 void SiilihaiProtocol::sendThreadData(QList<ForumMessage*> &fms) {
     qDebug() << Q_FUNC_INFO << fms.size();
     if (fms.isEmpty()) {
-        emit sendThreadDataFinished(false);
+        emit sendThreadDataFinished(false); // Is this error?
     }
     ForumMessage *message = fms.first();
     Q_ASSERT(message);
