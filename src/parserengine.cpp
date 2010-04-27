@@ -92,7 +92,7 @@ void ParserEngine::listGroupsFinished(QList<ForumGroup*> &groups) {
     qDebug() << Q_FUNC_INFO << " rx groups " << groups.size()
             << " in " << parser.toString();
     QList<ForumGroup*> dbgroups = fdb->listGroups(subscription);
-
+    bool dbGroupsWasEmpty = dbgroups.isEmpty();
     groupsToUpdateQueue.clear();
     if (groups.size() == 0 && dbgroups.size() > 0) {
         emit updateFailure("Updating group list for " + parser.parser_name
@@ -161,7 +161,7 @@ void ParserEngine::listGroupsFinished(QList<ForumGroup*> &groups) {
     } else {
         setBusy(false);
     }
-    if (groupsChanged) {
+    if (groupsChanged && dbGroupsWasEmpty) {
         emit(groupListChanged(subscription));
     }
 }

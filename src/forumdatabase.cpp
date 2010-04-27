@@ -700,7 +700,7 @@ bool ForumDatabase::markGroupRead(ForumGroup *group, bool read) {
 }
 
 int ForumDatabase::schemaVersion() {
-    return 3;
+    return 4;
 }
 
 #ifdef FDB_TEST

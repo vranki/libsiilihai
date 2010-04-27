@@ -26,6 +26,8 @@ public slots:
     void networkFailure(QString message);
     void cancelOperation();
 signals:
+    // Emitted if initially group list was empty but new groups
+    // were found.
     void groupListChanged(ForumSubscription *forum);
     void forumUpdated(ForumSubscription *forum);
     void statusChanged(ForumSubscription *forum, bool reloading, float progress);
