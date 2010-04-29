@@ -1,3 +1,17 @@
+/* This file is part of libSiilihai.
+
+    libSiilihai is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Lesser General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    libSiilihai is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public License
+    along with libSiilihai.  If not, see <http://www.gnu.org/licenses/>. */
 #include "forumsession.h"
 
 ForumSession::ForumSession(QObject *parent) : QObject(parent) {
@@ -565,18 +579,24 @@ void ForumSession::authenticationRequired(QNetworkReply * reply,
 
     qDebug() << Q_FUNC_INFO;
 
-    if (fsub->username().length() <= 0 || fsub->password().length() <= 0) {
-        qDebug() << "FAIL: no credentials given for subscription "
-                << fsub->toString();
-        cancelOperation();
-        emit networkFailure(
-                "Server requested for username and password for forum "
-                + fsub->alias() + " but you haven't provided them.");
+    if(fpar.login_type == ForumParser::LoginTypeHttpAuth) {
+        if (fsub->username().length() <= 0 || fsub->password().length() <= 0) {
+            qDebug() << "FAIL: no credentials given for subscription "
+                    << fsub->toString();
+            cancelOperation();
+            emit networkFailure(
+                    "Server requested for username and password for forum "
+                    + fsub->alias() + " but you haven't provided them.");
+        } else {
+            qDebug() << "Gave credentials to server";
+            authenticator->setUser(fsub->username());
+            authenticator->setPassword(fsub->password());
+        }
     } else {
-        qDebug() << "Gave credentials to server";
-        authenticator->setUser(fsub->username());
-        authenticator->setPassword(fsub->password());
+        qDebug() << "Requests authentication. Asking for it.";
+        emit getAuthentication(fsub, authenticator);
     }
+
 }
 
 void ForumSession::clearAuthentications() {

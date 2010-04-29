@@ -1,9 +1,17 @@
-/*
- * patternmatcher.cpp
- *
- *  Created on: Sep 18, 2009
- *      Author: vranki
- */
+/* This file is part of libSiilihai.
+
+    libSiilihai is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Lesser General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    libSiilihai is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public License
+    along with libSiilihai.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "patternmatcher.h"
 
@@ -121,71 +129,71 @@ QList<QHash<QString, QString> > PatternMatcher::findMatches(QString &html) {
 */
 
 	while (pos < htmllength && patternTokens.length() > 0) {
-		for (int n = 0; n < patternTokens.length() && pos < htmllength; n++) {
-			QString pt = patternTokens[n];
-			QString nextPt = QString::null;
+            for (int n = 0; n < patternTokens.length() && pos < htmllength; n++) {
+                QString pt = patternTokens[n];
+                QString nextPt = QString::null;
 
-			if(n < patternTokens.length()-1)
-				nextPt = patternTokens[n+1];
+                if(n < patternTokens.length()-1)
+                    nextPt = patternTokens[n+1];
 
-			if (isTag(pt)) { // It's a tag like %a
-				if (n == patternTokens.length()) {
-					qDebug() << "Panic!! not enough tokens!!";
-				}
-				//				qDebug() << "Looking for token " << pt << " ending at "
-				//						<< nextToken << " at " << html.right(htmllength - pos);
-				int matchPos = html.indexOf(nextPt, pos);
+                if (isTag(pt)) { // It's a tag like %a
+                    if (n == patternTokens.length()) {
+                        qDebug() << "Panic!! not enough tokens!!";
+                    }
+                    //				qDebug() << "Looking for token " << pt << " ending at "
+                    //						<< nextToken << " at " << html.right(htmllength - pos);
+                    int matchPos = html.indexOf(nextPt, pos);
 
-				if (matchPos < 0) {
-					if (es)
-						emit dataMatched(pos, html.mid(pos, htmllength - pos),
-								PMTNoMatch);
-					pos = htmllength;
-				} else {
-					if (pt[1] == 'i') {
-						type = PMTIgnored;
-					} else {
-						QString match = html.mid(pos, matchPos - pos);
+                    if (matchPos < 0) {
+                        if (es)
+                            emit dataMatched(pos, html.mid(pos, htmllength - pos),
+                                             PMTNoMatch);
+                        pos = htmllength;
+                    } else {
+                        if (pt[1] == 'i') {
+                            type = PMTIgnored;
+                        } else {
+                            QString match = html.mid(pos, matchPos - pos);
 
-						if (isNumberTag(pt)) {
-							match = numberize(match);
-						}
-						//										qDebug() << "tag " << pt << ":" << match;
-						pt = pt.toLower();
-						matchHash[pt] = match.trimmed();
-						type = PMTTag;
-					}
-					if (es)
-						emit dataMatched(pos, html.mid(pos, matchPos - pos),
-								type);
-					pos = matchPos;
-				}
-			} else { // NOT tag, just random text
-				//				qDebug() << "Looking for text " << pt << " at " << html.right(
-				//						htmllength - pos);
-				int matchPos = html.indexOf(pt, pos);
-				if (matchPos < 0) { // didn't find - skip to end
-					if (es)
-						emit dataMatched(pos, html.mid(pos, htmllength - pos),
-								PMTNoMatch);
-					pos = htmllength;
-				} else { // Match found
-					if (es) {
-						emit dataMatched(pos, html.mid(pos, matchPos - pos),
-								PMTNoMatch);
-						emit dataMatched(matchPos, html.mid(matchPos,
+                            if (isNumberTag(pt)) {
+                                match = numberize(match);
+                            }
+                            //										qDebug() << "tag " << pt << ":" << match;
+                            pt = pt.toLower();
+                            matchHash[pt] = match.trimmed();
+                            type = PMTTag;
+                        }
+                        if (es)
+                            emit dataMatched(pos, html.mid(pos, matchPos - pos),
+                                             type);
+                        pos = matchPos;
+                    }
+                } else { // NOT tag, just random text
+                    //				qDebug() << "Looking for text " << pt << " at " << html.right(
+                    //						htmllength - pos);
+                    int matchPos = html.indexOf(pt, pos);
+                    if (matchPos < 0) { // didn't find - skip to end
+                        if (es)
+                            emit dataMatched(pos, html.mid(pos, htmllength - pos),
+                                             PMTNoMatch);
+                        pos = htmllength;
+                    } else { // Match found
+                        if (es) {
+                            emit dataMatched(pos, html.mid(pos, matchPos - pos),
+                                             PMTNoMatch);
+                            emit dataMatched(matchPos, html.mid(matchPos,
 								pt.length()), PMTMatch);
-					}
-					pos = matchPos + pt.length();
-				}
-			}
-		}
-		if (matchHash.size() > 0)
-			matches.append(matchHash);
-		matchHash.clear();
+                        }
+                        pos = matchPos + pt.length();
+                    }
+                }
+            }
+            if (matchHash.size() > 0)
+                matches.append(matchHash);
+            matchHash.clear();
 	}
 	if (es)
-		emit dataMatchingEnd();
+            emit dataMatchingEnd();
 	return matches;
-}
+    }
 
