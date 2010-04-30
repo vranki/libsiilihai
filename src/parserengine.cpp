@@ -64,7 +64,7 @@ void ParserEngine::updateForum(bool force) {
 }
 
 void ParserEngine::networkFailure(QString message) {
-    emit updateFailure("Updating " + subscription->alias() + " failed due to network error:\n\n" + message);
+    emit updateFailure(subscription, "Updating " + subscription->alias() + " failed due to network error:\n\n" + message);
     cancelOperation();
 }
 
@@ -113,7 +113,7 @@ void ParserEngine::listGroupsFinished(QList<ForumGroup*> &groups) {
     bool dbGroupsWasEmpty = dbgroups.isEmpty();
     groupsToUpdateQueue.clear();
     if (groups.size() == 0 && dbgroups.size() > 0) {
-        emit updateFailure("Updating group list for " + parser.parser_name
+        emit updateFailure(subscription, "Updating group list for " + parser.parser_name
                            + " failed. \nCheck your network connection.");
         cancelOperation();
         return;
@@ -193,7 +193,7 @@ void ParserEngine::listThreadsFinished(QList<ForumThread*> &threads,
     QList<ForumThread*> dbthreads = fdb->listThreads(group);
     threadsToUpdateQueue.clear();
     if (threads.isEmpty() && dbthreads.size() > 0) {
-        emit updateFailure("Updating thread list failed. \nCheck your network connection.");
+        emit updateFailure(subscription, "Updating thread list failed. \nCheck your network connection.");
         cancelOperation();
         return;
     }

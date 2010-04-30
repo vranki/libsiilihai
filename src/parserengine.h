@@ -47,7 +47,7 @@ signals:
     void groupListChanged(ForumSubscription *forum);
     void forumUpdated(ForumSubscription *forum);
     void statusChanged(ForumSubscription *forum, bool reloading, float progress);
-    void updateFailure(QString message);
+    void updateFailure(ForumSubscription *forum, QString message);
     void getAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator);
 
 private:
