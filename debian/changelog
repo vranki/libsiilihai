@@ -1,3 +1,9 @@
+libsiilihai (0.9.2-2) lucid; urgency=low
+
+  * First release for Lucid Lynx
+
+ -- Ville Ranki <ville.ranki@iki.fi>  Tue, 11 May 2010 20:29:43 +0300
+
 libsiilihai (0.9.2-1) karmic; urgency=low
 
   * Support for HTTP authentication to forums

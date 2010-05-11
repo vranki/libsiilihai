@@ -63,25 +63,6 @@ void ForumSession::listGroupsReply(QNetworkReply *reply) {
     performListGroups(data);
 }
 
-void ForumSession::loginReply(QNetworkReply *reply) {
-    if(operationInProgress == FSONoOp) return;
-
-    qDebug() << Q_FUNC_INFO;
-    qDebug() << statusReport();
-
-    disconnect(nam, SIGNAL(finished(QNetworkReply*)), this,
-               SLOT(loginReply(QNetworkReply*)));
-    QString data = convertCharset(reply->readAll());
-
-    if (reply->error() != QNetworkReply::NoError) {
-        emit(networkFailure(reply->errorString()));
-        loginFinished(false);
-        cancelOperation();
-        return;
-    }
-
-    performLogin(data);
-}
 
 void ForumSession::performListGroups(QString &html) {
     Q_ASSERT(pm);
@@ -102,19 +83,6 @@ void ForumSession::performListGroups(QString &html) {
     qDeleteAll(groups);
 }
 
-void ForumSession::performLogin(QString &html) {
-    qDebug() << Q_FUNC_INFO;
-    emit receivedHtml(html);
-    bool success = html.contains(fpar.verify_login_pattern);
-    emit loginFinished(success);
-    loggedIn = success;
-    if(loggedIn) {
-        nextOperation();
-    } else {
-        cancelOperation();
-        qDebug() << "Login failed - cancelling ops!";
-    }
-}
 
 void ForumSession::fetchCookieReply(QNetworkReply *reply) {
     if(operationInProgress == FSONoOp) return;
@@ -164,8 +132,7 @@ void ForumSession::loginToForum() {
 
     if (fpar.login_type == ForumParser::LoginTypeNotSupported) {
         qDebug() << "Login not supproted!";
-        emit
-		loginFinished(false);
+        emit loginFinished(false);
         return;
     }
 
@@ -181,8 +148,7 @@ void ForumSession::loginToForum() {
         QHash<QString, QString> params;
         QStringList loginParamPairs = fpar.login_parameters.split(",",
                                                                   QString::SkipEmptyParts);
-        for (int i = 0; i < loginParamPairs.size(); ++i) {
-            QString paramPair = loginParamPairs.at(i);
+        foreach(QString paramPair, loginParamPairs) {
             paramPair = paramPair.replace("%u", fsub->username());
             paramPair = paramPair.replace("%p", fsub->password());
             qDebug() << "Param Pair: " << paramPair;
@@ -206,6 +172,38 @@ void ForumSession::loginToForum() {
         nam->post(req, loginData);
     } else {
         qDebug("Sorry, http auth not yet implemented.");
+    }
+}
+
+void ForumSession::loginReply(QNetworkReply *reply) {
+    qDebug() << Q_FUNC_INFO;
+    qDebug() << statusReport();
+
+    disconnect(nam, SIGNAL(finished(QNetworkReply*)), this,
+               SLOT(loginReply(QNetworkReply*)));
+    QString data = convertCharset(reply->readAll());
+
+    if (reply->error() != QNetworkReply::NoError) {
+        emit(networkFailure(reply->errorString()));
+        loginFinished(false);
+        cancelOperation();
+        return;
+    }
+
+    performLogin(data);
+}
+
+void ForumSession::performLogin(QString &html) {
+    qDebug() << Q_FUNC_INFO;
+    emit receivedHtml(html);
+    bool success = html.contains(fpar.verify_login_pattern);
+    emit loginFinished(success);
+    loggedIn = success;
+    if(loggedIn) {
+        nextOperation();
+    } else {
+        cancelOperation();
+        qDebug() << "Login failed - cancelling ops!";
     }
 }
 
@@ -641,6 +639,8 @@ void ForumSession::nextOperation() {
         break;
     case FSOUpdateMessages:
         listMessages(currentThread);
+        break;
+    case FSONoOp:
         break;
     default:
         Q_ASSERT(false);
