@@ -15,6 +15,7 @@
 #ifndef FORUMSESSION_H_
 #define FORUMSESSION_H_
 #include <QObject>
+#include <QCoreApplication>
 #include <QString>
 #include <QStringList>
 #include <QHash>
@@ -72,7 +73,7 @@ public slots:
 signals:
     void listGroupsFinished(QList<ForumGroup*> &groups);
     void listThreadsFinished(QList<ForumThread*> &threads, ForumGroup *group);
-    void listMessagesFinished(QList<ForumMessage*> &messages, ForumThread *thread);
+    void listMessagesFinished(QList<ForumMessage*> &messages, ForumThread *thread, bool moreAvailable);
     void networkFailure(QString message);
     void loginFinished(bool success);
     void receivedHtml(const QString &data);
@@ -99,6 +100,7 @@ private:
     ForumThread *currentThread;
     QList<ForumThread*> threads;
     QList<ForumMessage*> messages; // Represents messages in thread listMessages
+    bool moreMessagesAvailable; // True if thread would have more messages but limit stops search
     QString currentMessagesUrl;
 };
 

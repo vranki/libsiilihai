@@ -268,7 +268,7 @@ void ForumSession::updateThreadPage() {
 }
 
 void ForumSession::listThreads(ForumGroup *group) {
-    qDebug() << "ForumSession::UpdateGroup: " << group->toString();
+    qDebug() << Q_FUNC_INFO << group->toString();
 
     if (operationInProgress != FSONoOp && operationInProgress
         != FSOUpdateThreads) {
@@ -294,9 +294,10 @@ void ForumSession::listMessages(ForumThread *thread) {
     }
     operationInProgress = FSOUpdateMessages;
     currentThread = thread;
+    currentGroup = thread->group();
 
     messages.clear();
-
+    moreMessagesAvailable = false;
     if(prepareForUse()) return;
     currentListPage = fpar.view_thread_page_start;
     updateThreadPage();
@@ -366,12 +367,14 @@ void ForumSession::performListMessages(QString &html) {
             // Message not in messages - add it if possible
             newMessagesFound = true;
             newMessage->setOrdernum(messages.size());
-            if (messages.size() < fsub->latest_messages()) {
+            // Check if message limit has reached
+            if (messages.size() < currentThread->getMessagesCount()) {
                 messages.append(newMessage);
                 newMessage = 0;
             } else {
                 qDebug() << "Number of messages exceeding maximum latest messages limit - not adding.";
                 newMessagesFound = false;
+                moreMessagesAvailable = true;
                 delete newMessage;
                 newMessage = 0;
             }
@@ -397,10 +400,12 @@ void ForumSession::performListMessages(QString &html) {
 
     if(finished) {
         operationInProgress = FSONoOp;
-        emit listMessagesFinished(messages, currentThread);
-        qDebug() << "clearing messages, size " << messages.size();
+        emit listMessagesFinished(messages, currentThread, moreMessagesAvailable);
         qDeleteAll(messages);
         messages.clear();
+    } else {
+        // Help keep UI responsive
+        QCoreApplication::processEvents();
     }
 }
 
@@ -444,13 +449,16 @@ void ForumSession::performListThreads(QString &html) {
     operationInProgress = FSOUpdateThreads;
     pm->setPattern(fpar.thread_list_pattern);
     QList<QHash<QString, QString> > matches = pm->findMatches(html);
-    qDebug() << "ListThreads Found " << matches.size() << " matches";
+    qDebug() << Q_FUNC_INFO << "found " << matches.size() << " matches";
+    // Iterate through matches on page
     QHash<QString, QString> match;
     foreach(match, matches) {
         ForumThread *ft = new ForumThread(currentGroup);
         ft->setId(match["%a"]);
         ft->setName(match["%b"]);
         ft->setLastchange(match["%c"]);
+        ft->setGetMessagesCount(currentGroup->subscription()->latest_messages());
+        ft->setHasMoreMessages(false);
         if (ft->isSane()) {
             newThreads.append(ft);
         } else {
@@ -460,6 +468,7 @@ void ForumSession::performListThreads(QString &html) {
     }
     // See if the new threads contains already unknown threads
     bool newThreadsFound = false;
+    // @todo this could be optimized a lot
     while(!newThreads.isEmpty()) {
         ForumThread *newThread = newThreads.takeFirst();
         bool threadFound = false;
@@ -468,13 +477,13 @@ void ForumSession::performListThreads(QString &html) {
                 threadFound = true;
             }
         }
-        if(threadFound) {
+        if(threadFound) { // Delete if already known thread
             delete newThread;
             newThread = 0;
         } else {
             newThreadsFound = true;
             newThread->setOrdernum(threads.size());
-            if (threads.size() < fsub->latest_threads()) {
+            if ((unsigned int) threads.size() < fsub->latest_threads()) {
                 threads.append(newThread);
                 newThread = 0;
             } else {

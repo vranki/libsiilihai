@@ -57,7 +57,7 @@ public:
     void getUserSettings();
 
     // Messages must be in same group!
-    void sendThreadData(QList<ForumMessage*> &fms);
+    void sendThreadData(ForumGroup *grp, QList<ForumMessage*> &fms);
     void getSyncSummary();
     void getThreadData(ForumGroup *grp);
 

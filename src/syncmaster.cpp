@@ -117,7 +117,7 @@ void SyncMaster::processGroups() {
             messagesToUpload.append(fdb.listMessages(thread));
         }
         connect(&protocol, SIGNAL(sendThreadDataFinished(bool)), this, SLOT(sendThreadDataFinished(bool)));
-        protocol.sendThreadData(messagesToUpload);
+        protocol.sendThreadData(g, messagesToUpload);
         messagesToUpload.clear();
     }
     if(!groupsToDownload.isEmpty()) {

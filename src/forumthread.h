@@ -33,7 +33,7 @@ public:
     int changeset() const;
     ForumGroup *group() const;
     bool hasMoreMessages() const;
-    bool getAllMessages() const;
+    int getMessagesCount() const; // Max number of messages to get
 
     void setId(QString nid);
     void setOrdernum(int on);
@@ -41,7 +41,7 @@ public:
     void setLastchange(QString lc);
     void setChangeset(int cs);
     void setHasMoreMessages(bool hmm);
-    void setGetAllMessages(bool gam);
+    void setGetMessagesCount(int gmc);
     void setGroup(ForumGroup *ng);
     QString toString() const;
     bool isSane() const;
@@ -56,7 +56,7 @@ private:
     int _changeset;
     ForumGroup *_group;
     bool _hasMoreMessages;
-    bool _getAllMessages;
+    int _getMessagesCount;
 };
 
 #endif /* FORUMTHREAD_H_ */

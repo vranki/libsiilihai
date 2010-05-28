@@ -568,11 +568,10 @@ void SiilihaiProtocol::getThreadData(ForumGroup *grp) {
 }
 
 void SiilihaiProtocol::replyGetThreadData(QNetworkReply *reply) {
-    qDebug() << Q_FUNC_INFO;
     disconnect(&nam, SIGNAL(finished(QNetworkReply*)), this,
                SLOT(replyGetThreadData(QNetworkReply*)));
     QString docs = QString().fromUtf8(reply->readAll());
-    qDebug() << docs;
+    qDebug() << Q_FUNC_INFO << docs;
 
     QMap<ForumThread, QList<ForumMessage> > threadData;
 
@@ -590,8 +589,7 @@ void SiilihaiProtocol::replyGetThreadData(QNetworkReply *reply) {
                             forumElement.childNodes().at(k).toElement();
                     QString groupid = groupElement.attribute("id");
                     Q_ASSERT(groupid == getThreadDataGroup->id());
-                    int groupChangeset =
-                            groupElement.attribute("changeset").toInt();
+                    int groupChangeset = groupElement.attribute("changeset").toInt();
 
                     for (int l = 0; l < groupElement.childNodes().size(); l++) {
                         QDomElement threadElement =
@@ -600,9 +598,12 @@ void SiilihaiProtocol::replyGetThreadData(QNetworkReply *reply) {
                         Q_ASSERT(threadid.length()>0);
                         int threadChangeset =
                                 threadElement.attribute("changeset").toInt();
+                        int threadGetMessagesCount =
+                                threadElement.attribute("getmessagescount").toInt();
                         ForumThread thr(getThreadDataGroup);
                         thr.setId(threadid);
                         thr.setChangeset(threadChangeset);
+                        thr.setGetMessagesCount(threadGetMessagesCount);
                         thr.setName("?");
                         emit serverThreadData(&thr);
                         for (int m = 0; m < threadElement.childNodes().size(); m++) {
@@ -622,7 +623,7 @@ void SiilihaiProtocol::replyGetThreadData(QNetworkReply *reply) {
         }
     } else {
         qDebug() << Q_FUNC_INFO << " network error: "
-                << reply->errorString();
+                << reply->error() << reply->errorString();
     }
     reply->deleteLater();
     getThreadDataGroup = 0;
@@ -630,13 +631,9 @@ void SiilihaiProtocol::replyGetThreadData(QNetworkReply *reply) {
 }
 
 
-void SiilihaiProtocol::sendThreadData(QList<ForumMessage*> &fms) {
-    qDebug() << Q_FUNC_INFO << fms.size();
-    if (fms.isEmpty()) {
-        emit sendThreadDataFinished(false); // Is this error?
-    }
-    ForumMessage *message = fms.first();
-    Q_ASSERT(message);
+void SiilihaiProtocol::sendThreadData(ForumGroup *grp, QList<ForumMessage*> &fms) {
+    qDebug() << Q_FUNC_INFO << fms.size() << " msgs in " << grp->toString();
+
 
     QNetworkRequest req(sendThreadDataUrl);
     QDomDocument doc("SiilihaiML");
@@ -646,30 +643,30 @@ void SiilihaiProtocol::sendThreadData(QList<ForumMessage*> &fms) {
     QDomElement forumTag = doc.createElement("forum");
     root.appendChild(forumTag);
 
-    QDomText t = doc.createTextNode(QString().number(message->thread()->group()->subscription()->parser()));
+    QDomText t = doc.createTextNode(QString().number(grp->subscription()->parser()));
     forumTag.appendChild(t);
 
     QDomElement groupTag = doc.createElement("group");
     root.appendChild(groupTag);
 
-    t = doc.createTextNode(message->thread()->group()->id());
+    t = doc.createTextNode(grp->id());
     groupTag.appendChild(t);
 
     // Sort 'em to threads:
-
-    QMap<QString, QList<ForumMessage*> > threadedMessages; // Thread id, message
+    QMap<ForumThread*, QList<ForumMessage*> > threadedMessages; // Thread id, message
     foreach (ForumMessage *fm, fms) {
         if (fm->read())
-            threadedMessages[fm->thread()->id()].append(fm);
+            threadedMessages[fm->thread()].append(fm);
     }
 
     // Send thread data
-    QMapIterator<QString, QList<ForumMessage*> > i(threadedMessages);
+    QMapIterator<ForumThread*, QList<ForumMessage*> > i(threadedMessages);
     while (i.hasNext()) {
         i.next();
         QDomElement threadTag = doc.createElement("thread");
-        threadTag.setAttribute("id", i.key());
-        threadTag.setAttribute("changeset", 0);
+        threadTag.setAttribute("id", i.key()->id());
+        threadTag.setAttribute("changeset", i.key()->changeset());
+        threadTag.setAttribute("getmessagescount", i.key()->getMessagesCount());
 
         foreach(ForumMessage *fm, i.value())
         {

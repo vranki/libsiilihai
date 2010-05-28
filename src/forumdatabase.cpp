@@ -133,7 +133,7 @@ bool ForumDatabase::openDatabase() {
 			"lastchange VARCHAR, "
 			"changeset INTEGER, "
                         "hasmoremessages BOOLEAN, "
-                        "getallmessages BOOLEAN, "
+                        "getmessagescount INTEGER, "
 			"PRIMARY KEY (forumid, groupid, threadid)"
 			")")) {
             qDebug() << "Couldn't create threads table!";
@@ -203,7 +203,7 @@ bool ForumDatabase::openDatabase() {
     // Load threads
     foreach(ForumSubscription *sub, subscriptions) {
         foreach(ForumGroup *grp, groups[sub]) {
-            query.prepare("SELECT threadid,ordernum,name,lastchange,changeset,hasmoremessages,getallmessages FROM threads WHERE forumid=? AND groupid=? ORDER BY ordernum");
+            query.prepare("SELECT threadid,ordernum,name,lastchange,changeset,hasmoremessages,getmessagescount FROM threads WHERE forumid=? AND groupid=? ORDER BY ordernum");
             query.addBindValue(grp->subscription()->parser());
             query.addBindValue(grp->id());
 
@@ -216,7 +216,7 @@ bool ForumDatabase::openDatabase() {
                     t->setLastchange(query.value(3).toString());
                     t->setChangeset(query.value(4).toInt());
                     t->setHasMoreMessages(query.value(5).toBool());
-                    t->setGetAllMessages(query.value(6).toBool());
+                    t->setGetMessagesCount(query.value(6).toInt());
                     Q_ASSERT(!threads[grp].contains(t->id()));
                     threads[grp][t->id()] = t;
                     emit threadFound(t);
@@ -374,7 +374,7 @@ ForumThread * ForumDatabase::addThread(const ForumThread *thread) {
     }
 
     query.prepare(
-            "INSERT INTO threads(forumid, groupid, threadid, name, ordernum, lastchange, changeset) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            "INSERT INTO threads(forumid, groupid, threadid, name, ordernum, lastchange, changeset, hasmoremessages, getmessagescount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
     query.addBindValue(thread->group()->subscription()->parser());
     query.addBindValue(thread->group()->id());
     query.addBindValue(thread->id());
@@ -382,6 +382,9 @@ ForumThread * ForumDatabase::addThread(const ForumThread *thread) {
     query.addBindValue(thread->ordernum());
     query.addBindValue(thread->lastchange());
     query.addBindValue(thread->changeset());
+    query.addBindValue(thread->hasMoreMessages());
+    query.addBindValue(thread->getMessagesCount());
+
     if (!query.exec()) {
         qDebug() << "Adding thread " << thread->toString() << " failed: "
                 << query.lastError().text();
@@ -406,13 +409,13 @@ bool ForumDatabase::updateThread(ForumThread *thread) {
     Q_ASSERT(thread->isSane());
     QSqlQuery query;
     query.prepare(
-            "UPDATE threads SET name=?, ordernum=?, lastchange=?, changeset=?, hasmoremessages=?, getallmessages=? WHERE(forumid=? AND groupid=? AND threadid=?)");
+            "UPDATE threads SET name=?, ordernum=?, lastchange=?, changeset=?, hasmoremessages=?, getmessagescount=? WHERE(forumid=? AND groupid=? AND threadid=?)");
     query.addBindValue(thread->name());
     query.addBindValue(thread->ordernum());
     query.addBindValue(thread->lastchange());
     query.addBindValue(thread->changeset());
     query.addBindValue(thread->hasMoreMessages());
-    query.addBindValue(thread->getAllMessages());
+    query.addBindValue(thread->getMessagesCount());
     // Where
     query.addBindValue(thread->group()->subscription()->parser());
     query.addBindValue(thread->group()->id());
@@ -575,9 +578,10 @@ bool ForumDatabase::deleteThread(ForumThread *thread) {
                 << thread->toString();
     }
 
-    while(!messages[thread].isEmpty())
+    while(!messages[thread].isEmpty()) {
         deleteMessage(messages[thread].begin().value());
-
+        QCoreApplication::processEvents(); // Help keep UI responsive
+    }
     QSqlQuery query;
     query.prepare(
             "DELETE FROM threads WHERE (forumid=? AND groupid=? AND threadid=?)");
@@ -715,7 +719,7 @@ bool ForumDatabase::markGroupRead(ForumGroup *group, bool read) {
 }
 
 int ForumDatabase::schemaVersion() {
-    return 4;
+    return 5;
 }
 
 #ifdef FDB_TEST

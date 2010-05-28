@@ -22,8 +22,8 @@ ParserEngine::ParserEngine(ForumDatabase *fd, QObject *parent) :
             SIGNAL(listThreadsFinished(QList<ForumThread*>&, ForumGroup*)), this,
             SLOT(listThreadsFinished(QList<ForumThread*>&, ForumGroup*)));
     connect(&session,
-            SIGNAL(listMessagesFinished(QList<ForumMessage*>&, ForumThread*)),
-            this, SLOT(listMessagesFinished(QList<ForumMessage*>&, ForumThread*)));
+            SIGNAL(listMessagesFinished(QList<ForumMessage*>&, ForumThread*, bool)),
+            this, SLOT(listMessagesFinished(QList<ForumMessage*>&, ForumThread*, bool)));
     connect(&session,
             SIGNAL(networkFailure(QString)),
             this, SLOT(networkFailure(QString)));
@@ -35,7 +35,7 @@ ParserEngine::ParserEngine(ForumDatabase *fd, QObject *parent) :
     updateAll = false;
     forceUpdate = false;
     sessionInitialized = false;
-    forumBusy = 0;
+    forumBusy = false;
 }
 
 ParserEngine::~ParserEngine() {
@@ -54,13 +54,41 @@ void ParserEngine::updateForum(bool force) {
     Q_ASSERT(subscription);
 
     forceUpdate = force;
-    setBusy(true);
-
     updateAll = true;
-    if (!sessionInitialized)
+    if (!sessionInitialized) {
         session.initialize(parser, subscription);
+        sessionInitialized = true;
+    }
     session.listGroups();
-    updateCurrentProgress();
+    setBusy(true);
+}
+
+void ParserEngine::updateGroupList() {
+    updateAll = false;
+    if (!sessionInitialized) {
+        session.initialize(parser, subscription);
+        sessionInitialized = true;
+    }
+
+    session.listGroups();
+    setBusy(true);
+}
+
+void ParserEngine::updateThread(ForumThread *thread) {
+    Q_ASSERT(subscription);
+    Q_ASSERT(thread);
+    qDebug() << Q_FUNC_INFO << "for thread " << thread->toString();
+
+    forceUpdate = false;
+    updateAll = false;
+
+    if (!sessionInitialized) {
+        session.initialize(parser, subscription);
+        sessionInitialized = true;
+    }
+
+    session.listMessages(thread);
+    setBusy(true);
 }
 
 void ParserEngine::networkFailure(QString message) {
@@ -68,14 +96,6 @@ void ParserEngine::networkFailure(QString message) {
     cancelOperation();
 }
 
-void ParserEngine::updateGroupList() {
-    setBusy(true);
-    updateAll = false;
-    if (!sessionInitialized)
-        session.initialize(parser, subscription);
-    session.listGroups();
-    updateCurrentProgress();
-}
 
 void ParserEngine::updateNextChangedGroup() {
     Q_ASSERT(updateAll);
@@ -208,7 +228,14 @@ void ParserEngine::listThreadsFinished(QList<ForumThread*> &threads,
                 foundInDb = true;
                 if ((dbthread->lastchange() != thr->lastchange()) || forceUpdate) {
                     Q_ASSERT(dbthread->group() == thr->group());
+
+                    // Don't update some fields to new values
+                    int oldGetMessagesCount = dbthread->getMessagesCount();
+                    bool oldHasMoreMessages =  dbthread->hasMoreMessages();
                     dbthread->operator=(*thr);
+                    dbthread->setGetMessagesCount(oldGetMessagesCount);
+                    dbthread->setHasMoreMessages(oldHasMoreMessages);
+
                     Q_ASSERT(dbthread);
                     qDebug() << Q_FUNC_INFO << "Thread " << dbthread->toString()
                             << " has been changed, updating and adding to update queue";
@@ -246,8 +273,9 @@ void ParserEngine::listThreadsFinished(QList<ForumThread*> &threads,
 }
 
 void ParserEngine::listMessagesFinished(QList<ForumMessage*> &messages,
-                                        ForumThread *thread) {
-    qDebug() << Q_FUNC_INFO << messages.size() << "new in " << thread->toString();
+                                        ForumThread *thread, bool moreAvailable) {
+    qDebug() << Q_FUNC_INFO << messages.size() << "new in " << thread->toString()
+            << " more available: " << moreAvailable;
     Q_ASSERT(thread);
     Q_ASSERT(thread->group()->subscribed());
     QList<ForumMessage*> dbmessages = fdb->listMessages(thread);
@@ -257,7 +285,6 @@ void ParserEngine::listMessagesFinished(QList<ForumMessage*> &messages,
     bool messagesChanged = false;
     foreach (ForumMessage *msg, messages) {
         bool foundInDb = false;
-        qDebug() << Q_FUNC_INFO << "Checking new message " << msg->toString();
         foreach (ForumMessage *dbmessage, dbmessages) {
             if (dbmessage->id() == msg->id()) {
                 // qDebug() << "msg id " << dbmessage.id << " & " << msg.id;
@@ -274,15 +301,13 @@ void ParserEngine::listMessagesFinished(QList<ForumMessage*> &messages,
                     dbmessage->operator=(*msg);
                 }
                 fdb->updateMessage(dbmessage);
-                //}
-            } else {
-                qDebug() << Q_FUNC_INFO << " ..is not " << dbmessage->toString();
             }
         }
         if (!foundInDb) {
             messagesChanged = true;
             fdb->addMessage(msg);
         }
+        QCoreApplication::processEvents(); // Help keep UI responsive
     }
 
     // check for DELETED threads
@@ -299,8 +324,16 @@ void ParserEngine::listMessagesFinished(QList<ForumMessage*> &messages,
             fdb->deleteMessage(dbmessage);
         }
     }
-    if(updateAll)
+    // update thread
+    thread->setHasMoreMessages(moreAvailable);
+    Q_ASSERT(fdb->updateThread(thread));
+
+    if(updateAll) {
         updateNextChangedThread();
+    } else {
+        setBusy(false);
+        emit forumUpdated(subscription);
+    }
 }
 
 bool ParserEngine::isBusy() {

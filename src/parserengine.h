@@ -19,6 +19,7 @@
 #include "forumsubscription.h"
 #include "forumsession.h"
 #include "forumgroup.h"
+#include "forumthread.h"
 #include "forummessage.h"
 #include "forumdatabase.h"
 
@@ -32,10 +33,11 @@ public:
     void setSubscription(ForumSubscription *fs);
     void updateGroupList();
     void updateForum(bool force=false);
+    void updateThread(ForumThread *thread);
     bool isBusy();
 
 public slots:
-    void listMessagesFinished(QList<ForumMessage*> &messages, ForumThread *thread);
+    void listMessagesFinished(QList<ForumMessage*> &messages, ForumThread *thread, bool moreAvailable);
     void listGroupsFinished(QList<ForumGroup*> &groups);
     void listThreadsFinished(QList<ForumThread*> &threads, ForumGroup *group);
     void networkFailure(QString message);

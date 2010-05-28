@@ -1,3 +1,15 @@
+libsiilihai (0.9.4-1) lucid; urgency=low
+
+  * Support for per-thread number of messages to download(nr)
+
+ -- Ville Ranki <ville.ranki@iki.fi>  Wed, 12 May 2010 20:29:43 +0300
+
+libsiilihai (0.9.3-1) lucid; urgency=low
+
+  * Downloading more messages support
+
+ -- Ville Ranki <ville.ranki@iki.fi>  Wed, 12 May 2010 20:29:43 +0300
+
 libsiilihai (0.9.2-2) lucid; urgency=low
 
   * First release for Lucid Lynx

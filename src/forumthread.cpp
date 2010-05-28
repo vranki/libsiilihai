@@ -22,7 +22,8 @@ ForumThread::ForumThread(ForumGroup *grp) : QObject(grp) {
     _id = _name = _lastchange = "";
     _changeset = -1;
     _ordernum = -1;
-    _hasMoreMessages = _getAllMessages = false;
+    _hasMoreMessages = false;
+    _getMessagesCount = -1;
 }
 
 ForumThread::ForumThread(const ForumThread& o) : QObject() {
@@ -36,7 +37,8 @@ ForumThread& ForumThread::operator=(const ForumThread& o) {
     _lastchange = o._lastchange;
     _changeset = o._changeset;
     _ordernum = o._ordernum;
-
+    _hasMoreMessages = o._hasMoreMessages;
+    _getMessagesCount = o._getMessagesCount;
     return *this;
 }
 
@@ -54,7 +56,7 @@ QString ForumThread::toString() const {
 }
 
 bool ForumThread::isSane() const {
-    return (_group && _id.length() > 0 && _ordernum < 1000);
+    return (_group && _id.length() > 0 && _ordernum < 10000 && _getMessagesCount >= 0);
 }
 
 QString ForumThread::id() const {
@@ -80,8 +82,8 @@ bool ForumThread::hasMoreMessages() const {
     return _hasMoreMessages;
 }
 
-bool ForumThread::getAllMessages() const {
-    return _getAllMessages;
+int ForumThread::getMessagesCount() const {
+    return _getMessagesCount;
 }
 
 void ForumThread::setId(QString nid) {
@@ -104,8 +106,8 @@ void ForumThread::setHasMoreMessages(bool hmm) {
     _hasMoreMessages = hmm;
 }
 
-void ForumThread::setGetAllMessages(bool gam) {
-    _getAllMessages = gam;
+void ForumThread::setGetMessagesCount(int gmc) {
+    _getMessagesCount = gmc;
 }
 void ForumThread::setGroup(ForumGroup *ng) {
     _group = ng;

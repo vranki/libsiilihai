@@ -79,6 +79,7 @@ signals:
     void threadFound(ForumThread *thr);
     void threadAdded(ForumThread *thr);
     void threadDeleted(ForumThread *thr);
+    void threadDeletedRecursive(ForumThread *thr); // Thread and messages in it deleted!
     void threadUpdated(ForumThread *thr);
     void messageFound(ForumMessage *msg);
     void messageAdded(ForumMessage *msg);
