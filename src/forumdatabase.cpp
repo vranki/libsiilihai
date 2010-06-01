@@ -542,7 +542,7 @@ bool ForumDatabase::deleteMessage(ForumMessage *message) {
     }
     emit messageDeleted(message);
     messages[message->thread()].remove(message->id());
-    qDebug() << "Message " << message->toString() << " deleted";
+    qDebug() << Q_FUNC_INFO << "Message " << message->toString() << " deleted";
     message->deleteLater();
     return true;
 }
@@ -577,12 +577,25 @@ bool ForumDatabase::deleteThread(ForumThread *thread) {
         qDebug() << "Error: tried to delete invalid tread "
                 << thread->toString();
     }
-
+    /*
     while(!messages[thread].isEmpty()) {
         deleteMessage(messages[thread].begin().value());
         QCoreApplication::processEvents(); // Help keep UI responsive
     }
+    */
     QSqlQuery query;
+    query.prepare(
+            "DELETE FROM messages WHERE (forumid=? AND groupid=? AND threadid=?)");
+    query.addBindValue(thread->group()->subscription()->parser());
+    query.addBindValue(thread->group()->id());
+    query.addBindValue(thread->id());
+    if (!query.exec()) {
+        qDebug() << "Deleting messages from thread " << thread->toString()
+                << " failed: " << query.lastError().text();
+        return false;
+    }
+    messages.remove(thread);
+
     query.prepare(
             "DELETE FROM threads WHERE (forumid=? AND groupid=? AND threadid=?)");
     query.addBindValue(thread->group()->subscription()->parser());

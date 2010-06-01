@@ -78,8 +78,7 @@ signals:
     void groupUpdated(ForumGroup *grp);
     void threadFound(ForumThread *thr);
     void threadAdded(ForumThread *thr);
-    void threadDeleted(ForumThread *thr);
-    void threadDeletedRecursive(ForumThread *thr); // Thread and messages in it deleted!
+    void threadDeleted(ForumThread *thr); // NOTE: RECURSIVE! Thread and messages in it deleted!
     void threadUpdated(ForumThread *thr);
     void messageFound(ForumMessage *msg);
     void messageAdded(ForumMessage *msg);

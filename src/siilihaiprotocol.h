@@ -49,7 +49,7 @@ public:
     void listRequests();
     void listSubscriptions();
     void getParser(const int id);
-    void subscribeForum(const ForumSubscription *fs, bool unsubscribe = false);
+    void subscribeForum(ForumSubscription *fs, bool unsubscribe = false);
     void subscribeGroups(QList<ForumGroup*> &fgs);
     void saveParser(const ForumParser &parser);
 
@@ -83,7 +83,7 @@ signals:
     void loginFinished(bool success, QString motd, bool syncEnabled);
     void listParsersFinished(QList<ForumParser> parsers);
     void listRequestsFinished(QList<ForumRequest> requests);
-    void subscribeForumFinished(bool success);
+    void subscribeForumFinished(ForumSubscription *fs, bool success);
     void getParserFinished(ForumParser parser);
     void saveParserFinished(int newId, QString message);
     void listSubscriptionsFinished(QList<int> subscriptions);
@@ -112,6 +112,7 @@ private:
     sendParserReportUrl, subscribeGroupsUrl, sendThreadDataUrl, getThreadDataUrl, syncSummaryUrl,
     userSettingsUrl;
     ForumGroup *getThreadDataGroup;
+    ForumSubscription *forumBeingSubscribed;
 };
 
 #endif /* SIILIHAIPROTOCOL_H_ */

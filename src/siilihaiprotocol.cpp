@@ -18,6 +18,7 @@ SiilihaiProtocol::SiilihaiProtocol(QObject *parent) :
 	QObject(parent) {
     nam.setCookieJar(new QNetworkCookieJar(this));
     getThreadDataGroup = 0;
+    forumBeingSubscribed = 0;
 }
 
 SiilihaiProtocol::~SiilihaiProtocol() {
@@ -366,9 +367,10 @@ void SiilihaiProtocol::replySaveParser(QNetworkReply *reply) {
 }
 
 
-void SiilihaiProtocol::subscribeForum(const ForumSubscription *fs,
+void SiilihaiProtocol::subscribeForum(ForumSubscription *fs,
                                       bool unsubscribe) {
     qDebug() << Q_FUNC_INFO;
+
     QNetworkRequest req(subscribeForumUrl);
     QHash<QString, QString> params;
     params.insert("parser_id", QString().number(fs->parser()));
@@ -383,20 +385,23 @@ void SiilihaiProtocol::subscribeForum(const ForumSubscription *fs,
         params.insert("client_key", clientKey);
     }
     subscribeForumData = HttpPost::setPostParameters(&req, params);
+    forumBeingSubscribed = fs;
     connect(&nam, SIGNAL(finished(QNetworkReply*)), this,
             SLOT(replySubscribeForum(QNetworkReply*)));
     nam.post(req, subscribeForumData);
 }
 
 void SiilihaiProtocol::replySubscribeForum(QNetworkReply *reply) {
+    Q_ASSERT(forumBeingSubscribed);
     bool success = reply->error() == QNetworkReply::NoError;
     disconnect(&nam, SIGNAL(finished(QNetworkReply*)), this,
                SLOT(replySubscribeForum(QNetworkReply*)));
     if(!success) {
         qDebug() << Q_FUNC_INFO << " failed: " << reply->errorString();
     }
-    emit subscribeForumFinished(success);
+    emit subscribeForumFinished(forumBeingSubscribed, success);
     reply->deleteLater();
+    forumBeingSubscribed = 0;
 }
 
 void SiilihaiProtocol::subscribeGroups(QList<ForumGroup*> &fgs) {
@@ -690,12 +695,12 @@ void SiilihaiProtocol::replySendThreadData(QNetworkReply *reply) {
     qDebug() << Q_FUNC_INFO << success;
 
     nam.disconnect(SIGNAL(finished(QNetworkReply*)));
-    emit sendThreadDataFinished(success);
-    if(reply->error() != QNetworkReply::NoError) {
+    if(!success) {
         qDebug() << Q_FUNC_INFO << " network error: "
                 << reply->errorString();
     }
     reply->deleteLater();
+    emit sendThreadDataFinished(success);
 }
 
 void SiilihaiProtocol::setUserSettings(UserSettings *us) {

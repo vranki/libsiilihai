@@ -1,8 +1,8 @@
 libsiilihai (0.9.4-1) lucid; urgency=low
 
-  * Support for per-thread number of messages to download(nr)
+  * Support for per-thread number of messages to download
 
- -- Ville Ranki <ville.ranki@iki.fi>  Wed, 12 May 2010 20:29:43 +0300
+ -- Ville Ranki <ville.ranki@iki.fi>  Tue, 01 Jun 2010 20:29:43 +0300
 
 libsiilihai (0.9.3-1) lucid; urgency=low
 
