@@ -632,7 +632,7 @@ void SiilihaiProtocol::replyGetThreadData(QNetworkReply *reply) {
     }
     reply->deleteLater();
     getThreadDataGroup = 0;
-    emit getThreadDataFinished(reply->error() == QNetworkReply::NoError);
+    emit getThreadDataFinished(reply->error() == QNetworkReply::NoError, reply->errorString());
 }
 
 
@@ -700,7 +700,7 @@ void SiilihaiProtocol::replySendThreadData(QNetworkReply *reply) {
                 << reply->errorString();
     }
     reply->deleteLater();
-    emit sendThreadDataFinished(success);
+    emit sendThreadDataFinished(success, reply->errorString());
 }
 
 void SiilihaiProtocol::setUserSettings(UserSettings *us) {

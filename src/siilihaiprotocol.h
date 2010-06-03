@@ -93,11 +93,11 @@ signals:
     void userSettingsReceived(bool success, UserSettings *newSettings);
 
     // Sync stuff:
-    void sendThreadDataFinished(bool success);
+    void sendThreadDataFinished(bool success, QString message);
     void serverGroupStatus(QList<ForumGroup> &grps); // Data is not complete!
     void serverThreadData(ForumThread *thread);
     void serverMessageData(ForumMessage *message);
-    void getThreadDataFinished(bool success);
+    void getThreadDataFinished(bool success, QString message);
 
 private:
     QString clientKey;

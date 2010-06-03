@@ -24,18 +24,22 @@ QObject(parent), fdb(fd), protocol(prot) {
             SLOT(serverThreadData(ForumThread*)));
     connect(&protocol, SIGNAL(serverMessageData(ForumMessage*)), this,
             SLOT(serverMessageData(ForumMessage*)));
-    connect(&protocol, SIGNAL(getThreadDataFinished(bool)), this, SLOT(getThreadDataFinished(bool)));
+    connect(&protocol, SIGNAL(getThreadDataFinished(bool, QString)), this,
+            SLOT(getThreadDataFinished(bool, QString)));
+    canceled = true;
 }
 
 SyncMaster::~SyncMaster() {
 }
 
 void SyncMaster::startSync() {
+    canceled = false;
     protocol.getSyncSummary();
 }
 
 void SyncMaster::endSync() {
     qDebug( ) << Q_FUNC_INFO;
+    canceled = false;
     QList<ForumSubscription*> fsubs = fdb.listSubscriptions();
 
     foreach(ForumSubscription *fsub, fsubs)
@@ -104,9 +108,9 @@ void SyncMaster::serverGroupStatus(QList<ForumGroup> &grps) {
 // next in groupsToDownload
 void SyncMaster::processGroups() {
     qDebug( ) << Q_FUNC_INFO;
-
+    if(canceled) return;
     if (groupsToUpload.isEmpty() && groupsToDownload.isEmpty()) {
-        emit syncFinished(true);
+        emit syncFinished(true, QString::null);
         return;
     }
     // Do the uploading
@@ -116,7 +120,8 @@ void SyncMaster::processGroups() {
         {
             messagesToUpload.append(fdb.listMessages(thread));
         }
-        connect(&protocol, SIGNAL(sendThreadDataFinished(bool)), this, SLOT(sendThreadDataFinished(bool)));
+        connect(&protocol, SIGNAL(sendThreadDataFinished(bool, QString)),
+                this, SLOT(sendThreadDataFinished(bool, QString)));
         protocol.sendThreadData(g, messagesToUpload);
         messagesToUpload.clear();
     }
@@ -127,19 +132,22 @@ void SyncMaster::processGroups() {
     }
 }
 
-void SyncMaster::sendThreadDataFinished(bool success) {
+void SyncMaster::sendThreadDataFinished(bool success, QString message) {
     qDebug() << Q_FUNC_INFO << success;
-    disconnect(&protocol, SIGNAL(sendThreadDataFinished(bool)), this, SLOT(sendThreadDataFinished(bool)));
+    disconnect(&protocol, SIGNAL(sendThreadDataFinished(bool, QString)),
+               this, SLOT(sendThreadDataFinished(bool, QString)));
+    if(canceled) return;
     if (success) {
         processGroups();
     } else {
         qDebug() << Q_FUNC_INFO << "Failed!";
-        emit syncFinished(false);
+        emit syncFinished(false, message);
     }
 }
 
 void SyncMaster::serverThreadData(ForumThread *thread) {
     qDebug() << Q_FUNC_INFO << thread->toString();
+    if(canceled) return;
     if (thread->isSane()) {
         ForumThread *dbThread = fdb.getThread(thread->group()->subscription()->parser(), thread->group()->id(),
                                               thread->id());
@@ -160,6 +168,7 @@ void SyncMaster::serverThreadData(ForumThread *thread) {
 
 void SyncMaster::serverMessageData(ForumMessage *message) {
     qDebug() << Q_FUNC_INFO << message->toString();
+    if(canceled) return;
     if (message->isSane()) {
         ForumMessage *dbMessage = fdb.getMessage(message->thread()->group()->subscription()->parser(),
                                                  message->thread()->group()->id(), message->thread()->id(), message->id());
@@ -182,12 +191,13 @@ void SyncMaster::serverMessageData(ForumMessage *message) {
     }
 }
 
-void SyncMaster::getThreadDataFinished(bool success){
+void SyncMaster::getThreadDataFinished(bool success, QString message){
     qDebug() << Q_FUNC_INFO << success;
+    if(canceled) return;
     if(success) {
         processGroups();
     } else {
-        emit syncFinished(false);
+        emit syncFinished(false, message);
     }
 }
 
@@ -195,3 +205,13 @@ void SyncMaster::threadChanged(ForumThread *thread) {
     qDebug() << Q_FUNC_INFO << thread->toString();
 }
 
+void SyncMaster::cancel() {
+    serversGroups.clear();
+    serversThreads.clear();
+    groupsToUpload.clear();
+    groupsToDownload.clear();
+    changedThreads.clear();
+    forumsToUpload.clear();
+    messagesToUpload.clear();
+    emit syncFinished(false, "Canceled");
+}

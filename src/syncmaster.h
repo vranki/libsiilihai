@@ -30,19 +30,20 @@ public:
 	virtual ~SyncMaster();
 	void startSync();
 	void endSync();
+        void cancel();
 public slots:
         void serverGroupStatus(QList<ForumGroup> &grps);
 	void threadChanged(ForumThread *thread);
-	void sendThreadDataFinished(bool success);
+        void sendThreadDataFinished(bool success, QString message);
 	void serverThreadData(ForumThread *thread);
 	void serverMessageData(ForumMessage *message);
-        void getThreadDataFinished(bool success);
+        void getThreadDataFinished(bool success, QString message);
 signals:
-	void syncFinished(bool success);
+        void syncFinished(bool success, QString message);
 
 private:
 	void processGroups();
-
+        bool canceled;
 	ForumDatabase &fdb;
 	SiilihaiProtocol &protocol;
 	QList<ForumGroup*> serversGroups;

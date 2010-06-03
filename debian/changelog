@@ -1,3 +1,9 @@
+libsiilihai (0.9.5-1) lucid; urgency=low
+
+  * Minor fixes (nr)
+
+ -- Ville Ranki <ville.ranki@iki.fi>  Thu, 03 Jun 2010 20:29:43 +0300
+
 libsiilihai (0.9.4-1) lucid; urgency=low
 
   * Support for per-thread number of messages to download
