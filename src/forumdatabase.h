@@ -35,8 +35,9 @@ public:
     virtual ~ForumDatabase();
     bool openDatabase();
     void resetDatabase();
-    ForumSubscription* addForum(ForumSubscription *fs);
-    bool deleteForum(ForumSubscription *sub);
+    ForumSubscription* addSubscription(ForumSubscription *fs);
+    bool updateSubscription(ForumSubscription *sub);
+    bool deleteSubscription(ForumSubscription *sub);
     QList <ForumSubscription*> listSubscriptions();
     ForumSubscription* getSubscription(int id);
 

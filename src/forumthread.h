@@ -34,6 +34,7 @@ public:
     ForumGroup *group() const;
     bool hasMoreMessages() const;
     int getMessagesCount() const; // Max number of messages to get
+    bool hasChanged() const;
 
     void setId(QString nid);
     void setOrdernum(int on);
@@ -43,6 +44,7 @@ public:
     void setHasMoreMessages(bool hmm);
     void setGetMessagesCount(int gmc);
     void setGroup(ForumGroup *ng);
+    void setHasChanged(bool hc); // True if message read status has changed in thread during session
     QString toString() const;
     bool isSane() const;
 
@@ -57,6 +59,7 @@ private:
     ForumGroup *_group;
     bool _hasMoreMessages;
     int _getMessagesCount;
+    bool _hasChanged;
 };
 
 #endif /* FORUMTHREAD_H_ */

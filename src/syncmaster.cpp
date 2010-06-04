@@ -44,30 +44,54 @@ void SyncMaster::endSync() {
 
     foreach(ForumSubscription *fsub, fsubs)
         foreach(ForumGroup *grp, fdb.listGroups(fsub))
-            if(grp->subscribed())
-                groupsToUpload.append(grp);
+            if(grp->subscribed()) {
+               bool changed = false;
+                foreach(ForumThread *thread, fdb.listThreads(grp))
+                    if(thread->hasChanged()) changed = true;
 
+                if(changed) groupsToUpload.append(grp);
+            }
     processGroups();
 }
 
 void SyncMaster::serverGroupStatus(QList<ForumGroup> &grps) {
     qDebug() << Q_FUNC_INFO << grps.size();
 
+    // Make a list of updated subscriptions
+    QSet<ForumSubscription*> updatedSubs;
     foreach(ForumGroup grp, grps) {
-        Q_ASSERT(grp.subscription()->parser() >= 0 || grp.id().length() > 0);
-
-        ForumSubscription *dbSub = fdb.getSubscription(grp.subscription()->parser());
+        ForumSubscription *fs = grp.subscription();
+        updatedSubs.insert(fs);
+    }
+    // Update local subs
+    while(!updatedSubs.isEmpty()) {
+        ForumSubscription *serverSub = *updatedSubs.begin();
+        updatedSubs.remove(serverSub);
+        ForumSubscription *dbSub = fdb.getSubscription(serverSub->parser());
         if(!dbSub) {
             qDebug() << Q_FUNC_INFO << "Forum not in db -  must add it!";
             ForumSubscription newSub;
-            newSub.setParser(grp.subscription()->parser());
-            newSub.setAlias(grp.subscription()->alias());
-            newSub.setLatestThreads(grp.subscription()->latest_threads());
-            newSub.setLatestMessages(grp.subscription()->latest_messages());
-
-            dbSub = fdb.addForum(&newSub);
+            newSub.setParser(serverSub->parser());
+            newSub.setAlias(serverSub->alias());
+            newSub.setLatestThreads(serverSub->latest_threads());
+            newSub.setLatestMessages(serverSub->latest_messages());
+            newSub.setAuthenticated(serverSub->authenticated());
+            dbSub = fdb.addSubscription(&newSub);
+        } else {
+            dbSub->setParser(serverSub->parser());
+            dbSub->setAlias(serverSub->alias());
+            dbSub->setLatestThreads(serverSub->latest_threads());
+            dbSub->setLatestMessages(serverSub->latest_messages());
+            dbSub->setAuthenticated(serverSub->authenticated());
+            fdb.updateSubscription(dbSub);
         }
 
+        Q_ASSERT(dbSub);
+    }
+
+    foreach(ForumGroup grp, grps) {
+        Q_ASSERT(grp.subscription()->parser() >= 0 || grp.id().length() > 0);
+        ForumSubscription *dbSub = fdb.getSubscription(grp.subscription()->parser());
         Q_ASSERT(dbSub);
 
         ForumGroup *dbGroup = fdb.getGroup(dbSub, grp.id());
@@ -118,7 +142,12 @@ void SyncMaster::processGroups() {
         ForumGroup *g = groupsToUpload.takeFirst();
         foreach(ForumThread *thread, fdb.listThreads(g))
         {
-            messagesToUpload.append(fdb.listMessages(thread));
+            if(thread->hasChanged()) {
+                messagesToUpload.append(fdb.listMessages(thread));
+            } else {
+                qDebug() << Q_FUNC_INFO << "NOT uploading changes to thread " << thread->toString()
+                        << " as it hasn't changed!";
+            }
         }
         connect(&protocol, SIGNAL(sendThreadDataFinished(bool, QString)),
                 this, SLOT(sendThreadDataFinished(bool, QString)));

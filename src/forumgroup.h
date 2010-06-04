@@ -36,12 +36,12 @@ public:
     bool subscribed() const;
     int changeset() const;
 
-    // void setSubscription(ForumSubscription *sub);
     void setName(QString name);
     void setId(QString id);
     void setLastchange(QString lc);
     void setSubscribed(bool s);
     void setChangeset(int cs);
+
 private:
     ForumSubscription *_subscription;
     QString _name;

@@ -132,7 +132,7 @@ void ForumSession::loginToForum() {
 
     if (fpar.login_type == ForumParser::LoginTypeNotSupported) {
         qDebug() << "Login not supproted!";
-        emit loginFinished(false);
+        emit loginFinished(fsub, false);
         return;
     }
 
@@ -140,7 +140,6 @@ void ForumSession::loginToForum() {
         qDebug() << "Warning, no credentials supplied. Logging in should fail.";
     }
 
-    qDebug() << "u/p: " << fsub->username() << "/" << fsub->password();
     QUrl loginUrl(getLoginUrl());
     if (fpar.login_type == ForumParser::LoginTypeHttpPost) {
         QNetworkRequest req;
@@ -151,7 +150,6 @@ void ForumSession::loginToForum() {
         foreach(QString paramPair, loginParamPairs) {
             paramPair = paramPair.replace("%u", fsub->username());
             paramPair = paramPair.replace("%p", fsub->password());
-            qDebug() << "Param Pair: " << paramPair;
 
             if (paramPair.contains('=')) {
                 QStringList singleParam = paramPair.split('=',
@@ -163,8 +161,6 @@ void ForumSession::loginToForum() {
                 }
             }
         }
-        qDebug() << "Logging with " << params.size() << " params " << " to "
-                << getLoginUrl();
         loginData = HttpPost::setPostParameters(&req, params);
 
         connect(nam, SIGNAL(finished(QNetworkReply*)), this,
@@ -185,7 +181,7 @@ void ForumSession::loginReply(QNetworkReply *reply) {
 
     if (reply->error() != QNetworkReply::NoError) {
         emit(networkFailure(reply->errorString()));
-        loginFinished(false);
+        loginFinished(fsub, false);
         cancelOperation();
         return;
     }
@@ -194,10 +190,12 @@ void ForumSession::loginReply(QNetworkReply *reply) {
 }
 
 void ForumSession::performLogin(QString &html) {
-    qDebug() << Q_FUNC_INFO;
+    qDebug() << Q_FUNC_INFO << " looking for " << fpar.verify_login_pattern;
     emit receivedHtml(html);
     bool success = html.contains(fpar.verify_login_pattern);
-    emit loginFinished(success);
+    if(success)
+        qDebug() << "found in html at " << html.indexOf(fpar.verify_login_pattern);
+    emit loginFinished(fsub, success);
     loggedIn = success;
     if(loggedIn) {
         nextOperation();
@@ -238,7 +236,6 @@ void ForumSession::updateGroupPage() {
         return;
 
     QString urlString = getThreadListUrl(currentGroup, currentListPage);
-    qDebug() << "Fetching URL " << urlString;
     QNetworkRequest req;
     req.setUrl(QUrl(urlString));
 
@@ -255,7 +252,6 @@ void ForumSession::updateThreadPage() {
         return;
     }
     QString urlString = getMessageListUrl(currentThread, currentListPage);
-    qDebug() << Q_FUNC_INFO << " Fetching URL " << urlString;
     currentMessagesUrl = urlString;
 
     QNetworkRequest req;
@@ -284,7 +280,6 @@ void ForumSession::listThreads(ForumGroup *group) {
 }
 
 void ForumSession::listMessages(ForumThread *thread) {
-    qDebug() << Q_FUNC_INFO << thread->toString();
     Q_ASSERT(thread->isSane());
     if (operationInProgress != FSONoOp && operationInProgress
         != FSOUpdateMessages) {
@@ -524,6 +519,7 @@ void ForumSession::cancelOperation() {
     qDebug() << Q_FUNC_INFO;
     if (nam)
         disconnect(nam, SIGNAL(finished(QNetworkReply*)));
+
     operationInProgress = FSONoOp;
     cookieFetched = false;
     currentListPage = -1;

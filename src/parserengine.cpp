@@ -31,6 +31,7 @@ ParserEngine::ParserEngine(ForumDatabase *fd, QObject *parent) :
             SIGNAL(getAuthentication(ForumSubscription*,QAuthenticator*)),
             this, SIGNAL(getAuthentication(ForumSubscription*,QAuthenticator*)));
 
+    connect(&session, SIGNAL(loginFinished(ForumSubscription *,bool)), this, SLOT(loginFinishedSlot(ForumSubscription *,bool)));
     fdb = fd;
     updateAll = false;
     forceUpdate = false;
@@ -359,4 +360,11 @@ void ParserEngine::cancelOperation() {
     groupsToUpdateQueue.clear();
     threadsToUpdateQueue.clear();
     setBusy(false);
+}
+
+void ParserEngine::loginFinishedSlot(ForumSubscription *sub, bool success) {
+    if(!success)
+        cancelOperation();
+
+    emit loginFinished(sub, success);
 }

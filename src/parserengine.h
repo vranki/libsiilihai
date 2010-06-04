@@ -42,7 +42,7 @@ public slots:
     void listThreadsFinished(QList<ForumThread*> &threads, ForumGroup *group);
     void networkFailure(QString message);
     void cancelOperation();
-
+    void loginFinishedSlot(ForumSubscription *sub, bool success);
 signals:
     // Emitted if initially group list was empty but new groups
     // were found.
@@ -51,6 +51,7 @@ signals:
     void statusChanged(ForumSubscription *forum, bool reloading, float progress);
     void updateFailure(ForumSubscription *forum, QString message);
     void getAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator);
+    void loginFinished(ForumSubscription *sub, bool success);
 
 private:
     void updateNextChangedGroup();

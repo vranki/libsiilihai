@@ -50,7 +50,6 @@ public:
     void listMessages(ForumThread *thread);
     void loginToForum();
 
-
     QString getMessageUrl(const ForumMessage *msg);
     QString getLoginUrl();
     QString getThreadListUrl(const ForumGroup *grp, int page=-1);
@@ -75,7 +74,7 @@ signals:
     void listThreadsFinished(QList<ForumThread*> &threads, ForumGroup *group);
     void listMessagesFinished(QList<ForumMessage*> &messages, ForumThread *thread, bool moreAvailable);
     void networkFailure(QString message);
-    void loginFinished(bool success);
+    void loginFinished(ForumSubscription *sub, bool success);
     void receivedHtml(const QString &data);
     void getAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator);
 

@@ -380,6 +380,9 @@ void SiilihaiProtocol::subscribeForum(ForumSubscription *fs,
         params.insert("alias", fs->alias());
         params.insert("latest_threads", QString().number(fs->latest_threads()));
         params.insert("latest_messages", QString().number(fs->latest_messages()));
+        if(fs->username().length() > 0) {
+            params.insert("authenticated", "yes");
+        }
     }
     if (!clientKey.isNull()) {
         params.insert("client_key", clientKey);
@@ -555,8 +558,8 @@ void SiilihaiProtocol::replyGetSyncSummary(QNetworkReply *reply) {
 }
 
 void SiilihaiProtocol::getThreadData(ForumGroup *grp) {
+    Q_ASSERT(!getThreadDataGroup);
     getThreadDataGroup = grp;
-    Q_ASSERT(getThreadDataGroup);
 
     QNetworkRequest req(getThreadDataUrl);
     QHash<QString, QString> params;

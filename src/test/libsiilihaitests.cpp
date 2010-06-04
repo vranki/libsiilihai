@@ -119,7 +119,7 @@ void LibSiilihaiTests::runForumSession() {
 		fsub.setLatestThreads(10);
 		fsub.setLatestMessages(10);
 		fsub.setUsername(QString::null);
-		fdb.addForum(&fsub);
+		fdb.addSubscription(&fsub);
 	}
 	fsub = fdb.listSubscriptions()[0];
 	runParserEngineTests();
@@ -220,7 +220,7 @@ void LibSiilihaiTests::runForumDatabaseTests() {
 
 	qDebug() << "=== Deleting forums ====";
 	foreach(ForumSubscription *fs, fdb.listSubscriptions()) {
-		fdb.deleteForum(fs);
+		fdb.deleteSubscription(fs);
 	}
 	qDebug() << "=== End delete ====";
 
@@ -229,7 +229,7 @@ void LibSiilihaiTests::runForumDatabaseTests() {
 	fs.setAlias("Test Subscription");
 	fs.setLatestMessages(11);
 	fs.setLatestThreads(11);
-	ForumGroup fg(fdb.addForum(&fs));
+	ForumGroup fg(fdb.addSubscription(&fs));
 	fg.setId("G666");
 	fg.setName("Test group");
 	fg.setSubscribed(true);
@@ -263,7 +263,7 @@ void LibSiilihaiTests::runForumDatabaseTests() {
 	qDebug() << "=== End list ====";
 	qDebug() << "=== Deleting forums ====";
 	foreach(ForumSubscription *fs, fdb.listSubscriptions()) {
-		fdb.deleteForum(fs);
+		fdb.deleteSubscription(fs);
 	}
 	qDebug() << "=== End delete ====";
 }
