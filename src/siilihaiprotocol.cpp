@@ -241,7 +241,7 @@ void SiilihaiProtocol::replyGetParser(QNetworkReply *reply) {
     QString docs = QString().fromUtf8(reply->readAll());
     ForumParser parser;
     parser.id = -1;
-    qDebug() << docs;
+    qDebug() << Q_FUNC_INFO << docs;
     if (reply->error() == QNetworkReply::NoError) {
         QDomDocument doc;
         doc.setContent(docs);
@@ -641,7 +641,6 @@ void SiilihaiProtocol::replyGetThreadData(QNetworkReply *reply) {
 
 void SiilihaiProtocol::sendThreadData(ForumGroup *grp, QList<ForumMessage*> &fms) {
     qDebug() << Q_FUNC_INFO << fms.size() << " msgs in " << grp->toString();
-
 
     QNetworkRequest req(sendThreadDataUrl);
     QDomDocument doc("SiilihaiML");

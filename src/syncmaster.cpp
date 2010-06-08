@@ -140,15 +140,14 @@ void SyncMaster::processGroups() {
     // Do the uploading
     if(!groupsToUpload.isEmpty()) {
         ForumGroup *g = groupsToUpload.takeFirst();
+
         foreach(ForumThread *thread, fdb.listThreads(g))
         {
-            if(thread->hasChanged()) {
-                messagesToUpload.append(fdb.listMessages(thread));
-            } else {
-                qDebug() << Q_FUNC_INFO << "NOT uploading changes to thread " << thread->toString()
-                        << " as it hasn't changed!";
-            }
+            qDebug() << Q_FUNC_INFO << g->toString() << " has thread " << thread->toString()
+                    << " with " << fdb.listMessages(thread).size() << "messages";
+            messagesToUpload.append(fdb.listMessages(thread));
         }
+        qDebug() << Q_FUNC_INFO << "sending total of " << messagesToUpload.size() << "msgs";
         connect(&protocol, SIGNAL(sendThreadDataFinished(bool, QString)),
                 this, SLOT(sendThreadDataFinished(bool, QString)));
         protocol.sendThreadData(g, messagesToUpload);
@@ -208,8 +207,8 @@ void SyncMaster::serverMessageData(ForumMessage *message) {
             }
         } else { // message hasn't been found yet!
             ForumThread *dbThread = fdb.getThread(message->thread()->group()->subscription()->parser(),
-                                                 message->thread()->group()->id(),
-                                                 message->thread()->id());
+                                                  message->thread()->group()->id(),
+                                                  message->thread()->id());
             Q_ASSERT(dbThread);
             message->setThread(dbThread);
             fdb.addMessage(message);

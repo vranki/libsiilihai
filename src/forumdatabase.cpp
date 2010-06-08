@@ -662,7 +662,7 @@ bool ForumDatabase::updateGroup(ForumGroup *grp) {
         qDebug() << "Updating group failed: " << query.lastError().text();
         return false;
     }
-    qDebug() << "Group " << grp->toString() << " updated, subscribed:"
+    qDebug() << Q_FUNC_INFO << grp->toString() << " updated, subscribed:"
             << grp->subscribed();
     emit groupUpdated(grp);
     return true;
