@@ -1,3 +1,14 @@
+libsiilihai (0.9.8-1) lucid; urgency=low
+
+  * Minor fixes (user settings class)
+
+ -- Ville Ranki <ville.ranki@iki.fi>  Wed, 16 Jun 2010 20:29:43 +0300
+
+libsiilihai (0.9.7-1) lucid; urgency=low
+
+  * Minor fixes
+
+ -- Ville Ranki <ville.ranki@iki.fi>  Tue, 15 Jun 2010 20:29:43 +0300
 libsiilihai (0.9.6-1) lucid; urgency=low
 
   * Sync fixes and optimization

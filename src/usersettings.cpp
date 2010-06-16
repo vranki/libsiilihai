@@ -16,5 +16,13 @@
 
 UserSettings::UserSettings()
 {
-    syncEnabled = false;
+    _syncEnabled = false;
+}
+
+void UserSettings::setSyncEnabled(bool en) {
+_syncEnabled = en;
+}
+
+bool UserSettings::syncEnabled() {
+return _syncEnabled;
 }

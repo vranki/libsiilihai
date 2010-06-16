@@ -27,19 +27,25 @@ QObject(parent), fdb(fd), protocol(prot) {
     connect(&protocol, SIGNAL(getThreadDataFinished(bool, QString)), this,
             SLOT(getThreadDataFinished(bool, QString)));
     canceled = true;
+    groupBeingDownloaded = 0;
+    errorCount = 0;
 }
 
 SyncMaster::~SyncMaster() {
 }
 
 void SyncMaster::startSync() {
+    qDebug( ) << Q_FUNC_INFO;
     canceled = false;
+    errorCount = 0;
+    groupBeingDownloaded = 0;
     protocol.getSyncSummary();
 }
 
 void SyncMaster::endSync() {
     qDebug( ) << Q_FUNC_INFO;
     canceled = false;
+    errorCount = 0;
     QList<ForumSubscription*> fsubs = fdb.listSubscriptions();
 
     foreach(ForumSubscription *fsub, fsubs)
@@ -154,9 +160,10 @@ void SyncMaster::processGroups() {
         messagesToUpload.clear();
     }
     if(!groupsToDownload.isEmpty()) {
-        ForumGroup *g = groupsToDownload.takeFirst();
-        qDebug() << Q_FUNC_INFO << " will now D/L group " << g->toString();
-        protocol.getThreadData(g);
+        Q_ASSERT(!groupBeingDownloaded);
+        groupBeingDownloaded = groupsToDownload.takeFirst();
+        qDebug() << Q_FUNC_INFO << " will now D/L group " << groupBeingDownloaded->toString();
+        protocol.getThreadData(groupBeingDownloaded);
     }
 }
 
@@ -168,7 +175,7 @@ void SyncMaster::sendThreadDataFinished(bool success, QString message) {
     if (success) {
         processGroups();
     } else {
-        qDebug() << Q_FUNC_INFO << "Failed!";
+        qDebug() << Q_FUNC_INFO << "Failed! Error count: " << errorCount;
         emit syncFinished(false, message);
     }
 }
@@ -187,6 +194,11 @@ void SyncMaster::serverThreadData(ForumThread *thread) {
             Q_ASSERT(dbGroup);
             thread->setGroup(dbGroup);
             fdb.addThread(thread);
+            // Make sure group will be updated
+            if(dbGroup->lastchange()!="UPDATE_NEEDED") {
+                dbGroup->setLastchange("UPDATE_NEEDED");
+                fdb.updateGroup(dbGroup);
+            }
         }
     } else {
         qDebug() << "Got invalid thread!" << thread->toString();
@@ -214,7 +226,7 @@ void SyncMaster::serverMessageData(ForumMessage *message) {
             fdb.addMessage(message);
         }
     } else {
-        qDebug() << "Got invalid message!" << message->toString();
+        qDebug() << Q_FUNC_INFO << "Got invalid message!" << message->toString();
         Q_ASSERT(false);
     }
 }
@@ -223,9 +235,20 @@ void SyncMaster::getThreadDataFinished(bool success, QString message){
     qDebug() << Q_FUNC_INFO << success;
     if(canceled) return;
     if(success) {
+        groupBeingDownloaded = 0;
         processGroups();
     } else {
-        emit syncFinished(false, message);
+        errorCount++;
+        if(errorCount > 5) {
+            groupBeingDownloaded = 0;
+            emit syncFinished(false, message);
+        } else {
+            qDebug() << Q_FUNC_INFO << "Failed! Error count: " << errorCount;
+            Q_ASSERT(groupBeingDownloaded);
+            groupsToDownload.append(groupBeingDownloaded);
+            groupBeingDownloaded = 0;
+            processGroups();
+        }
     }
 }
 

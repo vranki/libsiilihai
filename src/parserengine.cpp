@@ -47,17 +47,17 @@ void ParserEngine::setParser(ForumParser &fp) {
 }
 
 void ParserEngine::setSubscription(ForumSubscription *fs) {
-    subscription = fs;
+    fsubscription = fs;
 }
 
 void ParserEngine::updateForum(bool force) {
     qDebug() << Q_FUNC_INFO << "for forum " << parser.toString();
-    Q_ASSERT(subscription);
+    Q_ASSERT(fsubscription);
 
     forceUpdate = force;
     updateAll = true;
     if (!sessionInitialized) {
-        session.initialize(parser, subscription);
+        session.initialize(parser, fsubscription);
         sessionInitialized = true;
     }
     session.listGroups();
@@ -67,7 +67,7 @@ void ParserEngine::updateForum(bool force) {
 void ParserEngine::updateGroupList() {
     updateAll = false;
     if (!sessionInitialized) {
-        session.initialize(parser, subscription);
+        session.initialize(parser, fsubscription);
         sessionInitialized = true;
     }
 
@@ -76,7 +76,7 @@ void ParserEngine::updateGroupList() {
 }
 
 void ParserEngine::updateThread(ForumThread *thread) {
-    Q_ASSERT(subscription);
+    Q_ASSERT(fsubscription);
     Q_ASSERT(thread);
     qDebug() << Q_FUNC_INFO << "for thread " << thread->toString();
 
@@ -84,7 +84,7 @@ void ParserEngine::updateThread(ForumThread *thread) {
     updateAll = false;
 
     if (!sessionInitialized) {
-        session.initialize(parser, subscription);
+        session.initialize(parser, fsubscription);
         sessionInitialized = true;
     }
 
@@ -93,7 +93,7 @@ void ParserEngine::updateThread(ForumThread *thread) {
 }
 
 void ParserEngine::networkFailure(QString message) {
-    emit updateFailure(subscription, "Updating " + subscription->alias() + " failed due to network error:\n\n" + message);
+    emit updateFailure(fsubscription, "Updating " + fsubscription->alias() + " failed due to network error:\n\n" + message);
     cancelOperation();
 }
 
@@ -112,7 +112,7 @@ void ParserEngine::updateNextChangedGroup() {
         Q_ASSERT(groupsToUpdateQueue.size()==0 &&
                  threadsToUpdateQueue.size()==0);
         setBusy(false);
-        emit forumUpdated(subscription);
+        emit forumUpdated(fsubscription);
     }
     updateCurrentProgress();
 }
@@ -130,11 +130,11 @@ void ParserEngine::updateNextChangedThread() {
 void ParserEngine::listGroupsFinished(QList<ForumGroup*> &groups) {
     qDebug() << Q_FUNC_INFO << " rx groups " << groups.size()
             << " in " << parser.toString();
-    QList<ForumGroup*> dbgroups = fdb->listGroups(subscription);
+    QList<ForumGroup*> dbgroups = fdb->listGroups(fsubscription);
     bool dbGroupsWasEmpty = dbgroups.isEmpty();
     groupsToUpdateQueue.clear();
     if (groups.size() == 0 && dbgroups.size() > 0) {
-        emit updateFailure(subscription, "Updating group list for " + parser.parser_name
+        emit updateFailure(fsubscription, "Updating group list for " + parser.parser_name
                            + " failed. \nCheck your network connection.");
         cancelOperation();
         return;
@@ -201,7 +201,7 @@ void ParserEngine::listGroupsFinished(QList<ForumGroup*> &groups) {
         setBusy(false);
     }
     if (groupsChanged && dbGroupsWasEmpty) {
-        emit(groupListChanged(subscription));
+        emit(groupListChanged(fsubscription));
     }
 }
 
@@ -214,7 +214,7 @@ void ParserEngine::listThreadsFinished(QList<ForumThread*> &threads,
     QList<ForumThread*> dbthreads = fdb->listThreads(group);
     threadsToUpdateQueue.clear();
     if (threads.isEmpty() && dbthreads.size() > 0) {
-        emit updateFailure(subscription, "Updating thread list failed. \nCheck your network connection.");
+        emit updateFailure(fsubscription, "Updating thread list failed. \nCheck your network connection.");
         cancelOperation();
         return;
     }
@@ -333,7 +333,7 @@ void ParserEngine::listMessagesFinished(QList<ForumMessage*> &messages,
         updateNextChangedThread();
     } else {
         setBusy(false);
-        emit forumUpdated(subscription);
+        emit forumUpdated(fsubscription);
     }
 }
 
@@ -351,7 +351,7 @@ void ParserEngine::setBusy(bool busy) {
 
 void ParserEngine::updateCurrentProgress() {
     float progress = -1;
-    emit statusChanged(subscription, forumBusy, progress);
+    emit statusChanged(fsubscription, forumBusy, progress);
 }
 
 void ParserEngine::cancelOperation() {
@@ -367,4 +367,8 @@ void ParserEngine::loginFinishedSlot(ForumSubscription *sub, bool success) {
         cancelOperation();
 
     emit loginFinished(sub, success);
+}
+
+ForumSubscription* ParserEngine::subscription() {
+    return fsubscription;
 }

@@ -35,7 +35,7 @@ public:
     void updateForum(bool force=false);
     void updateThread(ForumThread *thread);
     bool isBusy();
-
+    ForumSubscription* subscription();
 public slots:
     void listMessagesFinished(QList<ForumMessage*> &messages, ForumThread *thread, bool moreAvailable);
     void listGroupsFinished(QList<ForumGroup*> &groups);
@@ -59,7 +59,7 @@ private:
     void setBusy(bool busy);
     void updateCurrentProgress();
     ForumParser parser;
-    ForumSubscription *subscription;
+    ForumSubscription *fsubscription;
     ForumSession session;
     bool sessionInitialized;
     bool updateAll;

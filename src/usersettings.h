@@ -19,7 +19,10 @@ class UserSettings
 {
 public:
     UserSettings();
-    bool syncEnabled;
+    void setSyncEnabled(bool en);
+    bool syncEnabled();
+private:
+    bool _syncEnabled;
 };
 
 #endif // USERSETTINGS_H

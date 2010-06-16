@@ -167,7 +167,7 @@ bool ForumDatabase::openDatabase() {
     foreach(ForumSubscription *sub, subscriptions) {
         foreach(ForumGroup *grp, groups[sub]) {
             foreach(ForumThread *thread, threads[grp]) {
-                qDebug() << "Listing messages in " << thread->toString();
+                qDebug() << Q_FUNC_INFO << "Listing messages in " << thread->toString();
                 query.prepare("SELECT messageid,ordernum,url,subject,author,lastchange,body,read FROM messages WHERE "\
                               "forumid=? AND groupid=? AND threadid=? ORDER BY ordernum");
                 query.addBindValue(thread->group()->subscription()->parser());

@@ -710,7 +710,7 @@ void SiilihaiProtocol::setUserSettings(UserSettings *us) {
     QNetworkRequest req(userSettingsUrl);
     QHash<QString, QString> params;
     if(us) {
-        if(us->syncEnabled) {
+        if(us->syncEnabled()) {
             params.insert("sync_enabled", "true");
         } else {
             params.insert("sync_enabled", "false");
@@ -737,7 +737,7 @@ void SiilihaiProtocol::replyUserSettings(QNetworkReply *reply) {
         QDomDocument doc;
         doc.setContent(docs);
         QString syncEnabledStr = doc.firstChildElement("sync_enabled").text();
-        usettings.syncEnabled = !syncEnabledStr.isNull();
+        usettings.setSyncEnabled(!syncEnabledStr.isNull());
     } else {
         qDebug() << Q_FUNC_INFO << "Network error:" << reply->errorString();
         emit userSettingsReceived(false, &usettings);

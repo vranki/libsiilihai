@@ -53,6 +53,8 @@ private:
 	QSet<ForumThread*> changedThreads;
 	QSet<ForumSubscription*> forumsToUpload;
 	QQueue<ForumMessage*> messagesToUpload;
+        ForumGroup *groupBeingDownloaded;
+        unsigned int errorCount;
 };
 
 #endif /* SYNCMASTER_H_ */
