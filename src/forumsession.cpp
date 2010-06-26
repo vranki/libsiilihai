@@ -113,8 +113,8 @@ void ForumSession::fetchCookieReply(QNetworkReply *reply) {
 void ForumSession::listGroups() {
     qDebug() << Q_FUNC_INFO;
     if (operationInProgress != FSONoOp && operationInProgress != FSOListGroups) {
-        qDebug()
-                << "FS::listGroups(): Operation in progress!! Don't command me yet!";
+        statusReport();
+        qDebug() << Q_FUNC_INFO << "Operation in progress!! Don't command me yet! ";
         Q_ASSERT(false);
         return;
     }
@@ -267,8 +267,10 @@ void ForumSession::listThreads(ForumGroup *group) {
     qDebug() << Q_FUNC_INFO << group->toString();
 
     if (operationInProgress != FSONoOp && operationInProgress
-        != FSOUpdateThreads) {
-        qDebug() << "Operation in progress!! Don't command me yet!";
+        != FSOUpdateThreads)
+    {
+        statusReport();
+        qDebug() << Q_FUNC_INFO << "Operation in progress!! Don't command me yet!";
         Q_ASSERT(false);
         return;
     }
@@ -283,7 +285,8 @@ void ForumSession::listMessages(ForumThread *thread) {
     Q_ASSERT(thread->isSane());
     if (operationInProgress != FSONoOp && operationInProgress
         != FSOUpdateMessages) {
-        qDebug() << "Operation in progress!! Don't command me yet!";
+                statusReport();
+        qDebug() << Q_FUNC_INFO << "Operation in progress!! Don't command me yet!";
         Q_ASSERT(false);
         return;
     }

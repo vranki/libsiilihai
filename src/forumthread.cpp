@@ -82,11 +82,11 @@ ForumGroup *ForumThread::group() const {
 bool ForumThread::hasMoreMessages() const {
     return _hasMoreMessages;
 }
-
+/*
 bool ForumThread::hasChanged() const {
     return _hasChanged;
 }
-
+*/
 int ForumThread::getMessagesCount() const {
     return _getMessagesCount;
 }
@@ -117,7 +117,8 @@ void ForumThread::setGetMessagesCount(int gmc) {
 void ForumThread::setGroup(ForumGroup *ng) {
     _group = ng;
 }
-
+/*
 void ForumThread::setHasChanged(bool hc) {
     _hasChanged = hc;
 }
+*/

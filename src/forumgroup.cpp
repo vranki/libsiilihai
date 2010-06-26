@@ -75,8 +75,15 @@ ForumSubscription* ForumGroup::subscription() const {
     return _subscription;
 }
 
+bool ForumGroup::hasChanged() const {
+    return _hasChanged;
+}
 void ForumGroup::setName(QString name) { _name = name; }
 void ForumGroup::setId(QString id) { _id = id; }
 void ForumGroup::setLastchange(QString lc) { _lastchange = lc; }
 void ForumGroup::setSubscribed(bool s) { _subscribed = s; }
 void ForumGroup::setChangeset(int cs) { _changeset = cs; }
+
+void ForumGroup::setHasChanged(bool hc) {
+    _hasChanged = hc;
+}

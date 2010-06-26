@@ -50,12 +50,8 @@ void SyncMaster::endSync() {
 
     foreach(ForumSubscription *fsub, fsubs)
         foreach(ForumGroup *grp, fdb.listGroups(fsub))
-            if(grp->subscribed()) {
-               bool changed = false;
-                foreach(ForumThread *thread, fdb.listThreads(grp))
-                    if(thread->hasChanged()) changed = true;
-
-                if(changed) groupsToUpload.append(grp);
+            if(grp->subscribed() && grp->hasChanged()) {
+                groupsToUpload.append(grp);
             }
     processGroups();
 }
@@ -90,6 +86,18 @@ void SyncMaster::serverGroupStatus(QList<ForumGroup> &grps) {
             dbSub->setLatestMessages(serverSub->latest_messages());
             dbSub->setAuthenticated(serverSub->authenticated());
             fdb.updateSubscription(dbSub);
+            // Check for unsubscribed groups
+            foreach(ForumGroup *dbGrp, fdb.listGroups(dbSub)) {
+            bool found = false;
+                foreach(ForumGroup grp, grps) {
+                 if(dbGrp->id() == grp.id())
+                 found = true;
+                }
+            if(!found) {
+                 dbGrp->setSubscribed(false);
+                 fdb.updateGroup(dbGrp);
+            }
+            }
         }
 
         Q_ASSERT(dbSub);
@@ -239,7 +247,7 @@ void SyncMaster::getThreadDataFinished(bool success, QString message){
         processGroups();
     } else {
         errorCount++;
-        if(errorCount > 5) {
+        if(errorCount > 15) {
             groupBeingDownloaded = 0;
             emit syncFinished(false, message);
         } else {

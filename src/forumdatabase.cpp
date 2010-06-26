@@ -575,6 +575,7 @@ bool ForumDatabase::deleteMessage(ForumMessage *message) {
         qDebug() << "Deleting message failed: " << query.lastError().text();
         return false;
     }
+    message->thread()->group()->setHasChanged(true);
     emit messageDeleted(message);
     messages[message->thread()].remove(message->id());
     qDebug() << Q_FUNC_INFO << "Message " << message->toString() << " deleted";
@@ -640,6 +641,7 @@ bool ForumDatabase::deleteThread(ForumThread *thread) {
         qDebug() << "Deleting thread failed: " << query.lastError().text();
         return false;
     }
+    thread->group()->setHasChanged(true);
     threads[thread->group()].remove(thread->id());
     emit threadDeleted(thread);
     qDebug() << "Thread " << thread->toString() << " deleted";
@@ -681,7 +683,7 @@ void ForumDatabase::markMessageRead(ForumMessage *message, bool read) {
 
     if(message->read() == read) return;
 
-    message->thread()->setHasChanged(true);
+    message->thread()->group()->setHasChanged(true);
 
     QSqlQuery query;
     query.prepare(

@@ -35,13 +35,14 @@ public:
     QString lastchange() const;
     bool subscribed() const;
     int changeset() const;
+    bool hasChanged() const;
 
     void setName(QString name);
     void setId(QString id);
     void setLastchange(QString lc);
     void setSubscribed(bool s);
     void setChangeset(int cs);
-
+    void setHasChanged(bool hc);
 private:
     ForumSubscription *_subscription;
     QString _name;
@@ -49,6 +50,7 @@ private:
     QString _lastchange;
     bool _subscribed;
     int _changeset;
+        bool _hasChanged;
 };
 
 #endif

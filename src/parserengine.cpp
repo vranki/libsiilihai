@@ -107,7 +107,7 @@ void ParserEngine::updateNextChangedGroup() {
         Q_ASSERT(grp->subscribed());
         session.listThreads(grp);
     } else {
-        qDebug() << "No more changed groups - end of update.";
+        qDebug() << Q_FUNC_INFO << "No more changed groups - end of update.";
         updateAll = false;
         Q_ASSERT(groupsToUpdateQueue.size()==0 &&
                  threadsToUpdateQueue.size()==0);
