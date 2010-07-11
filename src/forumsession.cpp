@@ -324,7 +324,7 @@ void ForumSession::performListMessages(QString &html) {
     operationInProgress = FSOUpdateMessages;
     pm->setPattern(fpar.message_list_pattern);
     QList<QHash<QString, QString> > matches = pm->findMatches(html);
-    qDebug() << "ListMessages Found " << matches.size() << " matches";
+   // qDebug() << "ListMessages Found " << matches.size() << " matches";
     QHash<QString, QString> match;
     foreach(match, matches){
         // This will be deleted or added to messages
@@ -370,7 +370,7 @@ void ForumSession::performListMessages(QString &html) {
                 messages.append(newMessage);
                 newMessage = 0;
             } else {
-                qDebug() << "Number of messages exceeding maximum latest messages limit - not adding.";
+              //  qDebug() << "Number of messages exceeding maximum latest messages limit - not adding.";
                 newMessagesFound = false;
                 moreMessagesAvailable = true;
                 delete newMessage;
@@ -384,15 +384,15 @@ void ForumSession::performListMessages(QString &html) {
         if (fpar.view_thread_page_increment > 0) {
             // Continue to next page
             currentListPage += fpar.view_thread_page_increment;
-            qDebug() << "New messages were found - continuing to next page "
-                    << currentListPage;
+           // qDebug() << "New messages were found - continuing to next page "
+           //         << currentListPage;
             updateThreadPage();
         } else {
-            qDebug() << "Forum doesn't support multipage - NOT continuing to next page.";
+           // qDebug() << "Forum doesn't support multipage - NOT continuing to next page.";
             finished = true;
         }
     } else {
-        qDebug() << "NOT continuing to next page, no new messages found on this one.";
+       // qDebug() << "NOT continuing to next page, no new messages found on this one.";
         finished = true;
     }
 
@@ -485,8 +485,8 @@ void ForumSession::performListThreads(QString &html) {
                 threads.append(newThread);
                 newThread = 0;
             } else {
-                qDebug() << "Number of threads exceeding maximum latest threads limit - not adding "
-                        << newThread->toString();
+                //qDebug() << "Number of threads exceeding maximum latest threads limit - not adding "
+                //        << newThread->toString();
                 newThreadsFound = false;
                 delete newThread;
                 newThread = 0;
@@ -599,7 +599,6 @@ void ForumSession::authenticationRequired(QNetworkReply * reply,
             authenticator->setPassword(fsub->password());
         }
     } else {
-        qDebug() << "Requests authentication. Asking for it.";
         emit getAuthentication(fsub, authenticator);
     }
 

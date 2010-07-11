@@ -59,8 +59,9 @@ public:
     bool updateMessage(ForumMessage *message);
     bool deleteMessage(ForumMessage *message);
 
-    int unreadIn(const ForumSubscription *fs);
-    int unreadIn(const ForumGroup *fg);
+    int unreadIn(ForumSubscription *fs);
+    int unreadIn(ForumGroup *fg);
+
     void markForumRead(ForumSubscription *fs, bool read);
     bool markGroupRead(ForumGroup *group, bool read);
     int schemaVersion();

@@ -27,8 +27,10 @@ PatternMatcher::~PatternMatcher() {
 
 void PatternMatcher::setPattern(QString &pattern) {
 	patternTokens = tokenizePattern(pattern);
-	qDebug() << "Converted pattern " << pattern << " to "
+/*
+qDebug() << "Converted pattern " << pattern << " to "
 			<< patternTokens.size() << " tokens.";
+                        */
 	patternSet = true;
 }
 

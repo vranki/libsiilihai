@@ -15,6 +15,7 @@
 
 #include "forumgroup.h"
 
+
 ForumGroup::ForumGroup(ForumSubscription *sub) : QObject(sub) {
     _subscription = sub;
     _id = "";
@@ -22,6 +23,7 @@ ForumGroup::ForumGroup(ForumSubscription *sub) : QObject(sub) {
     _changeset = -1;
     _name = "";
     _lastchange = "";
+    _hasChanged = false;
 }
 
 ForumGroup::ForumGroup(const ForumGroup& o) : QObject() {
@@ -35,6 +37,7 @@ ForumGroup& ForumGroup::operator=(const ForumGroup& o) {
     _lastchange = o._lastchange;
     _subscribed = o._subscribed;
     _changeset = o._changeset;
+    _hasChanged = o._hasChanged;
 
     return *this;
 }
@@ -83,7 +86,4 @@ void ForumGroup::setId(QString id) { _id = id; }
 void ForumGroup::setLastchange(QString lc) { _lastchange = lc; }
 void ForumGroup::setSubscribed(bool s) { _subscribed = s; }
 void ForumGroup::setChangeset(int cs) { _changeset = cs; }
-
-void ForumGroup::setHasChanged(bool hc) {
-    _hasChanged = hc;
-}
+void ForumGroup::setHasChanged(bool hc) { _hasChanged = hc;}

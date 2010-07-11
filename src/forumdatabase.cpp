@@ -167,7 +167,7 @@ bool ForumDatabase::openDatabase() {
     foreach(ForumSubscription *sub, subscriptions) {
         foreach(ForumGroup *grp, groups[sub]) {
             foreach(ForumThread *thread, threads[grp]) {
-                qDebug() << Q_FUNC_INFO << "Listing messages in " << thread->toString();
+               // qDebug() << Q_FUNC_INFO << "Listing messages in " << thread->toString();
                 query.prepare("SELECT messageid,ordernum,url,subject,author,lastchange,body,read FROM messages WHERE "\
                               "forumid=? AND groupid=? AND threadid=? ORDER BY ordernum");
                 query.addBindValue(thread->group()->subscription()->parser());
@@ -389,7 +389,7 @@ ForumGroup* ForumDatabase::addGroup(const ForumGroup *grp) {
 
 ForumThread * ForumDatabase::addThread(const ForumThread *thread) {
     Q_ASSERT(thread);
-    qDebug() << Q_FUNC_INFO << thread->toString();
+   // qDebug() << Q_FUNC_INFO << thread->toString();
     Q_ASSERT(thread->isSane());
     Q_ASSERT(groups.contains(thread->group()->subscription()));
     Q_ASSERT(groups.value(thread->group()->subscription()).value(thread->group()->id()) == thread->group());
@@ -430,15 +430,16 @@ ForumThread * ForumDatabase::addThread(const ForumThread *thread) {
     ForumThread *th = new ForumThread(grp);
     th->operator=(*thread);
     threads[grp][th->id()] = th;
+    grp->setHasChanged(true);
     emit threadAdded(th);
     emit threadFound(th);
-    qDebug() << "Thread " << th->toString() << " stored";
+   //  qDebug() << "Thread " << th->toString() << " stored";
     return th;
 }
 
 bool ForumDatabase::updateThread(ForumThread *thread) {
     Q_ASSERT(thread);
-    qDebug() << Q_FUNC_INFO << thread->toString();
+    // qDebug() << Q_FUNC_INFO << thread->toString();
     Q_ASSERT(threads.contains(thread->group()));
     Q_ASSERT(threads.value(thread->group()).value(thread->id()) == thread);
     Q_ASSERT(thread->isSane());
@@ -462,7 +463,7 @@ bool ForumDatabase::updateThread(ForumThread *thread) {
         return false;
     }
     emit threadUpdated(thread);
-    qDebug() << "Thread " << thread->toString() << " updated";
+    // qDebug() << "Thread " << thread->toString() << " updated";
     return true;
 }
 
@@ -505,9 +506,10 @@ ForumMessage* ForumDatabase::addMessage(ForumMessage *message) {
     ForumMessage *nmsg = new ForumMessage(thread);
     nmsg->operator=(*message);
     messages[nmsg->thread()][nmsg->id()] = nmsg;
+    message->thread()->group()->setHasChanged(true);
     emit messageAdded(nmsg);
     emit messageFound(nmsg);
-    qDebug() << "Message " << nmsg->toString() << " stored";
+   // qDebug() << Q_FUNC_INFO << nmsg->toString();
     return nmsg;
 }
 
@@ -541,6 +543,7 @@ bool ForumDatabase::updateMessage(ForumMessage *message) {
     Q_ASSERT(message);
     Q_ASSERT(messages.contains(message->thread()));
     Q_ASSERT(messages.value(message->thread()).value(message->id())==message);
+   // qDebug() << Q_FUNC_INFO << message->toString();
     QSqlQuery query;
     query.prepare(
             "UPDATE messages SET forumid=?, groupid=?, threadid=?, messageid=?,"
@@ -557,7 +560,6 @@ bool ForumDatabase::updateMessage(ForumMessage *message) {
         return false;
     }
     emit messageUpdated(message);
-    qDebug() << "Message " << message->toString() << " updated";
     return true;
 }
 
@@ -613,12 +615,7 @@ bool ForumDatabase::deleteThread(ForumThread *thread) {
         qDebug() << "Error: tried to delete invalid tread "
                 << thread->toString();
     }
-    /*
-    while(!messages[thread].isEmpty()) {
-        deleteMessage(messages[thread].begin().value());
-        QCoreApplication::processEvents(); // Help keep UI responsive
-    }
-    */
+
     QSqlQuery query;
     query.prepare(
             "DELETE FROM messages WHERE (forumid=? AND groupid=? AND threadid=?)");
@@ -664,8 +661,8 @@ bool ForumDatabase::updateGroup(ForumGroup *grp) {
         qDebug() << "Updating group failed: " << query.lastError().text();
         return false;
     }
-    qDebug() << Q_FUNC_INFO << grp->toString() << " updated, subscribed:"
-            << grp->subscribed();
+    //qDebug() << Q_FUNC_INFO << grp->toString() << " updated, subscribed:"
+    //        << grp->subscribed();
     emit groupUpdated(grp);
     return true;
 }
@@ -700,40 +697,24 @@ void ForumDatabase::markMessageRead(ForumMessage *message, bool read) {
     emit messageUpdated(message);
 }
 
-int ForumDatabase::unreadIn(const ForumSubscription *fs) {
+int ForumDatabase::unreadIn(ForumSubscription *fs) {
     Q_ASSERT(fs);
-
-    QSqlQuery query;
-    query.prepare(
-            "SELECT count() FROM messages WHERE forumid=? AND read=\"false\"");
-    query.addBindValue(fs->parser());
-
-    query.exec();
-    if (query.next()) {
-        return query.value(0).toInt();
-    } else {
-        qDebug() << "Can't count unreads in " << fs->toString();
+    int count = 0;
+    foreach(ForumGroup *fg, listGroups(fs)) {
+        if(fg->subscribed()) count += unreadIn(fg);
     }
-
-    return -1;
+    return count;
 }
 
-int ForumDatabase::unreadIn(const ForumGroup *fg) {
+int ForumDatabase::unreadIn(ForumGroup *fg) {
     Q_ASSERT(fg);
-    QSqlQuery query;
-    query.prepare(
-            "SELECT count() FROM messages WHERE forumid=? AND groupid=? AND read=\"false\"");
-    query.addBindValue(fg->subscription()->parser());
-    query.addBindValue(fg->id());
-
-    query.exec();
-    if (query.next()) {
-        return query.value(0).toInt();
-    } else {
-        qDebug() << "Can't count unreads in " << fg->toString();
+    int count = 0;
+    foreach(ForumThread *thread, listThreads(fg)) {
+        foreach(ForumMessage *message, listMessages(thread)) {
+            if(!message->read()) count++;
+        }
     }
-
-    return -1;
+    return count;
 }
 
 ForumSubscription *ForumDatabase::getSubscription(int id) {

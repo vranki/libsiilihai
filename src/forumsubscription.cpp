@@ -33,7 +33,7 @@ ForumSubscription& ForumSubscription::operator=(const ForumSubscription& other) 
 	_password = other._password;
 	_latestThreads = other._latestThreads;
 	_latestMessages = other._latestMessages;
-
+        _authenticated = other._authenticated;
 	return *this;
 }
 

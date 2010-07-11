@@ -43,6 +43,7 @@ public:
     void setSubscribed(bool s);
     void setChangeset(int cs);
     void setHasChanged(bool hc);
+
 private:
     ForumSubscription *_subscription;
     QString _name;
@@ -50,7 +51,7 @@ private:
     QString _lastchange;
     bool _subscribed;
     int _changeset;
-        bool _hasChanged;
+    bool _hasChanged;
 };
 
 #endif

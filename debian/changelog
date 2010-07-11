@@ -1,8 +1,14 @@
+libsiilihai (0.9.10-1) lucid; urgency=low
+
+  * Even faster syncing and a few fixes.
+
+ -- Ville Ranki <ville.ranki@iki.fi>  Sun, 11 Jul 2010 20:29:43 +0300
+
 libsiilihai (0.9.9-1) lucid; urgency=low
 
-  * Sync fixes (nr)
+  * Sync fixes & more
 
- -- Ville Ranki <ville.ranki@iki.fi>  Wed, 16 Jun 2010 20:29:43 +0300
+ -- Ville Ranki <ville.ranki@iki.fi>  Sun, 27 Jun 2010 20:29:43 +0300
 
 libsiilihai (0.9.8-1) lucid; urgency=low
 

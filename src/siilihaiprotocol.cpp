@@ -531,7 +531,6 @@ void SiilihaiProtocol::replyGetSyncSummary(QNetworkReply *reply) {
                 sub->setLatestThreads(forumElement.attribute("latest_threads").toInt());
                 sub->setLatestMessages(forumElement.attribute("latest_messages").toInt());
                 sub->setAuthenticated(forumElement.hasAttribute("authenticated"));
-
                 for (int j = 0; j < forumElement.childNodes().size(); j++) {
                     QDomElement groupElement =
                             forumElement.childNodes().at(j).toElement();
@@ -596,7 +595,8 @@ void SiilihaiProtocol::replyGetThreadData(QNetworkReply *reply) {
                     QDomElement groupElement =
                             forumElement.childNodes().at(k).toElement();
                     QString groupid = groupElement.attribute("id");
-                    Q_ASSERT(groupid == getThreadDataGroup->id());
+                    Q_ASSERT(groupid == getThreadDataGroup->id());  // Sometimes fails!
+                    // Not used yet:
                     int groupChangeset = groupElement.attribute("changeset").toInt();
 
                     for (int l = 0; l < groupElement.childNodes().size(); l++) {
@@ -656,8 +656,12 @@ void SiilihaiProtocol::sendThreadData(ForumGroup *grp, QList<ForumMessage*> &fms
     QDomElement groupTag = doc.createElement("group");
     root.appendChild(groupTag);
 
-    t = doc.createTextNode(grp->id());
-    groupTag.appendChild(t);
+    groupTag.appendChild(doc.createTextNode(grp->id()));
+
+    QDomElement changesetTag = doc.createElement("changeset");
+    root.appendChild(changesetTag);
+
+    changesetTag.appendChild(doc.createTextNode(QString().number(grp->changeset())));
 
     // Sort 'em to threads:
     QMap<ForumThread*, QList<ForumMessage*> > threadedMessages; // Thread id, message

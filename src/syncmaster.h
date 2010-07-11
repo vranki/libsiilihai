@@ -40,7 +40,7 @@ public slots:
         void getThreadDataFinished(bool success, QString message);
 signals:
         void syncFinished(bool success, QString message);
-
+        void syncProgress(float progress);
 private:
 	void processGroups();
         bool canceled;
@@ -55,6 +55,7 @@ private:
 	QQueue<ForumMessage*> messagesToUpload;
         ForumGroup *groupBeingDownloaded;
         unsigned int errorCount;
+        int maxGroupCount;
 };
 
 #endif /* SYNCMASTER_H_ */
