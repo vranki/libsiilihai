@@ -71,12 +71,13 @@ void SyncMaster::serverGroupStatus(QList<ForumGroup> &grps) {
         ForumSubscription *fs = grp.subscription();
         updatedSubs.insert(fs);
     }
+
     // Update local subs
     while(!updatedSubs.isEmpty()) {
         ForumSubscription *serverSub = *updatedSubs.begin();
         updatedSubs.remove(serverSub);
         ForumSubscription *dbSub = fdb.getSubscription(serverSub->parser());
-        if(!dbSub) {
+        if(!dbSub) { // Whole forum not found in db - add it
             qDebug() << Q_FUNC_INFO << "Forum not in db -  must add it!";
             ForumSubscription newSub;
             newSub.setParser(serverSub->parser());
@@ -94,17 +95,17 @@ void SyncMaster::serverGroupStatus(QList<ForumGroup> &grps) {
             fdb.updateSubscription(dbSub);
             // Check for unsubscribed groups
             foreach(ForumGroup *dbGrp, fdb.listGroups(dbSub)) {
-            bool found = false;
+                bool found = false;
                 foreach(ForumGroup grp, grps) {
-                 if(dbGrp->id() == grp.id())
-                 found = true;
+                    if(dbGrp->id() == grp.id())
+                        found = true;
+                    }
+                    if(!found) {
+                        dbGrp->setSubscribed(false);
+                        fdb.updateGroup(dbGrp);
+                    }
                 }
-            if(!found) {
-                 dbGrp->setSubscribed(false);
-                 fdb.updateGroup(dbGrp);
             }
-            }
-        }
 
         Q_ASSERT(dbSub);
     }
@@ -115,17 +116,14 @@ void SyncMaster::serverGroupStatus(QList<ForumGroup> &grps) {
         Q_ASSERT(dbSub);
 
         ForumGroup *dbGroup = fdb.getGroup(dbSub, grp.id());
-        fdb.getGroup(dbSub, grp.id());
-        if(!dbGroup) {
+        if(!dbGroup) { // Group doesn't exist yet
             qDebug() << Q_FUNC_INFO << "Group " << grp.toString() << " not in db -  must add it!";
             ForumGroup group(dbSub);
             group.setName("?");
             group.setId(grp.id());
-            group.setChangeset(grp.changeset());
+            group.setChangeset(-1); // Force update of group contents
             group.setSubscribed(true);
-            fdb.getGroup(dbSub, grp.id());
             dbGroup = fdb.addGroup(&group);
-            fdb.getGroup(dbSub, grp.id());
         }
 
         Q_ASSERT(dbGroup);
@@ -137,17 +135,6 @@ void SyncMaster::serverGroupStatus(QList<ForumGroup> &grps) {
            fdb.updateGroup(dbGroup);
            groupsToDownload.append(dbGroup);
         }
-        /*
-        if(dbGroup->changeset() > grp->changeset()) {
-            qDebug() << "DB has newer changeset - uploading";
-            groupsToUpload.append(dbGroup);
-        } else if(dbGroup->changeset() < grp->changeset()) {
-            qDebug() << "Server has newer changeset - downloading";
-            groupsToDownload.append(dbGroup);
-        } else {
-            qDebug() << "Group is up to date";
-        }
-        */
     }
 
     processGroups();
