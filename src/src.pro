@@ -2,8 +2,14 @@ TEMPLATE = lib
 VERSION = 0.9.11
 TARGET = siilihai
 
-# probably a bad idea
-PREFIX = /usr
+isEmpty(PREFIX) {
+  PREFIX = /usr
+}
+BINDIR = $$PREFIX/bin
+LIBDIR = $$PREFIX/lib
+DATADIR = $$PREFIX/share
+INCLUDEDIR = $$PREFIX/include/siilihai
+
 CONFIG += create_prl
 CONFIG += debug
 QMAKE_CXXFLAGS += -g
@@ -44,10 +50,6 @@ SOURCES += syncmaster.cpp \
     forumparser.cpp \
     patternmatcher.cpp \
     usersettings.cpp
-BINDIR = $$PREFIX/bin
-LIBDIR = $$PREFIX/lib
-DATADIR = $$PREFIX/share
-INCLUDEDIR = $$PREFIX/include/siilihai
 target.path = $$LIBDIR
 INSTALLS += target
 headers.path = $$INCLUDEDIR
