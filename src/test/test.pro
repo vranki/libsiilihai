@@ -7,11 +7,8 @@ QT += core \
     testlib
 QT -= gui
 HEADERS += libsiilihaitests.h
-SOURCES += main.cpp \
-    libsiilihaitests.cpp
+SOURCES += main.cpp libsiilihaitests.cpp
 INCLUDEPATH += ..
 DEPENDPATH += ..
-LIBS += -L.. \
-    -lsiilihai
-FORMS += 
-RESOURCES += 
+LIBS += -L../debug -lsiilihai
+
