@@ -6,9 +6,14 @@ isEmpty(PREFIX) {
   PREFIX = /usr
 }
 BINDIR = $$PREFIX/bin
-LIBDIR = $$PREFIX/lib
 DATADIR = $$PREFIX/share
 INCLUDEDIR = $$PREFIX/include/siilihai
+
+!contains(QMAKE_HOST.arch, x86_64) {
+   LIBDIR = $$PREFIX/lib
+} else {
+   LIBDIR = $$PREFIX/lib64
+}
 
 CONFIG += create_prl
 CONFIG += debug
