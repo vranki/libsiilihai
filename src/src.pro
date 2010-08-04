@@ -1,5 +1,5 @@
 TEMPLATE = lib
-VERSION = 0.9.11
+VERSION = 0.9.12
 TARGET = siilihai
 
 isEmpty(PREFIX) {
@@ -15,14 +15,15 @@ INCLUDEDIR = $$PREFIX/include/siilihai
    LIBDIR = $$PREFIX/lib64
 }
 
-CONFIG += create_prl
-CONFIG += debug
-QMAKE_CXXFLAGS += -g
+CONFIG += create_prl debug
+
 QT += core \
     sql \
     xml \
     network
+
 QT -= gui
+
 HEADERS += syncmaster.h \
     parserreport.h \
     forumrequest.h \
@@ -39,6 +40,7 @@ HEADERS += syncmaster.h \
     forumparser.h \
     patternmatcher.h \
     usersettings.h
+
 SOURCES += syncmaster.cpp \
     parserreport.cpp \
     forumrequest.cpp \
@@ -55,6 +57,7 @@ SOURCES += syncmaster.cpp \
     forumparser.cpp \
     patternmatcher.cpp \
     usersettings.cpp
+
 target.path = $$LIBDIR
 INSTALLS += target
 headers.path = $$INCLUDEDIR
