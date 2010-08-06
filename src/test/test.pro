@@ -10,5 +10,4 @@ HEADERS += libsiilihaitests.h
 SOURCES += main.cpp libsiilihaitests.cpp
 INCLUDEPATH += ..
 DEPENDPATH += ..
-LIBS += -L../debug -lsiilihai
-
+LIBS += -L.. -lsiilihai
