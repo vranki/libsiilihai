@@ -51,23 +51,24 @@ public:
     ForumThread* getThread(const int forum, QString groupid, QString threadid);
     ForumThread* addThread(const ForumThread *thread);
     bool deleteThread(ForumThread *thread);
-    bool updateThread(ForumThread *thread);
+    // bool updateThread(ForumThread *thread);
 
     QList <ForumMessage*> listMessages(ForumThread *thread);
     ForumMessage* getMessage(const int forum, QString groupid, QString threadid, QString messageid);
-    ForumMessage * addMessage(ForumMessage *message);
-    bool updateMessage(ForumMessage *message);
+    ForumMessage* addMessage(ForumMessage *message);
     bool deleteMessage(ForumMessage *message);
 
-    int unreadIn(ForumSubscription *fs);
-    int unreadIn(ForumGroup *fg);
+//    int unreadIn(ForumSubscription *fs);
+//    int unreadIn(ForumGroup *fg);
 
     void markForumRead(ForumSubscription *fs, bool read);
     bool markGroupRead(ForumGroup *group, bool read);
     int schemaVersion();
 public slots:
-    void markMessageRead(ForumMessage *message);
-    void markMessageRead(ForumMessage *message, bool read);
+    void messageChanged(ForumMessage *message);
+    void messageMarkedRead(ForumMessage *message, bool read=true);
+
+    void threadChanged(ForumThread *thread);
 
 signals:
     void subscriptionAdded(ForumSubscription *sub);
@@ -80,12 +81,12 @@ signals:
     void groupUpdated(ForumGroup *grp);
     void threadFound(ForumThread *thr);
     void threadAdded(ForumThread *thr);
-    void threadDeleted(ForumThread *thr); // NOTE: RECURSIVE! Thread and messages in it deleted!
-    void threadUpdated(ForumThread *thr);
+    //void threadDeleted(ForumThread *thr); // NOTE: RECURSIVE! Thread and messages in it deleted!
+    //void threadUpdated(ForumThread *thr);
     void messageFound(ForumMessage *msg);
     void messageAdded(ForumMessage *msg);
-    void messageDeleted(ForumMessage *msg);
-    void messageUpdated(ForumMessage *msg);
+    //void messageDeleted(ForumMessage *msg);
+    //void messageUpdated(ForumMessage *msg);
 private:
     void bindMessageValues(QSqlQuery &query, const ForumMessage *message);
     QMap<int, ForumSubscription*> subscriptions;

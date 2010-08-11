@@ -155,6 +155,7 @@ bool ForumDatabase::openDatabase() {
                     t->setGetMessagesCount(query.value(6).toInt());
                     Q_ASSERT(!threads[grp].contains(t->id()));
                     threads[grp][t->id()] = t;
+                    connect(t, SIGNAL(changed(ForumThread*)), this, SLOT(threadChanged(ForumThread*)));
                     emit threadFound(t);
                 }
             } else {
@@ -186,6 +187,14 @@ bool ForumDatabase::openDatabase() {
                         m->setRead(query.value(7).toBool());
                         Q_ASSERT(!messages[thread][m->id()]);
                         messages[thread][m->id()] = m;
+                        connect(m, SIGNAL(changed(ForumMessage*)), this, SLOT(messageChanged(ForumMessage*)));
+                        connect(m, SIGNAL(markedRead(ForumMessage*, bool)), this, SLOT(messageMarkedRead(ForumMessage*, bool)));
+                        if(m->read()) {
+    m->thread()->setUnreadCount(m->thread()->unreadCount() + 1);
+    m->thread()->group()->setUnreadCount(m->thread()->group()->unreadCount() + 1);
+    m->thread()->group()->subscription()->setUnreadCount(m->thread()->group()->subscription()->unreadCount() + 1);
+
+                        }
                         emit messageFound(m);
                     }
                 } else {
@@ -431,13 +440,14 @@ ForumThread * ForumDatabase::addThread(const ForumThread *thread) {
     th->operator=(*thread);
     threads[grp][th->id()] = th;
     grp->setHasChanged(true);
+    connect(th, SIGNAL(changed(ForumThread*)), this, SLOT(threadChanged(ForumThread*)));
     emit threadAdded(th);
     emit threadFound(th);
    //  qDebug() << "Thread " << th->toString() << " stored";
     return th;
 }
 
-bool ForumDatabase::updateThread(ForumThread *thread) {
+void ForumDatabase::threadChanged(ForumThread *thread) {
     Q_ASSERT(thread);
     // qDebug() << Q_FUNC_INFO << thread->toString();
     Q_ASSERT(threads.contains(thread->group()));
@@ -460,11 +470,8 @@ bool ForumDatabase::updateThread(ForumThread *thread) {
     if (!query.exec()) {
         qDebug() << "Updating thread " << thread->toString() << " failed: "
                 << query.lastError().text();
-        return false;
     }
-    emit threadUpdated(thread);
     // qDebug() << "Thread " << thread->toString() << " updated";
-    return true;
 }
 
 ForumMessage* ForumDatabase::addMessage(ForumMessage *message) {
@@ -507,6 +514,9 @@ ForumMessage* ForumDatabase::addMessage(ForumMessage *message) {
     nmsg->operator=(*message);
     messages[nmsg->thread()][nmsg->id()] = nmsg;
     message->thread()->group()->setHasChanged(true);
+    connect(nmsg, SIGNAL(changed(ForumMessage*)), this, SLOT(messageChanged(ForumMessage*)));
+    connect(nmsg, SIGNAL(markedRead(ForumMessage*, bool)), this, SLOT(messageMarkedRead(ForumMessage*, bool)));
+
     emit messageAdded(nmsg);
     emit messageFound(nmsg);
    // qDebug() << Q_FUNC_INFO << nmsg->toString();
@@ -539,7 +549,7 @@ void ForumDatabase::bindMessageValues(QSqlQuery &query,
     query.addBindValue(message->read());
 }
 
-bool ForumDatabase::updateMessage(ForumMessage *message) {
+void ForumDatabase::messageChanged(ForumMessage *message) {
     Q_ASSERT(message);
     Q_ASSERT(messages.contains(message->thread()));
     Q_ASSERT(messages.value(message->thread()).value(message->id())==message);
@@ -557,10 +567,7 @@ bool ForumDatabase::updateMessage(ForumMessage *message) {
     if (!query.exec()) {
         qDebug() << "Updating message failed: " << query.lastError().text();
         Q_ASSERT(false);
-        return false;
     }
-    emit messageUpdated(message);
-    return true;
 }
 
 bool ForumDatabase::deleteMessage(ForumMessage *message) {
@@ -578,9 +585,9 @@ bool ForumDatabase::deleteMessage(ForumMessage *message) {
         return false;
     }
     message->thread()->group()->setHasChanged(true);
-    emit messageDeleted(message);
     messages[message->thread()].remove(message->id());
-    qDebug() << Q_FUNC_INFO << "Message " << message->toString() << " deleted";
+    // qDebug() << Q_FUNC_INFO << "Message " << message->toString() << " deleted";
+    message->disconnect(this);
     message->deleteLater();
     return true;
 }
@@ -640,7 +647,6 @@ bool ForumDatabase::deleteThread(ForumThread *thread) {
     }
     thread->group()->setHasChanged(true);
     threads[thread->group()].remove(thread->id());
-    emit threadDeleted(thread);
     qDebug() << "Thread " << thread->toString() << " deleted";
     thread->deleteLater();
     return true;
@@ -667,18 +673,10 @@ bool ForumDatabase::updateGroup(ForumGroup *grp) {
     return true;
 }
 
-void ForumDatabase::markMessageRead(ForumMessage *message) {
-    if(message) {
-        markMessageRead(message, true);
-    }
-}
-
-void ForumDatabase::markMessageRead(ForumMessage *message, bool read) {
+void ForumDatabase::messageMarkedRead(ForumMessage *message, bool read) {
     Q_ASSERT(message);
-    qDebug() << Q_FUNC_INFO;
+    qDebug() << Q_FUNC_INFO << read;
     Q_ASSERT(message->isSane());
-
-    if(message->read() == read) return;
 
     message->thread()->group()->setHasChanged(true);
 
@@ -693,10 +691,13 @@ void ForumDatabase::markMessageRead(ForumMessage *message, bool read) {
     if (!query.exec()) {
         qDebug() << "Setting message read failed: " << query.lastError().text();
     }
-    message->setRead(read);
-    emit messageUpdated(message);
+    int duc = 1;
+    if(read) duc = -1;
+    message->thread()->setUnreadCount(message->thread()->unreadCount() + duc);
+    message->thread()->group()->setUnreadCount(message->thread()->group()->unreadCount() + duc);
+    message->thread()->group()->subscription()->setUnreadCount(message->thread()->group()->subscription()->unreadCount() + duc);
 }
-
+/*
 int ForumDatabase::unreadIn(ForumSubscription *fs) {
     Q_ASSERT(fs);
     int count = 0;
@@ -716,7 +717,7 @@ int ForumDatabase::unreadIn(ForumGroup *fg) {
     }
     return count;
 }
-
+*/
 ForumSubscription *ForumDatabase::getSubscription(int id) {
     Q_ASSERT(id > 0);
     return subscriptions.value(id);
@@ -744,11 +745,9 @@ bool ForumDatabase::markGroupRead(ForumGroup *group, bool read) {
     }
     foreach(ForumThread *ft, listThreads(group)) {
         foreach(ForumMessage *msg, listMessages(ft)) {
-            markMessageRead(msg, read);
+            msg->setRead(true);
         }
-        emit threadUpdated(ft);
     }
-    emit groupUpdated(group);
     return true;
 }
 

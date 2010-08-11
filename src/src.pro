@@ -1,5 +1,5 @@
 TEMPLATE = lib
-VERSION = 0.9.12
+VERSION = 0.9.14
 TARGET = siilihai
 
 isEmpty(PREFIX) {

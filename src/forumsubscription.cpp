@@ -20,6 +20,7 @@ ForumSubscription::ForumSubscription() : QObject() {
 	_latestThreads = 0;
 	_latestMessages = 0;
         _authenticated = false;
+        _unreadCount = 0;
     }
 
 ForumSubscription::ForumSubscription(QObject *parent) : QObject(parent) {
@@ -34,6 +35,7 @@ ForumSubscription& ForumSubscription::operator=(const ForumSubscription& other) 
 	_latestThreads = other._latestThreads;
 	_latestMessages = other._latestMessages;
         _authenticated = other._authenticated;
+        _unreadCount = other._unreadCount;
 	return *this;
 }
 
@@ -95,4 +97,11 @@ void ForumSubscription::setLatestMessages(unsigned int lm) {
 
 void ForumSubscription::setAuthenticated(bool na) {
     _authenticated = na;
+}
+
+int ForumSubscription::unreadCount() const {
+    return _unreadCount;
+}
+void ForumSubscription::setUnreadCount(int urc) {
+    _unreadCount = urc;
 }

@@ -36,6 +36,7 @@ public:
     bool subscribed() const;
     int changeset() const;
     bool hasChanged() const;
+    int unreadCount() const;
 
     void setName(QString name);
     void setId(QString id);
@@ -43,6 +44,10 @@ public:
     void setSubscribed(bool s);
     void setChangeset(int cs);
     void setHasChanged(bool hc);
+    void setUnreadCount(int urc);
+signals:
+    void changed(ForumGroup *grp);
+    void unreadCountChanged(ForumGroup *grp);
 
 private:
     ForumSubscription *_subscription;
@@ -52,6 +57,7 @@ private:
     bool _subscribed;
     int _changeset;
     bool _hasChanged;
+    int _unreadCount;
 };
 
 #endif

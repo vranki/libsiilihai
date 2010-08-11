@@ -47,6 +47,10 @@ public:
     void setBody(QString nb);
     void setRead(bool nr);
     void setThread(ForumThread *nt);
+signals:
+    void changed(ForumMessage * fm);
+    void markedRead(ForumMessage * fm, bool read);
+
 private:
     QString _id;
     int _ordernum;

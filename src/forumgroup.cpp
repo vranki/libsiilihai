@@ -24,6 +24,7 @@ ForumGroup::ForumGroup(ForumSubscription *sub) : QObject(sub) {
     _name = "";
     _lastchange = "";
     _hasChanged = false;
+    _unreadCount = 0;
 }
 
 ForumGroup::ForumGroup(const ForumGroup& o) : QObject() {
@@ -38,10 +39,9 @@ ForumGroup& ForumGroup::operator=(const ForumGroup& o) {
     _subscribed = o._subscribed;
     _changeset = o._changeset;
     _hasChanged = o._hasChanged;
-
+    _unreadCount = o._unreadCount;
     return *this;
 }
-
 
 ForumGroup::~ForumGroup() {
 }
@@ -81,9 +81,16 @@ ForumSubscription* ForumGroup::subscription() const {
 bool ForumGroup::hasChanged() const {
     return _hasChanged;
 }
+int ForumGroup::unreadCount() const {
+    return _unreadCount;
+}
+
 void ForumGroup::setName(QString name) { _name = name; }
 void ForumGroup::setId(QString id) { _id = id; }
 void ForumGroup::setLastchange(QString lc) { _lastchange = lc; }
 void ForumGroup::setSubscribed(bool s) { _subscribed = s; }
 void ForumGroup::setChangeset(int cs) { _changeset = cs; }
 void ForumGroup::setHasChanged(bool hc) { _hasChanged = hc;}
+void ForumGroup::setUnreadCount(int urc) {
+    _unreadCount = urc;
+}

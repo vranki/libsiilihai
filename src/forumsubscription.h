@@ -38,6 +38,7 @@ public:
 	void setLatestThreads(unsigned int lt);
 	void setLatestMessages(unsigned int lm);
         void setAuthenticated(bool na);
+        void setUnreadCount(int urc);
 	int parser() const;
         QString alias() const;
 	QString username() const;
@@ -45,6 +46,7 @@ public:
 	unsigned int latest_threads() const;
 	unsigned int latest_messages() const;
         bool authenticated() const; // True if username & password should be set
+        int unreadCount() const;
 private:
 	int _parser;
         QString _alias;
@@ -53,6 +55,7 @@ private:
 	unsigned int _latestThreads;
 	unsigned int _latestMessages;
         bool _authenticated;
+        int _unreadCount;
 };
 
 #endif /* FORUMSUBSCRIPTION_H_ */

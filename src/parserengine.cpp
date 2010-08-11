@@ -240,7 +240,6 @@ void ParserEngine::listThreadsFinished(QList<ForumThread*> &threads,
                     Q_ASSERT(dbthread);
                     qDebug() << Q_FUNC_INFO << "Thread " << dbthread->toString()
                             << " has been changed, updating and adding to update queue";
-                    fdb->updateThread(dbthread);
                     threadsToUpdateQueue.enqueue(dbthread);
                 }
             }
@@ -301,7 +300,6 @@ void ParserEngine::listMessagesFinished(QList<ForumMessage*> &messages,
                 } else {
                     dbmessage->operator=(*msg);
                 }
-                fdb->updateMessage(dbmessage);
             }
         }
         if (!foundInDb) {
@@ -327,7 +325,6 @@ void ParserEngine::listMessagesFinished(QList<ForumMessage*> &messages,
     }
     // update thread
     thread->setHasMoreMessages(moreAvailable);
-    Q_ASSERT(fdb->updateThread(thread));
 
     if(updateAll) {
         updateNextChangedThread();

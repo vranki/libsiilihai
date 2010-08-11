@@ -25,6 +25,7 @@ ForumThread::ForumThread(ForumGroup *grp) : QObject(grp) {
     _hasMoreMessages = false;
     _getMessagesCount = -1;
     _hasChanged = false;
+    _unreadCount = 0;
 }
 
 ForumThread::ForumThread(const ForumThread& o) : QObject() {
@@ -40,6 +41,7 @@ ForumThread& ForumThread::operator=(const ForumThread& o) {
     _ordernum = o._ordernum;
     _hasMoreMessages = o._hasMoreMessages;
     _getMessagesCount = o._getMessagesCount;
+    emit changed(this);
     return *this;
 }
 
@@ -82,43 +84,59 @@ ForumGroup *ForumThread::group() const {
 bool ForumThread::hasMoreMessages() const {
     return _hasMoreMessages;
 }
-/*
-bool ForumThread::hasChanged() const {
-    return _hasChanged;
+
+int ForumThread::unreadCount() const {
+    return _unreadCount;
 }
-*/
+
 int ForumThread::getMessagesCount() const {
     return _getMessagesCount;
 }
 
 void ForumThread::setId(QString nid) {
+    if(nid == _id) return;
     _id = nid;
+    emit changed(this);
 }
 void ForumThread::setOrdernum(int on) {
+if(on == _ordernum) return;
     _ordernum = on;
+    emit changed(this);
 }
 void ForumThread::setName(QString nname) {
+if(nname == _name) return;
     _name = nname;
+    emit changed(this);
 }
 void ForumThread::setLastchange(QString lc) {
+if(lc==_lastchange) return;
     _lastchange = lc ;
+    emit changed(this);
 }
 void ForumThread::setChangeset(int cs) {
+if(cs==_changeset) return;
     _changeset = cs;
+    emit changed(this);
 }
 
 void ForumThread::setHasMoreMessages(bool hmm) {
+if(hmm==_hasMoreMessages) return;
     _hasMoreMessages = hmm;
+    emit changed(this);
 }
 
 void ForumThread::setGetMessagesCount(int gmc) {
+if(gmc==_getMessagesCount) return;
     _getMessagesCount = gmc;
+    emit changed(this);
 }
 void ForumThread::setGroup(ForumGroup *ng) {
     _group = ng;
 }
-/*
-void ForumThread::setHasChanged(bool hc) {
-    _hasChanged = hc;
+
+void ForumThread::setUnreadCount(int urc) {
+if(_unreadCount == urc) return;
+    _unreadCount = urc;
+    emit unreadCountChanged(this);
 }
-*/
+

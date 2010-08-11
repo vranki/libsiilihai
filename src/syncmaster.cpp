@@ -194,7 +194,6 @@ void SyncMaster::serverThreadData(ForumThread *thread) {
                                               thread->id());
         if (dbThread) { // Thread already found, merge it
             dbThread->setChangeset(thread->changeset());
-            fdb.updateThread(dbThread);
         } else { // thread hasn't been found yet!
             ForumGroup *dbGroup = fdb.getGroup(fdb.getSubscription(thread->group()->subscription()->parser()), thread->group()->id());
             Q_ASSERT(dbGroup);
@@ -221,7 +220,6 @@ void SyncMaster::serverMessageData(ForumMessage *message) {
         if (dbMessage && dbMessage->isSane()) { // Message already found, merge it
             if(dbMessage->read() != message->read()) {
                 dbMessage->setRead(message->read());
-                fdb.updateMessage(dbMessage);
             }
         } else { // message hasn't been found yet!
             ForumThread *dbThread = fdb.getThread(message->thread()->group()->subscription()->parser(),

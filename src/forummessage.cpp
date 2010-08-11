@@ -34,7 +34,7 @@ ForumMessage& ForumMessage::operator=(const ForumMessage& o) {
     _body = o._body;
     _read = o._read;
     _thread = o._thread;
-
+    emit changed(this);
     return *this;
 }
 
@@ -73,12 +73,55 @@ QString ForumMessage::lastchange() const { return _lastchange; }
 QString ForumMessage::body() const { return _body; }
 bool ForumMessage::read() const { return _read; }
 
-void ForumMessage::setId(QString nid) { _id = nid ; }
-void ForumMessage::setOrdernum(int nod) { _ordernum = nod ; }
-void ForumMessage::setUrl(QString nurl) { _url = nurl ; }
-void ForumMessage::setSubject(QString ns) { _subject = ns ; }
-void ForumMessage::setAuthor(QString na) { _author = na ; }
-void ForumMessage::setLastchange(QString nlc) { _lastchange = nlc ; }
-void ForumMessage::setBody(QString nb) { _body = nb ; }
-void ForumMessage::setRead(bool nr) { _read = nr ; }
-void ForumMessage::setThread(ForumThread *nt) { _thread = nt; };
+void ForumMessage::setId(QString nid) {
+  if(nid == _id) return;
+  _id = nid ;
+  emit changed(this);
+}
+
+void ForumMessage::setOrdernum(int nod) {
+if(nod == _ordernum) return;
+  _ordernum = nod;
+  emit changed(this);
+}
+
+void ForumMessage::setUrl(QString nurl) {
+if(nurl == _url) return;
+_url = nurl;
+  emit changed(this);
+}
+void ForumMessage::setSubject(QString ns) {
+if(ns == _subject) return;
+  _subject = ns;
+  emit changed(this);
+ }
+void ForumMessage::setAuthor(QString na) {
+if(na == _author) return;
+_author = na;
+  emit changed(this);
+}
+void ForumMessage::setLastchange(QString nlc) {
+if(nlc==_lastchange) return;
+_lastchange = nlc ;
+  emit changed(this);
+}
+void ForumMessage::setBody(QString nb) {
+  if(nb == _body) return;
+  _body = nb ;
+  emit changed(this);
+}
+void ForumMessage::setRead(bool nr) {
+  if(nr==_read) return;
+  _read = nr ;
+  if(_read) {
+     emit markedRead(this, true);
+   } else {
+     emit markedRead(this, false);
+  }
+}
+
+void ForumMessage::setThread(ForumThread *nt) {
+  if(nt==_thread) return;
+  _thread = nt;
+  emit changed(this);
+}
