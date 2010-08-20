@@ -17,17 +17,18 @@
 #include <QString>
 #include <QObject>
 #include <QMap>
-#include <QSet>
+#include <QList>
 #include <QDebug>
+class ForumGroup;
 
-class ForumSubscription : public QObject {
+class ForumSubscription : public QObject, public QList<ForumGroup*> {
 	Q_OBJECT
 
 public:
-	ForumSubscription();
-	ForumSubscription(QObject *parent);
-	ForumSubscription(const ForumSubscription&);
-	ForumSubscription&  operator=(const ForumSubscription&);
+//	ForumSubscription();
+        ForumSubscription(QObject *parent=0);
+        ForumSubscription(const ForumSubscription&);
+        ForumSubscription&  operator=(const ForumSubscription&);
 	virtual ~ForumSubscription();
 	bool isSane() const;
 	QString toString() const;
@@ -38,7 +39,7 @@ public:
 	void setLatestThreads(unsigned int lt);
 	void setLatestMessages(unsigned int lm);
         void setAuthenticated(bool na);
-        void setUnreadCount(int urc);
+        void incrementUnreadCount(int urc);
 	int parser() const;
         QString alias() const;
 	QString username() const;
@@ -47,6 +48,10 @@ public:
 	unsigned int latest_messages() const;
         bool authenticated() const; // True if username & password should be set
         int unreadCount() const;
+signals:
+    void changed(ForumSubscription *s);
+    void unreadCountChanged(ForumSubscription *s);
+
 private:
 	int _parser;
         QString _alias;

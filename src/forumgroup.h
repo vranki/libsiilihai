@@ -17,9 +17,12 @@
 #define FORUMGROUP_H_
 #include <QString>
 #include <QObject>
+#include <QList>
 #include "forumsubscription.h"
 
-class ForumGroup : public QObject {
+class ForumThread;
+
+class ForumGroup : public QObject, public QList<ForumThread*> {
     Q_OBJECT
 
 public:
@@ -44,7 +47,7 @@ public:
     void setSubscribed(bool s);
     void setChangeset(int cs);
     void setHasChanged(bool hc);
-    void setUnreadCount(int urc);
+    void incrementUnreadCount(int urc);
 signals:
     void changed(ForumGroup *grp);
     void unreadCountChanged(ForumGroup *grp);

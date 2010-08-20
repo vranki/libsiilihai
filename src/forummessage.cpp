@@ -114,10 +114,11 @@ void ForumMessage::setRead(bool nr) {
   if(nr==_read) return;
   _read = nr ;
   if(_read) {
-     emit markedRead(this, true);
+     thread()->incrementUnreadCount(-1);
    } else {
-     emit markedRead(this, false);
+     thread()->incrementUnreadCount(1);
   }
+  emit markedRead(this, nr);
 }
 
 void ForumMessage::setThread(ForumThread *nt) {

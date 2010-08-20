@@ -17,7 +17,7 @@
 ForumThread::~ForumThread() {
 }
 
-ForumThread::ForumThread(ForumGroup *grp) : QObject(grp) {
+ForumThread::ForumThread(ForumGroup *grp) : QObject(grp), QList<ForumMessage*>() {
     _group = grp;
     _id = _name = _lastchange = "";
     _changeset = -1;
@@ -28,7 +28,7 @@ ForumThread::ForumThread(ForumGroup *grp) : QObject(grp) {
     _unreadCount = 0;
 }
 
-ForumThread::ForumThread(const ForumThread& o) : QObject() {
+ForumThread::ForumThread(const ForumThread& o) : QObject(), QList<ForumMessage*>() {
     *this = o;
 }
 
@@ -41,6 +41,10 @@ ForumThread& ForumThread::operator=(const ForumThread& o) {
     _ordernum = o._ordernum;
     _hasMoreMessages = o._hasMoreMessages;
     _getMessagesCount = o._getMessagesCount;
+    clear();
+    for(int i=0;i<o.size();i++)
+    append(o.at(i));
+
     emit changed(this);
     return *this;
 }
@@ -134,9 +138,11 @@ void ForumThread::setGroup(ForumGroup *ng) {
     _group = ng;
 }
 
-void ForumThread::setUnreadCount(int urc) {
-if(_unreadCount == urc) return;
-    _unreadCount = urc;
+void ForumThread::incrementUnreadCount(int urc) {
+    if(!urc) return;
+    _unreadCount += urc;
+    //Q_ASSERT(_unreadCount >= 0);
+    group()->incrementUnreadCount(urc);
     emit unreadCountChanged(this);
 }
 

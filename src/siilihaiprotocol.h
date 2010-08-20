@@ -94,7 +94,7 @@ signals:
 
     // Sync stuff:
     void sendThreadDataFinished(bool success, QString message);
-    void serverGroupStatus(QList<ForumGroup> &grps); // Data is not complete!
+    void serverGroupStatus(QList<ForumSubscription*> &subs); // Data is not complete!
     void serverThreadData(ForumThread *thread);
     void serverMessageData(ForumMessage *message);
     void getThreadDataFinished(bool success, QString message);

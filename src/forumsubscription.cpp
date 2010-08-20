@@ -14,17 +14,13 @@
     along with libSiilihai.  If not, see <http://www.gnu.org/licenses/>. */
 #include "forumsubscription.h"
 
-ForumSubscription::ForumSubscription() : QObject() {
-	_parser = -1;
+ForumSubscription::ForumSubscription(QObject *parent) : QObject(parent), QList<ForumGroup*>() {
+        _parser = -1;
         _alias = QString::null;
-	_latestThreads = 0;
-	_latestMessages = 0;
+        _latestThreads = 0;
+        _latestMessages = 0;
         _authenticated = false;
         _unreadCount = 0;
-    }
-
-ForumSubscription::ForumSubscription(QObject *parent) : QObject(parent) {
-	ForumSubscription();
 }
 
 ForumSubscription& ForumSubscription::operator=(const ForumSubscription& other) {
@@ -36,10 +32,16 @@ ForumSubscription& ForumSubscription::operator=(const ForumSubscription& other) 
 	_latestMessages = other._latestMessages;
         _authenticated = other._authenticated;
         _unreadCount = other._unreadCount;
+        clear();
+        for(int i=0; i < other.size();i++) {
+          append(other.at(i));
+         }
+
+        emit changed(this);
 	return *this;
 }
 
-ForumSubscription::ForumSubscription(const ForumSubscription& other) : QObject() {
+ForumSubscription::ForumSubscription(const ForumSubscription& other) : QObject(), QList<ForumGroup*>() {
 	*this = other;
 }
 
@@ -77,31 +79,48 @@ bool ForumSubscription::authenticated() const {
     return _authenticated;
 }
 void ForumSubscription::setParser(int parser) {
+if(parser==_parser) return;
 	_parser = parser;
+        emit changed(this);
 }
 void ForumSubscription::setAlias(QString name) {
-        _alias = name;
+if(_alias==name) return;
+_alias = name;
+emit changed(this);
 }
 void ForumSubscription::setUsername(QString username) {
-	_username = username;
+if(_username == username) return;
+_username = username;
+emit changed(this);
 }
 void ForumSubscription::setPassword(QString password) {
-	_password = password;
+if(_password==password) return;
+_password = password;
+emit changed(this);
 }
 void ForumSubscription::setLatestThreads(unsigned int lt) {
-	_latestThreads = lt;
+if(lt==_latestThreads) return;
+_latestThreads = lt;
+emit changed(this);
 }
 void ForumSubscription::setLatestMessages(unsigned int lm) {
-	_latestMessages = lm;
+if(lm==_latestMessages) return;
+_latestMessages = lm;
+emit changed(this);
 }
 
 void ForumSubscription::setAuthenticated(bool na) {
+if(na==_authenticated) return;
     _authenticated = na;
+emit changed(this);
 }
 
 int ForumSubscription::unreadCount() const {
     return _unreadCount;
 }
-void ForumSubscription::setUnreadCount(int urc) {
-    _unreadCount = urc;
+void ForumSubscription::incrementUnreadCount(int urc) {
+    if(!urc) return;
+    _unreadCount += urc;
+    // Q_ASSERT(_unreadCount >= 0);
+    emit unreadCountChanged(this);
 }

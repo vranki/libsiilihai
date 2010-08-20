@@ -16,7 +16,7 @@
 #include "forumgroup.h"
 
 
-ForumGroup::ForumGroup(ForumSubscription *sub) : QObject(sub) {
+ForumGroup::ForumGroup(ForumSubscription *sub) : QObject(sub), QList<ForumThread*>() {
     _subscription = sub;
     _id = "";
     _subscribed = false;
@@ -27,7 +27,7 @@ ForumGroup::ForumGroup(ForumSubscription *sub) : QObject(sub) {
     _unreadCount = 0;
 }
 
-ForumGroup::ForumGroup(const ForumGroup& o) : QObject() {
+ForumGroup::ForumGroup(const ForumGroup& o) : QObject(), QList<ForumThread*>() {
     *this = o;
 }
 
@@ -40,6 +40,10 @@ ForumGroup& ForumGroup::operator=(const ForumGroup& o) {
     _changeset = o._changeset;
     _hasChanged = o._hasChanged;
     _unreadCount = o._unreadCount;
+    clear();
+    for(int i=0;i<o.size();i++)
+    append(o.at(i));
+    emit changed(this);
     return *this;
 }
 
@@ -85,12 +89,46 @@ int ForumGroup::unreadCount() const {
     return _unreadCount;
 }
 
-void ForumGroup::setName(QString name) { _name = name; }
-void ForumGroup::setId(QString id) { _id = id; }
-void ForumGroup::setLastchange(QString lc) { _lastchange = lc; }
-void ForumGroup::setSubscribed(bool s) { _subscribed = s; }
-void ForumGroup::setChangeset(int cs) { _changeset = cs; }
-void ForumGroup::setHasChanged(bool hc) { _hasChanged = hc;}
-void ForumGroup::setUnreadCount(int urc) {
-    _unreadCount = urc;
+void ForumGroup::setName(QString name) {
+  if(name == _name) return;
+  _name = name;
+  emit changed(this);
+}
+
+void ForumGroup::setId(QString id) {
+if(_id == id) return;
+_id = id;
+emit changed(this);
+}
+
+void ForumGroup::setLastchange(QString lc) {
+if(lc==_lastchange) return;
+_lastchange = lc;
+emit changed(this);
+}
+
+void ForumGroup::setSubscribed(bool s) {
+if(s==_subscribed) return;
+_subscribed = s;
+emit changed(this);
+}
+
+void ForumGroup::setChangeset(int cs) {
+if(cs==_changeset) return;
+_changeset = cs;
+emit changed(this);
+}
+
+void ForumGroup::setHasChanged(bool hc) {
+if(hc==_hasChanged) return;
+   _hasChanged = hc;
+   emit changed(this);
+}
+
+void ForumGroup::incrementUnreadCount(int urc) {
+    if(!urc) return;
+    _unreadCount += urc;
+    // Q_ASSERT(_unreadCount >= 0);
+    subscription()->incrementUnreadCount(urc);
+    emit unreadCountChanged(this);
 }

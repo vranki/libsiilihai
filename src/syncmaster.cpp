@@ -18,8 +18,8 @@ SyncMaster::SyncMaster(QObject *parent, ForumDatabase &fd,
                        SiilihaiProtocol &prot) :
 QObject(parent), fdb(fd), protocol(prot) {
 
-    connect(&protocol, SIGNAL(serverGroupStatus(QList<ForumGroup> &)), this,
-            SLOT(serverGroupStatus(QList<ForumGroup> &)));
+    connect(&protocol, SIGNAL(serverGroupStatus(QList<ForumSubscription*> &)), this,
+            SLOT(serverGroupStatus(QList<ForumSubscription*> &)));
     connect(&protocol, SIGNAL(serverThreadData(ForumThread*)), this,
             SLOT(serverThreadData(ForumThread*)));
     connect(&protocol, SIGNAL(serverMessageData(ForumMessage*)), this,
@@ -50,90 +50,91 @@ void SyncMaster::endSync() {
 
     QList<ForumSubscription*> fsubs = fdb.listSubscriptions();
     int totalGroups = 0;
-    foreach(ForumSubscription *fsub, fsubs)
-        foreach(ForumGroup *grp, fdb.listGroups(fsub)) {
-        if(grp->subscribed()) totalGroups++;
+    foreach(ForumSubscription *fsub, fsubs) {
+        foreach(ForumGroup *grp, *fsub) {
+            if(grp->subscribed()) totalGroups++;
             if(grp->subscribed() && grp->hasChanged()) {
-                groupsToUpload.append(grp);
+               groupsToUpload.append(grp);
             }
-            }
+         }
+    }
     maxGroupCount = groupsToUpload.size();
     qDebug() << Q_FUNC_INFO << "Uploading " << maxGroupCount << " of " << totalGroups << " groups.";
     processGroups();
 }
 
-void SyncMaster::serverGroupStatus(QList<ForumGroup> &grps) {
-    qDebug() << Q_FUNC_INFO << grps.size();
-    maxGroupCount = grps.size();
+void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) {
+    qDebug() << Q_FUNC_INFO << subs.size();
+    //maxGroupCount = grps.size();
     // Make a list of updated subscriptions
+    /*
     QSet<ForumSubscription*> updatedSubs;
     foreach(ForumGroup grp, grps) {
         ForumSubscription *fs = grp.subscription();
         updatedSubs.insert(fs);
     }
-
+*/
     // Update local subs
-    while(!updatedSubs.isEmpty()) {
-        ForumSubscription *serverSub = *updatedSubs.begin();
-        updatedSubs.remove(serverSub);
+    foreach(ForumSubscription *serverSub, subs) {
         ForumSubscription *dbSub = fdb.getSubscription(serverSub->parser());
         if(!dbSub) { // Whole forum not found in db - add it
             qDebug() << Q_FUNC_INFO << "Forum not in db -  must add it!";
-            ForumSubscription newSub;
-            newSub.setParser(serverSub->parser());
-            newSub.setAlias(serverSub->alias());
-            newSub.setLatestThreads(serverSub->latest_threads());
-            newSub.setLatestMessages(serverSub->latest_messages());
-            newSub.setAuthenticated(serverSub->authenticated());
-            dbSub = fdb.addSubscription(&newSub);
+            ForumSubscription *newSub = new ForumSubscription(&fdb);
+            newSub->setParser(serverSub->parser());
+            newSub->setAlias(serverSub->alias());
+            newSub->setLatestThreads(serverSub->latest_threads());
+            newSub->setLatestMessages(serverSub->latest_messages());
+            newSub->setAuthenticated(serverSub->authenticated());
+            fdb.addSubscription(newSub);
+            dbSub = newSub;
         } else {
             dbSub->setParser(serverSub->parser());
             dbSub->setAlias(serverSub->alias());
             dbSub->setLatestThreads(serverSub->latest_threads());
             dbSub->setLatestMessages(serverSub->latest_messages());
             dbSub->setAuthenticated(serverSub->authenticated());
-            fdb.updateSubscription(dbSub);
             // Check for unsubscribed groups
-            foreach(ForumGroup *dbGrp, fdb.listGroups(dbSub)) {
+            foreach(ForumGroup *dbGrp, *dbSub) {
                 bool found = false;
-                foreach(ForumGroup grp, grps) {
-                    if(dbGrp->id() == grp.id())
+                foreach(ForumGroup *serverGrp, *serverSub) {
+                    if(dbGrp->id() == serverGrp->id())
                         found = true;
-                    }
-                    if(!found) {
-                        dbGrp->setSubscribed(false);
-                        fdb.updateGroup(dbGrp);
-                    }
+                }
+                if(!found) {
+                    dbGrp->setSubscribed(false);
                 }
             }
+        }
 
         Q_ASSERT(dbSub);
     }
 
-    foreach(ForumGroup grp, grps) {
-        Q_ASSERT(grp.subscription()->parser() >= 0 || grp.id().length() > 0);
-        ForumSubscription *dbSub = fdb.getSubscription(grp.subscription()->parser());
-        Q_ASSERT(dbSub);
+    foreach(ForumSubscription *serverSub, subs) {
+        foreach(ForumGroup *serverGrp, *serverSub) {
+            Q_ASSERT(serverGrp->subscription()->parser() >= 0 || serverGrp->id().length() > 0);
+            ForumSubscription *dbSub = fdb.getSubscription(serverGrp->subscription()->parser());
+            Q_ASSERT(dbSub);
 
-        ForumGroup *dbGroup = fdb.getGroup(dbSub, grp.id());
-        if(!dbGroup) { // Group doesn't exist yet
-            qDebug() << Q_FUNC_INFO << "Group " << grp.toString() << " not in db -  must add it!";
-            ForumGroup group(dbSub);
-            group.setName("?");
-            group.setId(grp.id());
-            group.setChangeset(-1); // Force update of group contents
-            group.setSubscribed(true);
-            dbGroup = fdb.addGroup(&group);
-        }
+            ForumGroup *dbGroup = fdb.getGroup(dbSub, serverGrp->id());
+            if(!dbGroup) { // Group doesn't exist yet
+                qDebug() << Q_FUNC_INFO << "Group " << serverGrp->toString() << " not in db -  must add it!";
+                ForumGroup *group = new ForumGroup(dbSub);
+                group->setName("?");
+                group->setId(serverGrp->id());
+                group->setChangeset(-1); // Force update of group contents
+                group->setSubscribed(true);
+                fdb.addGroup(group);
+                dbGroup = group;
+            }
 
-        Q_ASSERT(dbGroup);
+            Q_ASSERT(dbGroup);
 
-        qDebug() << Q_FUNC_INFO << "Changesets for " << dbGroup->toString() << ": db " << dbGroup->changeset() << " server " << grp.changeset();
-        if(dbGroup->changeset() != grp.changeset()) {
-           qDebug() << "Adding group to download queue and setting changeset " << dbGroup->toString();
-           dbGroup->setChangeset(grp.changeset());
-           fdb.updateGroup(dbGroup);
-           groupsToDownload.append(dbGroup);
+            qDebug() << Q_FUNC_INFO << "Changesets for " << dbGroup->toString() << ": db " << dbGroup->changeset() << " server " << serverGrp->changeset();
+            if(dbGroup->changeset() != serverGrp->changeset()) {
+                qDebug() << "Adding group to download queue and setting changeset " << dbGroup->toString();
+                dbGroup->setChangeset(serverGrp->changeset());
+                groupsToDownload.append(dbGroup);
+            }
         }
     }
 
@@ -154,11 +155,10 @@ void SyncMaster::processGroups() {
     if(!groupsToUpload.isEmpty()) {
         ForumGroup *g = groupsToUpload.takeFirst();
         g->setChangeset(rand());
-        fdb.updateGroup(g);
         qDebug() << Q_FUNC_INFO << "Group " << g->toString() << "new changeset: " << g->changeset();
-        foreach(ForumThread *thread, fdb.listThreads(g))
+        foreach(ForumThread *thread, *g)
         {
-            messagesToUpload.append(fdb.listMessages(thread));
+            messagesToUpload.append(*thread);
         }
         connect(&protocol, SIGNAL(sendThreadDataFinished(bool, QString)),
                 this, SLOT(sendThreadDataFinished(bool, QString)));
@@ -202,7 +202,6 @@ void SyncMaster::serverThreadData(ForumThread *thread) {
             // Make sure group will be updated
             if(dbGroup->lastchange()!="UPDATE_NEEDED") {
                 dbGroup->setLastchange("UPDATE_NEEDED");
-                fdb.updateGroup(dbGroup);
             }
         }
     } else {
@@ -212,15 +211,13 @@ void SyncMaster::serverThreadData(ForumThread *thread) {
 }
 
 void SyncMaster::serverMessageData(ForumMessage *message) {
-    // qDebug() << Q_FUNC_INFO << message->toString();
+    qDebug() << Q_FUNC_INFO << message->toString();
     if(canceled) return;
     if (message->isSane()) {
         ForumMessage *dbMessage = fdb.getMessage(message->thread()->group()->subscription()->parser(),
                                                  message->thread()->group()->id(), message->thread()->id(), message->id());
-        if (dbMessage && dbMessage->isSane()) { // Message already found, merge it
-            if(dbMessage->read() != message->read()) {
-                dbMessage->setRead(message->read());
-            }
+        if (dbMessage) { // Message already found, merge it
+            dbMessage->setRead(message->read());
         } else { // message hasn't been found yet!
             ForumThread *dbThread = fdb.getThread(message->thread()->group()->subscription()->parser(),
                                                   message->thread()->group()->id(),

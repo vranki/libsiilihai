@@ -209,6 +209,7 @@ void LibSiilihaiTests::runTests() {
 }
 
 void LibSiilihaiTests::groupFound(ForumGroup *grp) {
+    Q_UNUSED(grp);
 	// qDebug() << "Group found: " << grp->toString();
 }
 
@@ -247,14 +248,11 @@ void LibSiilihaiTests::runForumDatabaseTests() {
 	QList <ForumSubscription*> fss = fdb.listSubscriptions();
 	foreach (ForumSubscription* fs, fss) {
 		qDebug() << "FS: " << fs->toString() << " @ " << fs;
-		QList <ForumGroup*> fgs = fdb.listGroups(fs);
-		foreach (ForumGroup* fg, fgs) {
+                foreach (ForumGroup* fg, *fs) {
 			qDebug() << "\tFG: " << fg->toString() << " @ " << fg;
-			QList <ForumThread*> fts = fdb.listThreads(fg);
-			foreach (ForumThread* ft, fts) {
+                        foreach (ForumThread* ft, *fg) {
 				qDebug() << "\t\tFT: " << ft->toString() << " @ " << ft;
-				QList <ForumMessage*> fms = fdb.listMessages(ft);
-				foreach (ForumMessage* fm, fms) {
+                                foreach (ForumMessage* fm, *ft) {
 					qDebug() << "\t\t\tFM: " << fm->toString() << " @ " << fm;
 				}
 			}

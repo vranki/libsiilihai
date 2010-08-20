@@ -16,9 +16,12 @@
 #define FORUMTHREAD_H_
 #include <QString>
 #include <QObject>
+#include <QList>
 #include "forumgroup.h"
 
-class ForumThread : public QObject {
+class ForumMessage;
+
+class ForumThread : public QObject, public QList<ForumMessage*> {
     Q_OBJECT
 public:
     ForumThread(ForumGroup *grp);
@@ -44,7 +47,7 @@ public:
     void setHasMoreMessages(bool hmm);
     void setGetMessagesCount(int gmc);
     void setGroup(ForumGroup *ng);
-    void setUnreadCount(int urc);
+    void incrementUnreadCount(int urc);
     QString toString() const;
     bool isSane() const;
 signals:

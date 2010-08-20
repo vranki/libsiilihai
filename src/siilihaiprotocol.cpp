@@ -515,8 +515,8 @@ void SiilihaiProtocol::replyGetSyncSummary(QNetworkReply *reply) {
     disconnect(&nam, SIGNAL(finished(QNetworkReply*)), this,
                SLOT(replyGetSyncSummary(QNetworkReply*)));
 
-    QList<ForumGroup> grps;
     QList<ForumSubscription*> subs;
+    QList<ForumGroup> grps; // to keep groups in context
     if (reply->error() == QNetworkReply::NoError) {
         QDomDocument doc;
         doc.setContent(docs);
@@ -541,6 +541,7 @@ void SiilihaiProtocol::replyGetSyncSummary(QNetworkReply *reply) {
                     g.setChangeset(changeset);
                     g.setSubscribed(true);
                     grps.append(g);
+                    sub->append(&g);
                 }
                 subs.append(sub);
             }
@@ -551,7 +552,7 @@ void SiilihaiProtocol::replyGetSyncSummary(QNetworkReply *reply) {
     }
     reply->deleteLater();
     // @todo errors?
-    emit serverGroupStatus(grps);
+    emit serverGroupStatus(subs);
     qDeleteAll(subs);
     subs.clear();
 }
@@ -597,7 +598,7 @@ void SiilihaiProtocol::replyGetThreadData(QNetworkReply *reply) {
                     QString groupid = groupElement.attribute("id");
                     Q_ASSERT(groupid == getThreadDataGroup->id());  // Sometimes fails!
                     // Not used yet:
-                    int groupChangeset = groupElement.attribute("changeset").toInt();
+                    // int groupChangeset = groupElement.attribute("changeset").toInt();
 
                     for (int l = 0; l < groupElement.childNodes().size(); l++) {
                         QDomElement threadElement =
