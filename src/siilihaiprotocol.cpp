@@ -378,8 +378,8 @@ void SiilihaiProtocol::subscribeForum(ForumSubscription *fs,
         params.insert("unsubscribe", "yes");
     } else {
         params.insert("alias", fs->alias());
-        params.insert("latest_threads", QString().number(fs->latest_threads()));
-        params.insert("latest_messages", QString().number(fs->latest_messages()));
+        params.insert("latest_threads", QString().number(fs->latestThreads()));
+        params.insert("latest_messages", QString().number(fs->latestMessages()));
         if(fs->username().length() > 0) {
             params.insert("authenticated", "yes");
         }
@@ -407,6 +407,7 @@ void SiilihaiProtocol::replySubscribeForum(QNetworkReply *reply) {
     forumBeingSubscribed = 0;
 }
 
+// @todo this could have ForumSubscription as parameter instead
 void SiilihaiProtocol::subscribeGroups(QList<ForumGroup*> &fgs) {
     qDebug() << Q_FUNC_INFO;
     if (fgs.isEmpty()) {
@@ -516,7 +517,7 @@ void SiilihaiProtocol::replyGetSyncSummary(QNetworkReply *reply) {
                SLOT(replyGetSyncSummary(QNetworkReply*)));
 
     QList<ForumSubscription*> subs;
-    QList<ForumGroup> grps; // to keep groups in context
+    QList<ForumGroup*> grps; // to keep groups in context
     if (reply->error() == QNetworkReply::NoError) {
         QDomDocument doc;
         doc.setContent(docs);
@@ -536,12 +537,12 @@ void SiilihaiProtocol::replyGetSyncSummary(QNetworkReply *reply) {
                             forumElement.childNodes().at(j).toElement();
                     QString groupid = groupElement.attribute("id");
                     int changeset = groupElement.text().toInt();
-                    ForumGroup g(sub);
-                    g.setId(groupid);
-                    g.setChangeset(changeset);
-                    g.setSubscribed(true);
+                    ForumGroup *g = new ForumGroup(sub); // I hope qobject's memory management will delete this
+                    g->setId(groupid);
+                    g->setChangeset(changeset);
+                    g->setSubscribed(true);
                     grps.append(g);
-                    sub->append(&g);
+                    sub->groups().append(g);
                 }
                 subs.append(sub);
             }

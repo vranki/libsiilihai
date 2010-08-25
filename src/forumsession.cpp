@@ -455,7 +455,7 @@ void ForumSession::performListThreads(QString &html) {
         ft->setId(match["%a"]);
         ft->setName(match["%b"]);
         ft->setLastchange(match["%c"]);
-        ft->setGetMessagesCount(currentGroup->subscription()->latest_messages());
+        ft->setGetMessagesCount(currentGroup->subscription()->latestMessages());
         ft->setHasMoreMessages(false);
         if (ft->isSane()) {
             newThreads.append(ft);
@@ -481,7 +481,7 @@ void ForumSession::performListThreads(QString &html) {
         } else {
             newThreadsFound = true;
             newThread->setOrdernum(threads.size());
-            if ((unsigned int) threads.size() < fsub->latest_threads()) {
+            if (threads.size() < fsub->latestThreads()) {
                 threads.append(newThread);
                 newThread = 0;
             } else {
@@ -581,20 +581,21 @@ QString ForumSession::getMessageListUrl(const ForumThread *thread, int page) {
 
 void ForumSession::authenticationRequired(QNetworkReply * reply,
                                           QAuthenticator * authenticator) {
+    Q_UNUSED(reply);
     if(operationInProgress == FSONoOp) return;
 
     qDebug() << Q_FUNC_INFO;
 
     if(fpar.login_type == ForumParser::LoginTypeHttpAuth) {
         if (fsub->username().length() <= 0 || fsub->password().length() <= 0) {
-            qDebug() << "FAIL: no credentials given for subscription "
+            qDebug() << Q_FUNC_INFO << "FAIL: no credentials given for subscription "
                     << fsub->toString();
             cancelOperation();
             emit networkFailure(
                     "Server requested for username and password for forum "
                     + fsub->alias() + " but you haven't provided them.");
         } else {
-            qDebug() << "Gave credentials to server";
+            qDebug() << Q_FUNC_INFO << "Gave credentials to server";
             authenticator->setUser(fsub->username());
             authenticator->setPassword(fsub->password());
         }

@@ -23,8 +23,8 @@ class ForumMessage : public QObject {
 public:
     virtual ~ForumMessage();
     ForumMessage(ForumThread *thr);
-    ForumMessage& operator=(const ForumMessage& o);
-    ForumMessage(const ForumMessage& o);
+//    ForumMessage& operator=(const ForumMessage& o);
+    void copyFrom(ForumMessage * o);
 
     bool isSane() const;
     QString toString() const;
@@ -52,6 +52,7 @@ signals:
     void markedRead(ForumMessage * fm, bool read);
 
 private:
+    Q_DISABLE_COPY(ForumMessage);
     QString _id;
     int _ordernum;
     QString _url;

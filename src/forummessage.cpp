@@ -23,25 +23,22 @@ ForumMessage::ForumMessage(ForumThread *thr) : QObject(thr) {
     _ordernum = -1;
     _read = false;
 }
-
-ForumMessage& ForumMessage::operator=(const ForumMessage& o) {
-    _id = o._id;
-    _ordernum = o._ordernum;
-    _url = o._url;
-    _subject = o._subject;
-    _author = o._author;
-    _lastchange = o._lastchange;
-    _body = o._body;
-    _read = o._read;
-    _thread = o._thread;
-    emit changed(this);
-    return *this;
+void ForumMessage::copyFrom(ForumMessage * o) {
+Q_ASSERT(o->id() == id());
+    setId(o->id());
+    setOrdernum(o->ordernum());
+    setUrl(o->url());
+    setSubject(o->subject());
+    setAuthor(o->author());
+    setLastchange(o->lastchange());
+    setBody(o->body());
+    setRead(o->read());
 }
-
+/*
 ForumMessage::ForumMessage(const ForumMessage& o) : QObject() {
     *this = o;
 }
-
+*/
 bool ForumMessage::isSane() const {
     return (_thread && _id.length()>0 && _ordernum < 1000);
 }

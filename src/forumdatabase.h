@@ -79,6 +79,7 @@ signals:
     void messageAdded(ForumMessage *msg);
 private:
     void bindMessageValues(QSqlQuery &query, const ForumMessage *message);
+    void checkSanity();
     QMap<int, ForumSubscription*> subscriptions;
 
 #ifdef FDB_TEST

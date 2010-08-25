@@ -21,14 +21,14 @@
 #include <QDebug>
 class ForumGroup;
 
-class ForumSubscription : public QObject, public QList<ForumGroup*> {
+class ForumSubscription : public QObject  {
 	Q_OBJECT
 
 public:
 //	ForumSubscription();
         ForumSubscription(QObject *parent=0);
-        ForumSubscription(const ForumSubscription&);
-        ForumSubscription&  operator=(const ForumSubscription&);
+//        ForumSubscription(const ForumSubscription&);
+        void copyFrom(ForumSubscription * o);
 	virtual ~ForumSubscription();
 	bool isSane() const;
 	QString toString() const;
@@ -44,15 +44,18 @@ public:
         QString alias() const;
 	QString username() const;
 	QString password() const;
-	unsigned int latest_threads() const;
-	unsigned int latest_messages() const;
+        int latestThreads() const;
+        int latestMessages() const;
         bool authenticated() const; // True if username & password should be set
         int unreadCount() const;
+        QList<ForumGroup*> &groups();
 signals:
     void changed(ForumSubscription *s);
     void unreadCountChanged(ForumSubscription *s);
 
 private:
+Q_DISABLE_COPY(ForumSubscription)
+
 	int _parser;
         QString _alias;
 	QString _username;
@@ -61,6 +64,7 @@ private:
 	unsigned int _latestMessages;
         bool _authenticated;
         int _unreadCount;
+        QList<ForumGroup*> _groups;
 };
 
 #endif /* FORUMSUBSCRIPTION_H_ */

@@ -22,14 +22,14 @@
 
 class ForumThread;
 
-class ForumGroup : public QObject, public QList<ForumThread*> {
+class ForumGroup : public QObject {
     Q_OBJECT
 
 public:
     ForumGroup(ForumSubscription *sub);
     virtual ~ForumGroup();
-    ForumGroup& operator=(const ForumGroup&);
-    ForumGroup(const ForumGroup&);
+    void copyFrom(ForumGroup * o);
+ //   ForumGroup(const ForumGroup&);
     QString toString() const;
     bool isSane() const;
     ForumSubscription *subscription() const;
@@ -48,11 +48,14 @@ public:
     void setChangeset(int cs);
     void setHasChanged(bool hc);
     void incrementUnreadCount(int urc);
+    QList<ForumThread*> & threads();
 signals:
     void changed(ForumGroup *grp);
     void unreadCountChanged(ForumGroup *grp);
 
 private:
+    Q_DISABLE_COPY(ForumGroup);
+
     ForumSubscription *_subscription;
     QString _name;
     QString _id;
@@ -61,6 +64,7 @@ private:
     int _changeset;
     bool _hasChanged;
     int _unreadCount;
+    QList<ForumThread*> _threads;
 };
 
 #endif

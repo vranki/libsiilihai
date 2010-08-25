@@ -16,7 +16,7 @@
 #include "forumgroup.h"
 
 
-ForumGroup::ForumGroup(ForumSubscription *sub) : QObject(sub), QList<ForumThread*>() {
+ForumGroup::ForumGroup(ForumSubscription *sub) : QObject(sub) {
     _subscription = sub;
     _id = "";
     _subscribed = false;
@@ -27,24 +27,14 @@ ForumGroup::ForumGroup(ForumSubscription *sub) : QObject(sub), QList<ForumThread
     _unreadCount = 0;
 }
 
-ForumGroup::ForumGroup(const ForumGroup& o) : QObject(), QList<ForumThread*>() {
-    *this = o;
-}
-
-ForumGroup& ForumGroup::operator=(const ForumGroup& o) {
-    _subscription = o._subscription;
-    _id = o._id;
-    _name = o._name;
-    _lastchange = o._lastchange;
-    _subscribed = o._subscribed;
-    _changeset = o._changeset;
-    _hasChanged = o._hasChanged;
-    _unreadCount = o._unreadCount;
-    clear();
-    for(int i=0;i<o.size();i++)
-    append(o.at(i));
-    emit changed(this);
-    return *this;
+void ForumGroup::copyFrom(ForumGroup * o) {
+Q_ASSERT(o->id() == id());
+    setId(o->id());
+    setName(o->name());
+    setLastchange(o->lastchange());
+    setSubscribed(o->subscribed());
+    setChangeset(o->changeset());
+    setHasChanged(o->hasChanged());
 }
 
 ForumGroup::~ForumGroup() {
@@ -131,4 +121,8 @@ void ForumGroup::incrementUnreadCount(int urc) {
     // Q_ASSERT(_unreadCount >= 0);
     subscription()->incrementUnreadCount(urc);
     emit unreadCountChanged(this);
+}
+
+QList<ForumThread*> & ForumGroup::threads() {
+   return _threads;
 }

@@ -17,7 +17,7 @@
 ForumThread::~ForumThread() {
 }
 
-ForumThread::ForumThread(ForumGroup *grp) : QObject(grp), QList<ForumMessage*>() {
+ForumThread::ForumThread(ForumGroup *grp) : QObject(grp) {
     _group = grp;
     _id = _name = _lastchange = "";
     _changeset = -1;
@@ -27,28 +27,21 @@ ForumThread::ForumThread(ForumGroup *grp) : QObject(grp), QList<ForumMessage*>()
     _hasChanged = false;
     _unreadCount = 0;
 }
-
+/*
 ForumThread::ForumThread(const ForumThread& o) : QObject(), QList<ForumMessage*>() {
     *this = o;
 }
-
-ForumThread& ForumThread::operator=(const ForumThread& o) {
-    _group = o._group;
-    _id = o._id;
-    _name = o._name;
-    _lastchange = o._lastchange;
-    _changeset = o._changeset;
-    _ordernum = o._ordernum;
-    _hasMoreMessages = o._hasMoreMessages;
-    _getMessagesCount = o._getMessagesCount;
-    clear();
-    for(int i=0;i<o.size();i++)
-    append(o.at(i));
-
-    emit changed(this);
-    return *this;
+*/
+void ForumThread::copyFrom(ForumThread * o) {
+    Q_ASSERT(o->id() == id());
+    setId(o->id());
+    setName(o->name());
+    setLastchange(o->lastchange());
+    setChangeset(o->changeset());
+    setOrdernum(o->ordernum());
+    setHasMoreMessages(o->hasMoreMessages());
+    setGetMessagesCount(o->getMessagesCount());
 }
-
 
 QString ForumThread::toString() const {
     QString tparser = "Unknown";
@@ -146,3 +139,6 @@ void ForumThread::incrementUnreadCount(int urc) {
     emit unreadCountChanged(this);
 }
 
+QList<ForumMessage*> & ForumThread::messages() {
+    return _messages;
+}

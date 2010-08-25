@@ -14,7 +14,7 @@
     along with libSiilihai.  If not, see <http://www.gnu.org/licenses/>. */
 #include "forumsubscription.h"
 
-ForumSubscription::ForumSubscription(QObject *parent) : QObject(parent), QList<ForumGroup*>() {
+ForumSubscription::ForumSubscription(QObject *parent) : QObject(parent) {
         _parser = -1;
         _alias = QString::null;
         _latestThreads = 0;
@@ -23,28 +23,21 @@ ForumSubscription::ForumSubscription(QObject *parent) : QObject(parent), QList<F
         _unreadCount = 0;
 }
 
-ForumSubscription& ForumSubscription::operator=(const ForumSubscription& other) {
-	_parser = other._parser;
-        _alias = other._alias;
-	_username = other._username;
-	_password = other._password;
-	_latestThreads = other._latestThreads;
-	_latestMessages = other._latestMessages;
-        _authenticated = other._authenticated;
-        _unreadCount = other._unreadCount;
-        clear();
-        for(int i=0; i < other.size();i++) {
-          append(other.at(i));
-         }
-
-        emit changed(this);
-	return *this;
+void ForumSubscription::copyFrom(ForumSubscription * other) {
+Q_ASSERT(other->parser() == parser());
+        setParser(other->parser());
+        setAlias(other->alias());
+        setUsername(other->username());
+        setPassword(other->password());
+        setLatestThreads(other->latestThreads());
+        setLatestMessages(other->latestMessages());
+        setAuthenticated(other->authenticated());
 }
-
+/*
 ForumSubscription::ForumSubscription(const ForumSubscription& other) : QObject(), QList<ForumGroup*>() {
 	*this = other;
 }
-
+*/
 ForumSubscription::~ForumSubscription() {
 }
 
@@ -68,10 +61,10 @@ QString ForumSubscription::username() const {
 QString ForumSubscription::password() const {
 	return _password;
 }
-unsigned int ForumSubscription::latest_threads() const {
+int ForumSubscription::latestThreads() const {
 	return _latestThreads;
 }
-unsigned int ForumSubscription::latest_messages() const {
+int ForumSubscription::latestMessages() const {
 	return _latestMessages;
 }
 
@@ -123,4 +116,7 @@ void ForumSubscription::incrementUnreadCount(int urc) {
     _unreadCount += urc;
     // Q_ASSERT(_unreadCount >= 0);
     emit unreadCountChanged(this);
+}
+QList<ForumGroup*>& ForumSubscription::groups() {
+    return _groups;
 }

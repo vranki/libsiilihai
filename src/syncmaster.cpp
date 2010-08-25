@@ -51,7 +51,7 @@ void SyncMaster::endSync() {
     QList<ForumSubscription*> fsubs = fdb.listSubscriptions();
     int totalGroups = 0;
     foreach(ForumSubscription *fsub, fsubs) {
-        foreach(ForumGroup *grp, *fsub) {
+        foreach(ForumGroup *grp, fsub->groups()) {
             if(grp->subscribed()) totalGroups++;
             if(grp->subscribed() && grp->hasChanged()) {
                groupsToUpload.append(grp);
@@ -80,23 +80,15 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) {
         if(!dbSub) { // Whole forum not found in db - add it
             qDebug() << Q_FUNC_INFO << "Forum not in db -  must add it!";
             ForumSubscription *newSub = new ForumSubscription(&fdb);
-            newSub->setParser(serverSub->parser());
-            newSub->setAlias(serverSub->alias());
-            newSub->setLatestThreads(serverSub->latest_threads());
-            newSub->setLatestMessages(serverSub->latest_messages());
-            newSub->setAuthenticated(serverSub->authenticated());
+            newSub->copyFrom(serverSub);
             fdb.addSubscription(newSub);
             dbSub = newSub;
         } else {
-            dbSub->setParser(serverSub->parser());
-            dbSub->setAlias(serverSub->alias());
-            dbSub->setLatestThreads(serverSub->latest_threads());
-            dbSub->setLatestMessages(serverSub->latest_messages());
-            dbSub->setAuthenticated(serverSub->authenticated());
+            dbSub->copyFrom(serverSub);
             // Check for unsubscribed groups
-            foreach(ForumGroup *dbGrp, *dbSub) {
+            foreach(ForumGroup *dbGrp, dbSub->groups()) {
                 bool found = false;
-                foreach(ForumGroup *serverGrp, *serverSub) {
+                foreach(ForumGroup *serverGrp, serverSub->groups()) {
                     if(dbGrp->id() == serverGrp->id())
                         found = true;
                 }
@@ -110,7 +102,7 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) {
     }
 
     foreach(ForumSubscription *serverSub, subs) {
-        foreach(ForumGroup *serverGrp, *serverSub) {
+        foreach(ForumGroup *serverGrp, serverSub->groups()) {
             Q_ASSERT(serverGrp->subscription()->parser() >= 0 || serverGrp->id().length() > 0);
             ForumSubscription *dbSub = fdb.getSubscription(serverGrp->subscription()->parser());
             Q_ASSERT(dbSub);
@@ -118,13 +110,14 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) {
             ForumGroup *dbGroup = fdb.getGroup(dbSub, serverGrp->id());
             if(!dbGroup) { // Group doesn't exist yet
                 qDebug() << Q_FUNC_INFO << "Group " << serverGrp->toString() << " not in db -  must add it!";
-                ForumGroup *group = new ForumGroup(dbSub);
-                group->setName("?");
-                group->setId(serverGrp->id());
-                group->setChangeset(-1); // Force update of group contents
-                group->setSubscribed(true);
-                fdb.addGroup(group);
-                dbGroup = group;
+                ForumGroup *newGroup = new ForumGroup(dbSub);
+                serverGrp->setName("?");
+                serverGrp->setChangeset(-1); // Force update of group contents
+                serverGrp->setLastchange("UPDATE_NEEDED");
+                serverGrp->setSubscribed(true);
+                newGroup->copyFrom(serverGrp);
+                fdb.addGroup(newGroup);
+                dbGroup = newGroup;
             }
 
             Q_ASSERT(dbGroup);
@@ -156,9 +149,9 @@ void SyncMaster::processGroups() {
         ForumGroup *g = groupsToUpload.takeFirst();
         g->setChangeset(rand());
         qDebug() << Q_FUNC_INFO << "Group " << g->toString() << "new changeset: " << g->changeset();
-        foreach(ForumThread *thread, *g)
+        foreach(ForumThread *thread, g->threads())
         {
-            messagesToUpload.append(*thread);
+            messagesToUpload.append(thread->messages());
         }
         connect(&protocol, SIGNAL(sendThreadDataFinished(bool, QString)),
                 this, SLOT(sendThreadDataFinished(bool, QString)));
