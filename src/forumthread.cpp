@@ -27,13 +27,8 @@ ForumThread::ForumThread(ForumGroup *grp) : QObject(grp) {
     _hasChanged = false;
     _unreadCount = 0;
 }
-/*
-ForumThread::ForumThread(const ForumThread& o) : QObject(), QList<ForumMessage*>() {
-    *this = o;
-}
-*/
+
 void ForumThread::copyFrom(ForumThread * o) {
-    Q_ASSERT(o->id() == id());
     setId(o->id());
     setName(o->name());
     setLastchange(o->lastchange());
@@ -56,7 +51,7 @@ QString ForumThread::toString() const {
 }
 
 bool ForumThread::isSane() const {
-    return (_group && _id.length() > 0 && _ordernum < 10000 && _getMessagesCount >= 0);
+    return (_group && _id.length() > 0 && _getMessagesCount >= 0);
 }
 
 QString ForumThread::id() const {

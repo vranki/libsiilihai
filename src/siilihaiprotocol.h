@@ -94,9 +94,9 @@ signals:
 
     // Sync stuff:
     void sendThreadDataFinished(bool success, QString message);
-    void serverGroupStatus(QList<ForumSubscription*> &subs); // Data is not complete!
-    void serverThreadData(ForumThread *thread);
-    void serverMessageData(ForumMessage *message);
+    void serverGroupStatus(QList<ForumSubscription*> &subs); // Temp objects!
+    void serverThreadData(ForumThread *thread); // Temporary object, don't store!
+    void serverMessageData(ForumMessage *message); // Temporary object, don't store!
     void getThreadDataFinished(bool success, QString message);
 
 private:

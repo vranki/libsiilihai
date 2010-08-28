@@ -21,10 +21,10 @@ ForumSubscription::ForumSubscription(QObject *parent) : QObject(parent) {
         _latestMessages = 0;
         _authenticated = false;
         _unreadCount = 0;
+        _username = _password = QString::null;
 }
 
 void ForumSubscription::copyFrom(ForumSubscription * other) {
-Q_ASSERT(other->parser() == parser());
         setParser(other->parser());
         setAlias(other->alias());
         setUsername(other->username());
@@ -33,11 +33,7 @@ Q_ASSERT(other->parser() == parser());
         setLatestMessages(other->latestMessages());
         setAuthenticated(other->authenticated());
 }
-/*
-ForumSubscription::ForumSubscription(const ForumSubscription& other) : QObject(), QList<ForumGroup*>() {
-	*this = other;
-}
-*/
+
 ForumSubscription::~ForumSubscription() {
 }
 

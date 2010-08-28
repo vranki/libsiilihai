@@ -23,8 +23,8 @@ ForumMessage::ForumMessage(ForumThread *thr) : QObject(thr) {
     _ordernum = -1;
     _read = false;
 }
+
 void ForumMessage::copyFrom(ForumMessage * o) {
-Q_ASSERT(o->id() == id());
     setId(o->id());
     setOrdernum(o->ordernum());
     setUrl(o->url());
@@ -34,13 +34,9 @@ Q_ASSERT(o->id() == id());
     setBody(o->body());
     setRead(o->read());
 }
-/*
-ForumMessage::ForumMessage(const ForumMessage& o) : QObject() {
-    *this = o;
-}
-*/
+
 bool ForumMessage::isSane() const {
-    return (_thread && _id.length()>0 && _ordernum < 1000);
+    return (_thread && _id.length()>0);
 }
 
 QString ForumMessage::toString() const {

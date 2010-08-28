@@ -63,7 +63,7 @@ void SyncMaster::endSync() {
     processGroups();
 }
 
-void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) {
+void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp objects!
     qDebug() << Q_FUNC_INFO << subs.size();
     //maxGroupCount = grps.size();
     // Make a list of updated subscriptions
@@ -83,16 +83,16 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) {
             newSub->copyFrom(serverSub);
             fdb.addSubscription(newSub);
             dbSub = newSub;
-        } else {
+        } else { // Sub already in db, just update it
             dbSub->copyFrom(serverSub);
             // Check for unsubscribed groups
             foreach(ForumGroup *dbGrp, dbSub->groups()) {
-                bool found = false;
+                bool groupIsSubscribed = false;
                 foreach(ForumGroup *serverGrp, serverSub->groups()) {
                     if(dbGrp->id() == serverGrp->id())
-                        found = true;
+                        groupIsSubscribed = true;
                 }
-                if(!found) {
+                if(!groupIsSubscribed) {
                     dbGrp->setSubscribed(false);
                 }
             }
@@ -100,7 +100,7 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) {
 
         Q_ASSERT(dbSub);
     }
-
+    // Update group lists
     foreach(ForumSubscription *serverSub, subs) {
         foreach(ForumGroup *serverGrp, serverSub->groups()) {
             Q_ASSERT(serverGrp->subscription()->parser() >= 0 || serverGrp->id().length() > 0);
@@ -116,6 +116,7 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) {
                 serverGrp->setLastchange("UPDATE_NEEDED");
                 serverGrp->setSubscribed(true);
                 newGroup->copyFrom(serverGrp);
+                newGroup->setChangeset(-2); // .. by setting changesets different
                 fdb.addGroup(newGroup);
                 dbGroup = newGroup;
             }
@@ -179,7 +180,7 @@ void SyncMaster::sendThreadDataFinished(bool success, QString message) {
     }
 }
 
-void SyncMaster::serverThreadData(ForumThread *thread) {
+void SyncMaster::serverThreadData(ForumThread *thread) { // Thread is temporary object!
     // qDebug() << Q_FUNC_INFO << thread->toString();
     if(canceled) return;
     if (thread->isSane()) {
@@ -190,12 +191,11 @@ void SyncMaster::serverThreadData(ForumThread *thread) {
         } else { // thread hasn't been found yet!
             ForumGroup *dbGroup = fdb.getGroup(fdb.getSubscription(thread->group()->subscription()->parser()), thread->group()->id());
             Q_ASSERT(dbGroup);
-            thread->setGroup(dbGroup);
-            fdb.addThread(thread);
+            ForumThread *newThread = new ForumThread(dbGroup);
+            newThread->copyFrom(thread);
+            fdb.addThread(newThread);
             // Make sure group will be updated
-            if(dbGroup->lastchange()!="UPDATE_NEEDED") {
-                dbGroup->setLastchange("UPDATE_NEEDED");
-            }
+            dbGroup->setLastchange("UPDATE_NEEDED");
         }
     } else {
         qDebug() << "Got invalid thread!" << thread->toString();
@@ -203,7 +203,7 @@ void SyncMaster::serverThreadData(ForumThread *thread) {
     }
 }
 
-void SyncMaster::serverMessageData(ForumMessage *message) {
+void SyncMaster::serverMessageData(ForumMessage *message) { // Temporary object!
     qDebug() << Q_FUNC_INFO << message->toString();
     if(canceled) return;
     if (message->isSane()) {
@@ -216,7 +216,9 @@ void SyncMaster::serverMessageData(ForumMessage *message) {
                                                   message->thread()->group()->id(),
                                                   message->thread()->id());
             Q_ASSERT(dbThread);
-            message->setThread(dbThread);
+            ForumMessage *newMessage = new ForumMessage(dbThread);
+            newMessage->copyFrom(message);
+            newMessage->setRead(true);
             fdb.addMessage(message);
         }
     } else {

@@ -28,7 +28,6 @@ ForumGroup::ForumGroup(ForumSubscription *sub) : QObject(sub) {
 }
 
 void ForumGroup::copyFrom(ForumGroup * o) {
-Q_ASSERT(o->id() == id());
     setId(o->id());
     setName(o->name());
     setLastchange(o->lastchange());

@@ -165,12 +165,14 @@ void ParserEngine::listGroupsFinished(QList<ForumGroup*> &groups) {
         if (!foundInDb) {
             // qDebug() << "Group " << grp->toString() << " not found in db - adding.";
             groupsChanged = true;
-            grp->setChangeset(rand());
+            ForumGroup *newGroup = new ForumGroup(fsubscription);
+            newGroup->copyFrom(grp);
+            newGroup->setChangeset(rand());
             // DON'T set lastchange when only updating group list.
             if(!updateAll) {
-                grp->setLastchange("UPDATE_NEEDED");
+                newGroup->setLastchange("UPDATE_NEEDED");
             }
-            fdb->addGroup(grp);
+            fdb->addGroup(newGroup);
             /* Don't update a group that isn't known & subscribed!
             if (updateAll) {
                 groupsToUpdateQueue.enqueue(newGroup);
@@ -210,7 +212,7 @@ void ParserEngine::listThreadsFinished(QList<ForumThread*> &threads,
       //      << group->toString();
     Q_ASSERT(group);
     Q_ASSERT(group->subscribed());
-    // QList<ForumThread*> dbthreads = fdb->listThreads(group);
+    Q_ASSERT(group->isSane());
     threadsToUpdateQueue.clear();
     if (threads.isEmpty() && group->threads().size() > 0) {
         emit updateFailure(fsubscription, "Updating thread list failed. \nCheck your network connection.");
@@ -219,50 +221,38 @@ void ParserEngine::listThreadsFinished(QList<ForumThread*> &threads,
     }
 
     // Diff the group list
-    bool threadsChanged = false;
     foreach(ForumThread *serverThread, threads) {
         bool foundInDb = false;
-        foreach (ForumThread *dbThread, group->threads()) {
-            if (dbThread->id() == serverThread->id()) {
-                foundInDb = true;
-                dbThread->setName(serverThread->name());
-                if ((dbThread->lastchange() != serverThread->lastchange()) || forceUpdate) {
-                    Q_ASSERT(dbThread->group() == serverThread->group());
+        ForumThread *dbThread = fdb->getThread(group->subscription()->parser(), group->id(), serverThread->id());
+        if (dbThread) {
+            dbThread->setName(serverThread->name());
+            if ((dbThread->lastchange() != serverThread->lastchange()) || forceUpdate) {
+                Q_ASSERT(dbThread->group() == serverThread->group());
 
-                    // Don't update some fields to new values
-                    int oldGetMessagesCount = dbThread->getMessagesCount();
-                    bool oldHasMoreMessages =  dbThread->hasMoreMessages();
-                    dbThread->setLastchange(serverThread->lastchange());
-                    dbThread->setOrdernum(serverThread->ordernum());
-                    dbThread->setChangeset(serverThread->changeset());
-                    dbThread->setGetMessagesCount(oldGetMessagesCount);
-                    dbThread->setHasMoreMessages(oldHasMoreMessages);
+                // Don't update some fields to new values
+                int oldGetMessagesCount = dbThread->getMessagesCount();
+                bool oldHasMoreMessages =  dbThread->hasMoreMessages();
+                dbThread->setLastchange(serverThread->lastchange());
+                dbThread->setOrdernum(serverThread->ordernum());
+                dbThread->setChangeset(serverThread->changeset());
+                dbThread->setGetMessagesCount(oldGetMessagesCount);
+                dbThread->setHasMoreMessages(oldHasMoreMessages);
 
-                    Q_ASSERT(dbThread);
-                    qDebug() << Q_FUNC_INFO << "Thread " << dbThread->toString()
-                            << " has been changed, updating and adding to update queue";
-                    threadsToUpdateQueue.enqueue(dbThread);
-                }
+                qDebug() << Q_FUNC_INFO << "Thread " << dbThread->toString()
+                        << " has been changed, updating and adding to update queue";
+                threadsToUpdateQueue.enqueue(dbThread);
             }
-        }
-        if (!foundInDb) {
-            threadsChanged = true;
-            ForumThread *addedThread = new ForumThread(group);
-            addedThread->setChangeset(1);
-            addedThread->setId(serverThread->id());
-            addedThread->setName(serverThread->name());
-            addedThread->setLastchange(serverThread->lastchange());
-            addedThread->setOrdernum(serverThread->ordernum());
-            addedThread->setChangeset(serverThread->changeset());
-            addedThread->setGetMessagesCount(serverThread->getMessagesCount());
-            addedThread->setHasMoreMessages(serverThread->hasMoreMessages());
-            fdb->addThread(addedThread);
-            threadsToUpdateQueue.enqueue(addedThread);
+        } else {
+            ForumThread *newThread = new ForumThread(group);
+            newThread->copyFrom(serverThread);
+            newThread->setChangeset(-1);
+            fdb->addThread(newThread);
+            threadsToUpdateQueue.enqueue(newThread);
         }
     }
 
     // check for DELETED threads
-    foreach (ForumThread *dbthread, group->threads()) {
+    foreach (ForumThread *dbthread, group->threads()) { // Iterate all db threads and find if any is missing
         bool threadFound = false;
         foreach(ForumThread *thr, threads) {
             if (dbthread->id() == thr->id()) {
@@ -270,10 +260,9 @@ void ParserEngine::listThreadsFinished(QList<ForumThread*> &threads,
             }
         }
         if (!threadFound) {
-            threadsChanged = true;
             qDebug() << "Thread " << dbthread->toString()
                     << " has been deleted!";
-            foreach(ForumMessage * m, dbthread->messages())
+            foreach(ForumMessage *m, dbthread->messages())
                 m->deleteLater();
             dbthread->deleteLater();
         }
@@ -311,9 +300,10 @@ void ParserEngine::listMessagesFinished(QList<ForumMessage*> &messages,
         }
         if (!foundInDb) {
             messagesChanged = true;
-            fdb->addMessage(msg);
+            ForumMessage *newMessage = new ForumMessage(thread);
+            newMessage->copyFrom(msg);
+            fdb->addMessage(newMessage);
         }
-        QCoreApplication::processEvents(); // Help keep UI responsive
     }
 
     // check for DELETED threads

@@ -554,7 +554,8 @@ void SiilihaiProtocol::replyGetSyncSummary(QNetworkReply *reply) {
     reply->deleteLater();
     // @todo errors?
     emit serverGroupStatus(subs);
-    qDeleteAll(subs);
+    foreach(ForumSubscription *sub, subs)
+        sub->deleteLater();
     subs.clear();
 }
 

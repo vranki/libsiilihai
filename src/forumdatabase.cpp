@@ -524,7 +524,7 @@ ForumMessage* ForumDatabase::getMessage(const int forum, QString groupid,
     Q_ASSERT(thr);
     qDebug() << Q_FUNC_INFO << " thread " << thr->toString() << " contains " << thr->messages().size();
     foreach(ForumMessage *fm, thr->messages()) {
-        qDebug() << "comparing " << fm->toString() << messageid;
+       // qDebug() << "comparing " << fm->toString() << messageid;
         if(fm->id()==messageid) return fm;
     }
     return 0;
@@ -743,8 +743,10 @@ void ForumDatabase::checkSanity() {
                     Q_ASSERT(msg->thread() == thr);
                     Q_ASSERT(!msg_ids.contains(msg->id()));
                     msg_ids.insert(msg->id());
-                }
 
+                    ForumMessage *dbmsg = getMessage(msg->thread()->group()->subscription()->parser(), msg->thread()->group()->id(), msg->thread()->id(), msg->id());
+                    Q_ASSERT(dbmsg==msg);
+                }
             }
         }
     }
