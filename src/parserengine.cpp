@@ -127,13 +127,13 @@ void ParserEngine::updateNextChangedThread() {
     updateCurrentProgress();
 }
 
-void ParserEngine::listGroupsFinished(QList<ForumGroup*> &groups) {
+void ParserEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups) {
    // qDebug() << Q_FUNC_INFO << " rx groups " << groups.size()
    //         << " in " << parser.toString();
   //  QList<ForumGroup*> dbgroups = fdb->listGroups(fsubscription);
     bool dbGroupsWasEmpty = fsubscription->groups().isEmpty();
     groupsToUpdateQueue.clear();
-    if (groups.size() == 0 && fsubscription->groups().size() > 0) {
+    if (tempGroups.size() == 0 && fsubscription->groups().size() > 0) {
         emit updateFailure(fsubscription, "Updating group list for " + parser.parser_name
                            + " failed. \nCheck your network connection.");
         cancelOperation();
@@ -141,21 +141,21 @@ void ParserEngine::listGroupsFinished(QList<ForumGroup*> &groups) {
     }
     // Diff the group list
     bool groupsChanged = false;
-    foreach(ForumGroup *grp, groups) {
+    foreach(ForumGroup *tempGroup, tempGroups) {
         bool foundInDb = false;
 
-        foreach(ForumGroup *dbgroup, fsubscription->groups()) {
-            if (dbgroup->id() == grp->id()) {
+        foreach(ForumGroup *dbGroup, fsubscription->groups()) {
+            if (dbGroup->id() == tempGroup->id()) {
                 foundInDb = true;
-                if ((dbgroup->subscribed() && ((dbgroup->lastchange()
-                    != grp->lastchange()) || forceUpdate))) {
-                    groupsToUpdateQueue.enqueue(dbgroup);
-                    qDebug() << "Group " << dbgroup->toString()
+                if ((dbGroup->subscribed() && ((dbGroup->lastchange()
+                    != tempGroup->lastchange()) || forceUpdate))) {
+                    groupsToUpdateQueue.enqueue(dbGroup);
+                    qDebug() << "Group " << dbGroup->toString()
                             << " has been changed, adding to list";
                     // Store the updated version to database
-                    grp->setSubscribed(true);
-                    Q_ASSERT(grp->subscription() == dbgroup->subscription());
-                    dbgroup->copyFrom(grp);
+                    tempGroup->setSubscribed(true);
+                    Q_ASSERT(tempGroup->subscription() == dbGroup->subscription());
+                    dbGroup->copyFrom(tempGroup);
                 } else {
            //         qDebug() << "Group" << dbgroup->toString()
             //                << " hasn't changed or is not subscribed - not reloading.";
@@ -166,7 +166,7 @@ void ParserEngine::listGroupsFinished(QList<ForumGroup*> &groups) {
             // qDebug() << "Group " << grp->toString() << " not found in db - adding.";
             groupsChanged = true;
             ForumGroup *newGroup = new ForumGroup(fsubscription);
-            newGroup->copyFrom(grp);
+            newGroup->copyFrom(tempGroup);
             newGroup->setChangeset(rand());
             // DON'T set lastchange when only updating group list.
             if(!updateAll) {
@@ -182,17 +182,17 @@ void ParserEngine::listGroupsFinished(QList<ForumGroup*> &groups) {
     }
 
     // check for DELETED groups
-    foreach(ForumGroup *dbgroup, fsubscription->groups()) {
+    foreach(ForumGroup *dbGroup, fsubscription->groups()) {
         bool groupFound = false;
-        foreach(ForumGroup *grp, groups) {
-            if (dbgroup->id() == grp->id()) {
+        foreach(ForumGroup *grp, tempGroups) {
+            if (dbGroup->id() == grp->id()) {
                 groupFound = true;
             }
         }
         if (!groupFound) {
             groupsChanged = true;
-            qDebug() << "Group " << dbgroup->toString() << " has been deleted!";
-            fdb->deleteGroup(dbgroup);
+            qDebug() << "Group " << dbGroup->toString() << " has been deleted!";
+            fdb->deleteGroup(dbGroup);
         }
     }
 
@@ -206,23 +206,23 @@ void ParserEngine::listGroupsFinished(QList<ForumGroup*> &groups) {
     }
 }
 
-void ParserEngine::listThreadsFinished(QList<ForumThread*> &threads,
+void ParserEngine::listThreadsFinished(QList<ForumThread*> &tempThreads,
                                        ForumGroup *group) {
    // qDebug() << Q_FUNC_INFO << "rx threads " << threads.size() << " in group "
       //      << group->toString();
     Q_ASSERT(group);
     Q_ASSERT(group->subscribed());
+    Q_ASSERT(!group->isTemp());
     Q_ASSERT(group->isSane());
     threadsToUpdateQueue.clear();
-    if (threads.isEmpty() && group->threads().size() > 0) {
+    if (tempThreads.isEmpty() && group->threads().size() > 0) {
         emit updateFailure(fsubscription, "Updating thread list failed. \nCheck your network connection.");
         cancelOperation();
         return;
     }
 
     // Diff the group list
-    foreach(ForumThread *serverThread, threads) {
-        bool foundInDb = false;
+    foreach(ForumThread *serverThread, tempThreads) {
         ForumThread *dbThread = fdb->getThread(group->subscription()->parser(), group->id(), serverThread->id());
         if (dbThread) {
             dbThread->setName(serverThread->name());
@@ -243,7 +243,7 @@ void ParserEngine::listThreadsFinished(QList<ForumThread*> &threads,
                 threadsToUpdateQueue.enqueue(dbThread);
             }
         } else {
-            ForumThread *newThread = new ForumThread(group);
+            ForumThread *newThread = new ForumThread(group, false);
             newThread->copyFrom(serverThread);
             newThread->setChangeset(-1);
             fdb->addThread(newThread);
@@ -252,56 +252,56 @@ void ParserEngine::listThreadsFinished(QList<ForumThread*> &threads,
     }
 
     // check for DELETED threads
-    foreach (ForumThread *dbthread, group->threads()) { // Iterate all db threads and find if any is missing
+    foreach (ForumThread *dbThread, group->threads()) { // Iterate all db threads and find if any is missing
         bool threadFound = false;
-        foreach(ForumThread *thr, threads) {
-            if (dbthread->id() == thr->id()) {
+        foreach(ForumThread *tempThread, tempThreads) {
+            if (dbThread->id() == tempThread->id()) {
                 threadFound = true;
             }
         }
         if (!threadFound) {
-            qDebug() << "Thread " << dbthread->toString()
+            qDebug() << "Thread " << dbThread->toString()
                     << " has been deleted!";
-            foreach(ForumMessage *m, dbthread->messages())
-                m->deleteLater();
-            dbthread->deleteLater();
+            fdb->deleteThread(dbThread);
         }
     }
     if(updateAll)
         updateNextChangedThread();
 }
 
-void ParserEngine::listMessagesFinished(QList<ForumMessage*> &messages,
+void ParserEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages,
                                         ForumThread *thread, bool moreAvailable) {
    // qDebug() << Q_FUNC_INFO << messages.size() << "new in " << thread->toString()
    //         << " more available: " << moreAvailable;
     Q_ASSERT(thread);
+    Q_ASSERT(thread->isSane());
+    Q_ASSERT(!thread->isTemp());
     Q_ASSERT(thread->group()->subscribed());
     //QList<ForumMessage*> dbmessages = fdb->listMessages(thread);
     // Diff the group list
    // qDebug() << "db contains " << dbmessages.size() << " msgs, got now "
   //          << messages.size() << " thread " << thread->toString();
     bool messagesChanged = false;
-    foreach (ForumMessage *msg, messages) {
+    foreach (ForumMessage *tempMessage, tempMessages) {
         bool foundInDb = false;
-        foreach (ForumMessage *dbmessage, thread->messages()) {
-            if (dbmessage->id() == msg->id()) {
+        foreach (ForumMessage *dbMessage, thread->messages()) {
+            if (dbMessage->id() == tempMessage->id()) {
                 // qDebug() << "msg id " << dbmessage.id << " & " << msg.id;
                 foundInDb = true;
                 //if ((dbmessage->lastchange() != msg->lastchange()) || forceUpdate) {
                 //    qDebug() << "Message " << dbmessage->toString()
                 //            << " has been changed.";
             //    qDebug() << Q_FUNC_INFO << "Updating message " << msg->toString() << " to " << dbmessage->toString();
-                Q_ASSERT(msg->thread() == dbmessage->thread());
-                bool wasRead = dbmessage->read();
-                dbmessage->copyFrom(msg);
-                if(wasRead) dbmessage->setRead(true);
+                Q_ASSERT(tempMessage->thread() == dbMessage->thread());
+                bool wasRead = dbMessage->read();
+                dbMessage->copyFrom(tempMessage);
+                if(wasRead) dbMessage->setRead(true);
             }
         }
         if (!foundInDb) {
             messagesChanged = true;
-            ForumMessage *newMessage = new ForumMessage(thread);
-            newMessage->copyFrom(msg);
+            ForumMessage *newMessage = new ForumMessage(thread, false);
+            newMessage->copyFrom(tempMessage);
             fdb->addMessage(newMessage);
         }
     }
@@ -309,7 +309,7 @@ void ParserEngine::listMessagesFinished(QList<ForumMessage*> &messages,
     // check for DELETED threads
     foreach (ForumMessage *dbmessage, thread->messages()) {
         bool messageFound = false;
-        foreach (ForumMessage *msg, messages) {
+        foreach (ForumMessage *msg, tempMessages) {
             if (dbmessage->id() == msg->id()) {
                 messageFound = true;
             }

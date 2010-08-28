@@ -25,9 +25,7 @@ class ForumSubscription : public QObject  {
 	Q_OBJECT
 
 public:
-//	ForumSubscription();
-        ForumSubscription(QObject *parent=0);
-//        ForumSubscription(const ForumSubscription&);
+        ForumSubscription(QObject *parent=0, bool temp=true);
         void copyFrom(ForumSubscription * o);
 	virtual ~ForumSubscription();
 	bool isSane() const;
@@ -49,6 +47,7 @@ public:
         bool authenticated() const; // True if username & password should be set
         int unreadCount() const;
         QList<ForumGroup*> &groups();
+        bool isTemp();
 signals:
     void changed(ForumSubscription *s);
     void unreadCountChanged(ForumSubscription *s);
@@ -65,6 +64,7 @@ Q_DISABLE_COPY(ForumSubscription)
         bool _authenticated;
         int _unreadCount;
         QList<ForumGroup*> _groups;
+        bool _temp;
 };
 
 #endif /* FORUMSUBSCRIPTION_H_ */

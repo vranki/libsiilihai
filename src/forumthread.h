@@ -24,11 +24,10 @@ class ForumMessage;
 class ForumThread : public QObject {
     Q_OBJECT
 public:
-    ForumThread(ForumGroup *grp);
+    ForumThread(ForumGroup *grp, bool temp=true);
     virtual ~ForumThread();
 
     void copyFrom(ForumThread * o);
-  //  ForumThread(const ForumThread&);
 
     QString id() const;
     int ordernum() const;
@@ -52,6 +51,7 @@ public:
     QString toString() const;
     bool isSane() const;
     QList<ForumMessage*> & messages();
+    bool isTemp();
 signals:
     void changed(ForumThread *thr);
     void unreadCountChanged(ForumThread *thr);
@@ -71,6 +71,7 @@ private:
     bool _hasChanged;
     int _unreadCount;
     QList<ForumMessage*> _messages;
+        bool _temp;
 };
 
 #endif /* FORUMTHREAD_H_ */

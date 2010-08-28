@@ -16,7 +16,7 @@
 #include "forumgroup.h"
 
 
-ForumGroup::ForumGroup(ForumSubscription *sub) : QObject(sub) {
+ForumGroup::ForumGroup(ForumSubscription *sub, bool temp) : QObject(sub) {
     _subscription = sub;
     _id = "";
     _subscribed = false;
@@ -25,6 +25,7 @@ ForumGroup::ForumGroup(ForumSubscription *sub) : QObject(sub) {
     _lastchange = "";
     _hasChanged = false;
     _unreadCount = 0;
+    _temp = temp;
 }
 
 void ForumGroup::copyFrom(ForumGroup * o) {
@@ -124,4 +125,7 @@ void ForumGroup::incrementUnreadCount(int urc) {
 
 QList<ForumThread*> & ForumGroup::threads() {
    return _threads;
+}
+bool ForumGroup::isTemp() {
+return _temp;
 }

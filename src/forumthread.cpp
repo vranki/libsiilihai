@@ -17,7 +17,7 @@
 ForumThread::~ForumThread() {
 }
 
-ForumThread::ForumThread(ForumGroup *grp) : QObject(grp) {
+ForumThread::ForumThread(ForumGroup *grp, bool temp) : QObject(grp) {
     _group = grp;
     _id = _name = _lastchange = "";
     _changeset = -1;
@@ -26,6 +26,7 @@ ForumThread::ForumThread(ForumGroup *grp) : QObject(grp) {
     _getMessagesCount = -1;
     _hasChanged = false;
     _unreadCount = 0;
+    _temp = temp;
 }
 
 void ForumThread::copyFrom(ForumThread * o) {
@@ -136,4 +137,7 @@ void ForumThread::incrementUnreadCount(int urc) {
 
 QList<ForumMessage*> & ForumThread::messages() {
     return _messages;
+}
+bool ForumThread::isTemp() {
+return _temp;
 }

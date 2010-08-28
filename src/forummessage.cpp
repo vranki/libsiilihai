@@ -17,11 +17,12 @@
 ForumMessage::~ForumMessage() {
 }
 
-ForumMessage::ForumMessage(ForumThread *thr) : QObject(thr) {
+ForumMessage::ForumMessage(ForumThread *thr, bool temp) : QObject(thr) {
     _thread = thr;
     _id = _subject = _author = _body = _lastchange = "";
     _ordernum = -1;
     _read = false;
+    _temp = temp;
 }
 
 void ForumMessage::copyFrom(ForumMessage * o) {
@@ -114,8 +115,6 @@ void ForumMessage::setRead(bool nr) {
   emit markedRead(this, nr);
 }
 
-void ForumMessage::setThread(ForumThread *nt) {
-  if(nt==_thread) return;
-  _thread = nt;
-  emit changed(this);
+bool ForumMessage::isTemp() {
+return _temp;
 }

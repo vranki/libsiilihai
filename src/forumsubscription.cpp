@@ -14,7 +14,7 @@
     along with libSiilihai.  If not, see <http://www.gnu.org/licenses/>. */
 #include "forumsubscription.h"
 
-ForumSubscription::ForumSubscription(QObject *parent) : QObject(parent) {
+ForumSubscription::ForumSubscription(QObject *parent, bool temp) : QObject(parent) {
         _parser = -1;
         _alias = QString::null;
         _latestThreads = 0;
@@ -22,6 +22,7 @@ ForumSubscription::ForumSubscription(QObject *parent) : QObject(parent) {
         _authenticated = false;
         _unreadCount = 0;
         _username = _password = QString::null;
+        _temp = temp;
 }
 
 void ForumSubscription::copyFrom(ForumSubscription * other) {
@@ -115,4 +116,7 @@ void ForumSubscription::incrementUnreadCount(int urc) {
 }
 QList<ForumGroup*>& ForumSubscription::groups() {
     return _groups;
+}
+bool ForumSubscription::isTemp() {
+return _temp;
 }

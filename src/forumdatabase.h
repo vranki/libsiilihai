@@ -54,10 +54,10 @@ public:
     int schemaVersion();
     void deleteSubscription(ForumSubscription *sub);
 public slots:
-    void subscriptionDeleted(QObject *sub);
-    void groupDeleted(QObject *g);
-    void threadDeleted(QObject *t);
-    void messageDeleted(QObject *m);
+    //void subscriptionDeleted(QObject *sub);
+    //void groupDeleted(QObject *g);
+    //void threadDeleted(QObject *t);
+    //void messageDeleted(QObject *m);
 
     void messageChanged(ForumMessage *message);
     void messageMarkedRead(ForumMessage *message, bool read=true);

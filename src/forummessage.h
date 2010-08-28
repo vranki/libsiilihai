@@ -22,10 +22,8 @@ class ForumMessage : public QObject {
     Q_OBJECT
 public:
     virtual ~ForumMessage();
-    ForumMessage(ForumThread *thr);
-//    ForumMessage& operator=(const ForumMessage& o);
+    ForumMessage(ForumThread *thr, bool temp=true);
     void copyFrom(ForumMessage * o);
-
     bool isSane() const;
     QString toString() const;
     ForumThread* thread() const;
@@ -46,7 +44,9 @@ public:
     void setLastchange(QString nlc);
     void setBody(QString nb);
     void setRead(bool nr);
-    void setThread(ForumThread *nt);
+//    void setThread(ForumThread *nt);
+    bool isTemp();
+
 signals:
     void changed(ForumMessage * fm);
     void markedRead(ForumMessage * fm, bool read);
@@ -62,6 +62,7 @@ private:
     QString _body;
     bool _read;
     ForumThread *_thread;
+    bool _temp;
 };
 
 #endif /* FORUMMESSAGE_H_ */

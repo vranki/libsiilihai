@@ -180,49 +180,51 @@ void SyncMaster::sendThreadDataFinished(bool success, QString message) {
     }
 }
 
-void SyncMaster::serverThreadData(ForumThread *thread) { // Thread is temporary object!
+void SyncMaster::serverThreadData(ForumThread *tempThread) { // Thread is temporary object!
     // qDebug() << Q_FUNC_INFO << thread->toString();
     if(canceled) return;
-    if (thread->isSane()) {
-        ForumThread *dbThread = fdb.getThread(thread->group()->subscription()->parser(), thread->group()->id(),
-                                              thread->id());
+    if (tempThread->isSane()) {
+        ForumThread *dbThread = fdb.getThread(tempThread->group()->subscription()->parser(), tempThread->group()->id(),
+                                              tempThread->id());
         if (dbThread) { // Thread already found, merge it
-            dbThread->setChangeset(thread->changeset());
+            dbThread->setChangeset(tempThread->changeset());
         } else { // thread hasn't been found yet!
-            ForumGroup *dbGroup = fdb.getGroup(fdb.getSubscription(thread->group()->subscription()->parser()), thread->group()->id());
+            ForumGroup *dbGroup = fdb.getGroup(fdb.getSubscription(tempThread->group()->subscription()->parser()), tempThread->group()->id());
             Q_ASSERT(dbGroup);
-            ForumThread *newThread = new ForumThread(dbGroup);
-            newThread->copyFrom(thread);
+            Q_ASSERT(!dbGroup->isTemp());
+            ForumThread *newThread = new ForumThread(dbGroup, false);
+            newThread->copyFrom(tempThread);
             fdb.addThread(newThread);
             // Make sure group will be updated
             dbGroup->setLastchange("UPDATE_NEEDED");
         }
     } else {
-        qDebug() << "Got invalid thread!" << thread->toString();
+        qDebug() << "Got invalid thread!" << tempThread->toString();
         Q_ASSERT(false);
     }
 }
 
-void SyncMaster::serverMessageData(ForumMessage *message) { // Temporary object!
-    qDebug() << Q_FUNC_INFO << message->toString();
+void SyncMaster::serverMessageData(ForumMessage *tempMessage) { // Temporary object!
+    qDebug() << Q_FUNC_INFO << tempMessage->toString();
     if(canceled) return;
-    if (message->isSane()) {
-        ForumMessage *dbMessage = fdb.getMessage(message->thread()->group()->subscription()->parser(),
-                                                 message->thread()->group()->id(), message->thread()->id(), message->id());
+    if (tempMessage->isSane()) {
+        ForumMessage *dbMessage = fdb.getMessage(tempMessage->thread()->group()->subscription()->parser(),
+                                                 tempMessage->thread()->group()->id(), tempMessage->thread()->id(), tempMessage->id());
         if (dbMessage) { // Message already found, merge it
-            dbMessage->setRead(message->read());
+            dbMessage->setRead(tempMessage->read());
         } else { // message hasn't been found yet!
-            ForumThread *dbThread = fdb.getThread(message->thread()->group()->subscription()->parser(),
-                                                  message->thread()->group()->id(),
-                                                  message->thread()->id());
+            ForumThread *dbThread = fdb.getThread(tempMessage->thread()->group()->subscription()->parser(),
+                                                  tempMessage->thread()->group()->id(),
+                                                  tempMessage->thread()->id());
             Q_ASSERT(dbThread);
-            ForumMessage *newMessage = new ForumMessage(dbThread);
-            newMessage->copyFrom(message);
+            Q_ASSERT(!dbThread->isTemp());
+            ForumMessage *newMessage = new ForumMessage(dbThread, false);
+            newMessage->copyFrom(tempMessage);
             newMessage->setRead(true);
-            fdb.addMessage(message);
+            fdb.addMessage(newMessage);
         }
     } else {
-        qDebug() << Q_FUNC_INFO << "Got invalid message!" << message->toString();
+        qDebug() << Q_FUNC_INFO << "Got invalid message!" << tempMessage->toString();
         Q_ASSERT(false);
     }
 }

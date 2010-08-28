@@ -26,10 +26,9 @@ class ForumGroup : public QObject {
     Q_OBJECT
 
 public:
-    ForumGroup(ForumSubscription *sub);
+    ForumGroup(ForumSubscription *sub, bool temp=true);
     virtual ~ForumGroup();
     void copyFrom(ForumGroup * o);
- //   ForumGroup(const ForumGroup&);
     QString toString() const;
     bool isSane() const;
     ForumSubscription *subscription() const;
@@ -49,6 +48,8 @@ public:
     void setHasChanged(bool hc);
     void incrementUnreadCount(int urc);
     QList<ForumThread*> & threads();
+    bool isTemp();
+
 signals:
     void changed(ForumGroup *grp);
     void unreadCountChanged(ForumGroup *grp);
@@ -65,6 +66,7 @@ private:
     bool _hasChanged;
     int _unreadCount;
     QList<ForumThread*> _threads;
+        bool _temp;
 };
 
 #endif
