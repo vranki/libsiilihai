@@ -164,7 +164,6 @@ bool ForumDatabase::openDatabase() {
                     grp->threads().append(t);
                     connect(t, SIGNAL(changed(ForumThread*)), this, SLOT(threadChanged(ForumThread*)));
                     emit threadFound(t);
-                    qDebug() << Q_FUNC_INFO << "Loaded thread " << t->toString();
                     Q_ASSERT(getThread(t->group()->subscription()->parser(), grp->id(), t->id()));
                 }
             } else {
@@ -203,7 +202,6 @@ bool ForumDatabase::openDatabase() {
                         connect(m, SIGNAL(markedRead(ForumMessage*, bool)), this, SLOT(messageMarkedRead(ForumMessage*, bool)));
                         emit messageFound(m);
                     Q_ASSERT(getMessage(m->thread()->group()->subscription()->parser(), m->thread()->group()->id(), m->thread()->id(), m->id()));
-                    qDebug() << Q_FUNC_INFO << "Loaded message " << m->toString();
                     Q_ASSERT(!m->thread()->messages().isEmpty());
                     }
                 } else {
@@ -249,11 +247,7 @@ void ForumDatabase::addSubscription(ForumSubscription *fs) {
     if (!query.exec()) {
         qDebug() << "Adding forum failed: " << query.lastError().text();
     }
-    /*
-    ForumSubscription *nfs = new ForumSubscription(this);
-    nfs->operator=(*fs);*/
     connect(fs, SIGNAL(changed(ForumSubscription*)), this, SLOT(subscriptionChanged(ForumSubscription*)));
-   // connect(fs, SIGNAL(destroyed(QObject*)), this, SLOT(deleteSubscription(QObject*)));
     subscriptions[fs->parser()] = fs;
     emit subscriptionAdded(fs);
     emit subscriptionFound(fs);
@@ -285,6 +279,7 @@ void ForumDatabase::subscriptionChanged(ForumSubscription *sub) {
     if (!query.exec()) {
         qDebug() << "Updating subscription " << sub->toString() << " failed: "
                 << query.lastError().text();
+                Q_ASSERT(false);
     }
     checkSanity();
 }
@@ -349,6 +344,24 @@ void ForumDatabase::addGroup(ForumGroup *grp) {
 
     QSqlQuery query;
     query.prepare(
+            "DELETE FROM groups WHERE forumid=? AND groupid=?");
+    query.addBindValue(sub->parser());
+    query.addBindValue(grp->id());
+    Q_ASSERT(query.exec());
+
+    query.prepare(
+            "DELETE FROM threads WHERE forumid=? AND groupid=?");
+    query.addBindValue(sub->parser());
+    query.addBindValue(grp->id());
+    Q_ASSERT(query.exec());
+
+    query.prepare(
+            "DELETE FROM messages WHERE forumid=? AND groupid=?");
+    query.addBindValue(sub->parser());
+    query.addBindValue(grp->id());
+    Q_ASSERT(query.exec());
+
+    query.prepare(
             "INSERT INTO groups(forumid, groupid, name, lastchange, subscribed, changeset) VALUES (?, ?, ?, ?, ?, ?)");
     query.addBindValue(sub->parser());
     query.addBindValue(grp->id());
@@ -383,19 +396,26 @@ void ForumDatabase::addThread(ForumThread *thread) {
     Q_ASSERT(!dbThread);
 
     QSqlQuery query;
-    query.prepare(
-            "SELECT * FROM threads WHERE forumid=? AND groupid=? AND threadid=?");
+    query.prepare("DELETE FROM threads WHERE forumid=? AND groupid=? AND threadid=?");
     query.addBindValue(thread->group()->subscription()->parser());
     query.addBindValue(thread->group()->id());
     query.addBindValue(thread->id());
+    Q_ASSERT(query.exec());
 
-    query.exec();
-    if (query.next()) {
-        qDebug() << "Trying to add duplicate thread! " << thread->toString();
+    // Delete all messages in this thread (if they exist for some reason)!
+    // Otherwise they may cause havoc.
+    query.prepare("DELETE FROM messages WHERE forumid=? AND groupid=? and THREADID=?");
+    query.addBindValue(thread->group()->subscription()->parser());
+    query.addBindValue(thread->group()->id());
+    query.addBindValue(thread->id());
+    if (!query.exec()) {
+        qDebug() << Q_FUNC_INFO << "Clearing thread " << thread->toString() << " failed: "
+                << query.lastError().text();
         Q_ASSERT(false);
+    } else if(query.numRowsAffected() > 0) {
+        qDebug() << Q_FUNC_INFO << "Cleared " << query.numRowsAffected() << " rows in " << thread->toString();
     }
 
-    // All above this is just debug!
     query.prepare(
             "INSERT INTO threads(forumid, groupid, threadid, name, ordernum, lastchange, changeset, hasmoremessages, getmessagescount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
     query.addBindValue(thread->group()->subscription()->parser());
@@ -409,7 +429,7 @@ void ForumDatabase::addThread(ForumThread *thread) {
     query.addBindValue(thread->getMessagesCount());
 
     if (!query.exec()) {
-        qDebug() << "Adding thread " << thread->toString() << " failed: "
+        qDebug() << Q_FUNC_INFO << "Adding thread " << thread->toString() << " failed: "
                 << query.lastError().text();
         Q_ASSERT(false);
     }
@@ -458,6 +478,7 @@ void ForumDatabase::addMessage(ForumMessage *message) {
     Q_ASSERT(!message->thread()->group()->isTemp());
     Q_ASSERT(!message->thread()->group()->subscription()->isTemp());
     qDebug() << Q_FUNC_INFO << message->toString();
+#ifdef SANITY_CHECKS
     ForumThread *thread = getThread(message->thread()->group()->subscription()->parser(),
                                     message->thread()->group()->id(), message->thread()->id());
     Q_ASSERT(thread);
@@ -465,25 +486,18 @@ void ForumDatabase::addMessage(ForumMessage *message) {
     ForumMessage *dbMessage = getMessage(message->thread()->group()->subscription()->parser(),
              message->thread()->group()->id(), message->thread()->id(), message->id());
     Q_ASSERT(!dbMessage);
+#endif
     QSqlQuery query;
 
-    query.prepare(
-            "SELECT messageid, threadid FROM messages WHERE forumid=? AND groupid=? AND threadid=? AND messageid=?");
+    // If database is in bad state, the message may already exist
+    // although not in a known thread.
+    query.prepare("DELETE FROM messages WHERE forumid=? AND groupid=? AND threadid=? AND messageid=?");
     query.addBindValue(message->thread()->group()->subscription()->parser());
     query.addBindValue(message->thread()->group()->id());
     query.addBindValue(message->thread()->id());
     query.addBindValue(message->id());
+    Q_ASSERT(query.exec());
 
-    query.exec();
-    if (query.next()) {
-        qDebug() << "Trying to add duplicate message! " << message->toString();
-        qDebug() << "Query was " << query.lastQuery() << " result: " <<
-                query.value(1).toString() << "/" << query.value(0).toString();
-        foreach(ForumMessage *msg, thread->messages())
-            qDebug() << msg->toString();
-
-        Q_ASSERT(false);
-    }
     query.prepare("INSERT INTO messages(forumid, groupid, threadid, messageid,"
                   " ordernum, url, subject, author, lastchange, body, read) VALUES "
                   "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
@@ -493,16 +507,15 @@ void ForumDatabase::addMessage(ForumMessage *message) {
         qDebug() << "Adding message " << message->toString() << " failed: "
                 << query.lastError().text();
         qDebug() << "Messages's thread: " << message->thread()->toString() << ", db thread: " << thread->toString();
-                Q_ASSERT(false);
+        Q_ASSERT(false);
     }
-    thread->messages().append(message);
-    thread->group()->setHasChanged(true);
+    message->thread->messages().append(message);
+    message->thread->group()->setHasChanged(true);
     connect(message, SIGNAL(changed(ForumMessage*)), this, SLOT(messageChanged(ForumMessage*)));
     connect(message, SIGNAL(markedRead(ForumMessage*, bool)), this, SLOT(messageMarkedRead(ForumMessage*, bool)));
 
     emit messageAdded(message);
     emit messageFound(message);
-    qDebug() << Q_FUNC_INFO << message->toString();
     checkSanity();
 }
 
@@ -711,6 +724,7 @@ int ForumDatabase::schemaVersion() {
 }
 
 void ForumDatabase::checkSanity() {
+#ifdef SANITY_CHECKS
     foreach(ForumSubscription * sub, subscriptions) {
         Q_ASSERT(sub->isSane());
         Q_ASSERT(!sub->isTemp());
@@ -742,6 +756,7 @@ void ForumDatabase::checkSanity() {
             }
         }
     }
+#endif
 }
 
 

@@ -26,6 +26,7 @@
 #include "forummessage.h"
 
 // #define FDB_TEST 1
+// #define SANITY_CHECKS 1
 
 class ForumDatabase : public QObject {
     Q_OBJECT

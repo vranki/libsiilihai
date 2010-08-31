@@ -92,9 +92,7 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
                     if(dbGrp->id() == serverGrp->id())
                         groupIsSubscribed = true;
                 }
-                if(!groupIsSubscribed) {
-                    dbGrp->setSubscribed(false);
-                }
+                dbGrp->setSubscribed(groupIsSubscribed);
             }
         }
 
