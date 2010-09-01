@@ -39,6 +39,7 @@ public:
     void addSubscription(ForumSubscription *fs); // Ownership changes!!!
     QList <ForumSubscription*> listSubscriptions();
     ForumSubscription* getSubscription(int id);
+    void deleteSubscription(ForumSubscription *sub);
 
     ForumGroup* getGroup(ForumSubscription *fs, QString id);
     void addGroup(ForumGroup *grp);
@@ -47,22 +48,18 @@ public:
     ForumThread* getThread(const int forum, QString groupid, QString threadid);
     void addThread(ForumThread *thread);
     bool deleteThread(ForumThread *thread);
+
     ForumMessage* getMessage(const int forum, QString groupid, QString threadid, QString messageid);
     void addMessage(ForumMessage *message);
     bool deleteMessage(ForumMessage *message);
+
     void markForumRead(ForumSubscription *fs, bool read);
     bool markGroupRead(ForumGroup *group, bool read);
     int schemaVersion();
-    void deleteSubscription(ForumSubscription *sub);
-public slots:
-    //void subscriptionDeleted(QObject *sub);
-    //void groupDeleted(QObject *g);
-    //void threadDeleted(QObject *t);
-    //void messageDeleted(QObject *m);
 
+public slots:
     void messageChanged(ForumMessage *message);
     void messageMarkedRead(ForumMessage *message, bool read=true);
-
     void threadChanged(ForumThread *thread);
     void groupChanged(ForumGroup *group);
     void subscriptionChanged(ForumSubscription *sub);
@@ -70,10 +67,9 @@ public slots:
 signals:
     void subscriptionAdded(ForumSubscription *sub);
     void subscriptionFound(ForumSubscription *sub);
-    void subscriptionDeleted(ForumSubscription *sub);
+//    void subscriptionDeleted(ForumSubscription *sub);
     void groupAdded(ForumGroup *grp);
     void groupFound(ForumGroup *grp);
-    //void groupDeleted(ForumGroup *grp);
     void threadFound(ForumThread *thr);
     void threadAdded(ForumThread *thr);
     void messageFound(ForumMessage *msg);

@@ -123,7 +123,7 @@ void ForumGroup::incrementUnreadCount(int urc) {
     emit unreadCountChanged(this);
 }
 
-QList<ForumThread*> & ForumGroup::threads() {
+QMap<QString, ForumThread*> & ForumGroup::threads() {
    return _threads;
 }
 bool ForumGroup::isTemp() {

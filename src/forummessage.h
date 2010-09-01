@@ -24,6 +24,7 @@ public:
     virtual ~ForumMessage();
     ForumMessage(ForumThread *thr, bool temp=true);
     void copyFrom(ForumMessage * o);
+    bool operator<(const ForumMessage &o);
     bool isSane() const;
     QString toString() const;
     ForumThread* thread() const;

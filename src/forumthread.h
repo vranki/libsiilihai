@@ -26,7 +26,7 @@ class ForumThread : public QObject {
 public:
     ForumThread(ForumGroup *grp, bool temp=true);
     virtual ~ForumThread();
-
+    bool operator<(const ForumThread &o);
     void copyFrom(ForumThread * o);
 
     QString id() const;
@@ -50,7 +50,7 @@ public:
     void incrementUnreadCount(int urc);
     QString toString() const;
     bool isSane() const;
-    QList<ForumMessage*> & messages();
+    QMap<QString, ForumMessage*> & messages();
     bool isTemp();
 signals:
     void changed(ForumThread *thr);
@@ -70,7 +70,7 @@ private:
     int _getMessagesCount;
     bool _hasChanged;
     int _unreadCount;
-    QList<ForumMessage*> _messages;
+    QMap<QString, ForumMessage*> _messages;
         bool _temp;
 };
 

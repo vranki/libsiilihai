@@ -50,7 +50,7 @@ public:
     void listSubscriptions();
     void getParser(const int id);
     void subscribeForum(ForumSubscription *fs, bool unsubscribe = false);
-    void subscribeGroups(QList<ForumGroup*> &fgs);
+    void updateGroupSubscriptions(ForumSubscription *fs); // Sends groups in forum to server
     void saveParser(const ForumParser &parser);
 
     void setUserSettings(UserSettings *us);

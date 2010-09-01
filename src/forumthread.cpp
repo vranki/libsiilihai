@@ -39,6 +39,10 @@ void ForumThread::copyFrom(ForumThread * o) {
     setGetMessagesCount(o->getMessagesCount());
 }
 
+bool ForumThread::operator<(const ForumThread &o) {
+   return ordernum() < o.ordernum();
+}
+
 QString ForumThread::toString() const {
     QString tparser = "Unknown";
     QString tgroup = "Unknown";
@@ -135,7 +139,7 @@ void ForumThread::incrementUnreadCount(int urc) {
     emit unreadCountChanged(this);
 }
 
-QList<ForumMessage*> & ForumThread::messages() {
+QMap<QString, ForumMessage*> & ForumThread::messages() {
     return _messages;
 }
 bool ForumThread::isTemp() {

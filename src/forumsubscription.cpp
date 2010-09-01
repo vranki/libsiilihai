@@ -114,7 +114,7 @@ void ForumSubscription::incrementUnreadCount(int urc) {
     // Q_ASSERT(_unreadCount >= 0);
     emit unreadCountChanged(this);
 }
-QList<ForumGroup*>& ForumSubscription::groups() {
+QMap<QString, ForumGroup*>& ForumSubscription::groups() {
     return _groups;
 }
 bool ForumSubscription::isTemp() {

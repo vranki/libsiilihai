@@ -21,7 +21,7 @@ ForumMessage::ForumMessage(ForumThread *thr, bool temp) : QObject(thr) {
     _thread = thr;
     _id = _subject = _author = _body = _lastchange = "";
     _ordernum = -1;
-    _read = false;
+    _read = true;
     _temp = temp;
 }
 
@@ -34,6 +34,10 @@ void ForumMessage::copyFrom(ForumMessage * o) {
     setLastchange(o->lastchange());
     setBody(o->body());
     setRead(o->read());
+}
+
+bool ForumMessage::operator<(const ForumMessage &o) {
+   return ordernum() < o.ordernum();
 }
 
 bool ForumMessage::isSane() const {

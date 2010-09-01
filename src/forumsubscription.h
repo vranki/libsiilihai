@@ -46,7 +46,7 @@ public:
         int latestMessages() const;
         bool authenticated() const; // True if username & password should be set
         int unreadCount() const;
-        QList<ForumGroup*> &groups();
+        QMap<QString, ForumGroup*> &groups();
         bool isTemp();
 signals:
     void changed(ForumSubscription *s);
@@ -63,7 +63,7 @@ Q_DISABLE_COPY(ForumSubscription)
 	unsigned int _latestMessages;
         bool _authenticated;
         int _unreadCount;
-        QList<ForumGroup*> _groups;
+        QMap<QString, ForumGroup*> _groups;
         bool _temp;
 };
 

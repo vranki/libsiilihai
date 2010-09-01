@@ -408,13 +408,8 @@ void SiilihaiProtocol::replySubscribeForum(QNetworkReply *reply) {
 }
 
 // @todo this could have ForumSubscription as parameter instead
-void SiilihaiProtocol::subscribeGroups(QList<ForumGroup*> &fgs) {
+void SiilihaiProtocol::updateGroupSubscriptions(ForumSubscription *fs) {
     qDebug() << Q_FUNC_INFO;
-    if (fgs.isEmpty()) {
-        emit subscribeGroupsFinished(true);
-        return;
-    }
-    ForumGroup *first = fgs[0];
     QNetworkRequest req(subscribeGroupsUrl);
     QDomDocument doc("SiilihaiML");
     QDomElement root = doc.createElement("SubscribeGroups");
@@ -423,10 +418,10 @@ void SiilihaiProtocol::subscribeGroups(QList<ForumGroup*> &fgs) {
     QDomElement forumTag = doc.createElement("forum");
     root.appendChild(forumTag);
 
-    QDomText t = doc.createTextNode(QString().number(first->subscription()->parser()));
+    QDomText t = doc.createTextNode(QString().number(fs->parser()));
     forumTag.appendChild(t);
 
-    foreach(ForumGroup *g, fgs)
+    foreach(ForumGroup *g, fs->groups().values())
     {
         QDomElement subTag;
         if (g->subscribed()) {
@@ -542,7 +537,7 @@ void SiilihaiProtocol::replyGetSyncSummary(QNetworkReply *reply) {
                     g->setChangeset(changeset);
                     g->setSubscribed(true);
                     grps.append(g);
-                    sub->groups().append(g);
+                    sub->groups().insert(g->id(), g);
                 }
                 subs.append(sub);
             }

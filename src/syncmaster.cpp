@@ -148,9 +148,9 @@ void SyncMaster::processGroups() {
         ForumGroup *g = groupsToUpload.takeFirst();
         g->setChangeset(rand());
         qDebug() << Q_FUNC_INFO << "Group " << g->toString() << "new changeset: " << g->changeset();
-        foreach(ForumThread *thread, g->threads())
+        foreach(ForumThread *thread, g->threads().values())
         {
-            messagesToUpload.append(thread->messages());
+            messagesToUpload.append(thread->messages().values());
         }
         connect(&protocol, SIGNAL(sendThreadDataFinished(bool, QString)),
                 this, SLOT(sendThreadDataFinished(bool, QString)));

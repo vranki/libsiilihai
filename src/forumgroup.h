@@ -47,7 +47,7 @@ public:
     void setChangeset(int cs);
     void setHasChanged(bool hc);
     void incrementUnreadCount(int urc);
-    QList<ForumThread*> & threads();
+    QMap<QString, ForumThread*> & threads();
     bool isTemp();
 
 signals:
@@ -65,7 +65,7 @@ private:
     int _changeset;
     bool _hasChanged;
     int _unreadCount;
-    QList<ForumThread*> _threads;
+    QMap<QString, ForumThread*> _threads;
         bool _temp;
 };
 
