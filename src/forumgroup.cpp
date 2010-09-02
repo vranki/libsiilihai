@@ -16,15 +16,11 @@
 #include "forumgroup.h"
 
 
-ForumGroup::ForumGroup(ForumSubscription *sub, bool temp) : QObject(sub) {
+ForumGroup::ForumGroup(ForumSubscription *sub, bool temp) : ForumDataItem(sub) {
     _subscription = sub;
-    _id = "";
     _subscribed = false;
     _changeset = -1;
-    _name = "";
-    _lastchange = "";
     _hasChanged = false;
-    _unreadCount = 0;
     _temp = temp;
 }
 
@@ -44,23 +40,13 @@ QString ForumGroup::toString() const {
     QString parser = "Unknown";
     if(subscription())
         parser = QString().number(subscription()->parser());
-    return parser + "/" + _id + ": " + _name;
+    return parser + "/" + id() + ": " + name();
 }
 
 bool ForumGroup::isSane() const {
-    return (_id.length() > 0 && _name.length() > 0 && _subscription);
+    return (id().length() > 0 && name().length() > 0 && _subscription);
 }
 
-QString ForumGroup::name() const {
-    return _name;
-}
-
-QString ForumGroup::id() const {
-    return _id;
-}
-QString ForumGroup::lastchange() const {
-    return _lastchange;
-}
 bool ForumGroup::subscribed() const {
     return _subscribed;
 }
@@ -75,28 +61,6 @@ ForumSubscription* ForumGroup::subscription() const {
 bool ForumGroup::hasChanged() const {
     return _hasChanged;
 }
-int ForumGroup::unreadCount() const {
-    return _unreadCount;
-}
-
-void ForumGroup::setName(QString name) {
-  if(name == _name) return;
-  _name = name;
-  emit changed(this);
-}
-
-void ForumGroup::setId(QString id) {
-if(_id == id) return;
-_id = id;
-emit changed(this);
-}
-
-void ForumGroup::setLastchange(QString lc) {
-if(lc==_lastchange) return;
-_lastchange = lc;
-emit changed(this);
-}
-
 void ForumGroup::setSubscribed(bool s) {
 if(s==_subscribed) return;
 _subscribed = s;
@@ -112,15 +76,7 @@ emit changed(this);
 void ForumGroup::setHasChanged(bool hc) {
 if(hc==_hasChanged) return;
    _hasChanged = hc;
-   emit changed(this);
-}
-
-void ForumGroup::incrementUnreadCount(int urc) {
-    if(!urc) return;
-    _unreadCount += urc;
-    // Q_ASSERT(_unreadCount >= 0);
-    subscription()->incrementUnreadCount(urc);
-    emit unreadCountChanged(this);
+   emit changed(this); // @todo should we? this bool goes nowhere
 }
 
 QMap<QString, ForumThread*> & ForumGroup::threads() {
@@ -128,4 +84,12 @@ QMap<QString, ForumThread*> & ForumGroup::threads() {
 }
 bool ForumGroup::isTemp() {
 return _temp;
+}
+
+void ForumGroup::emitChanged() {
+    emit changed(this);
+}
+
+void ForumGroup::emitUnreadCountChanged() {
+    emit unreadCountChanged(this);
 }

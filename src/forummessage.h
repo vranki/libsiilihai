@@ -16,9 +16,11 @@
 #define FORUMMESSAGE_H_
 #include <QString>
 #include <QObject>
+#include "forumdataitem.h"
 #include "forumthread.h"
+class ForumThread;
 
-class ForumMessage : public QObject {
+class ForumMessage : public ForumDataItem {
     Q_OBJECT
 public:
     virtual ~ForumMessage();
@@ -26,40 +28,31 @@ public:
     void copyFrom(ForumMessage * o);
     bool operator<(const ForumMessage &o);
     bool isSane() const;
-    QString toString() const;
+    virtual QString toString() const;
     ForumThread* thread() const;
-    QString id() const;
     int ordernum() const;
     QString url() const;
-    QString subject() const;
     QString author() const;
-    QString lastchange() const;
     QString body() const;
-    bool read() const;
-
-    void setId(QString nid);
+    bool isRead() const;
     void setOrdernum(int nod);
     void setUrl(QString nurl);
-    void setSubject(QString ns);
     void setAuthor(QString na);
-    void setLastchange(QString nlc);
     void setBody(QString nb);
     void setRead(bool nr);
-//    void setThread(ForumThread *nt);
     bool isTemp();
 
 signals:
     void changed(ForumMessage * fm);
     void markedRead(ForumMessage * fm, bool read);
-
+protected:
+    virtual void emitChanged();
+    virtual void emitUnreadCountChanged();
 private:
-    Q_DISABLE_COPY(ForumMessage);
-    QString _id;
     int _ordernum;
     QString _url;
-    QString _subject;
     QString _author;
-    QString _lastchange;
+
     QString _body;
     bool _read;
     ForumThread *_thread;

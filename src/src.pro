@@ -39,7 +39,8 @@ HEADERS += syncmaster.h \
     parserengine.h \
     forumparser.h \
     patternmatcher.h \
-    usersettings.h
+    usersettings.h \
+    forumdataitem.h
 
 SOURCES += syncmaster.cpp \
     parserreport.cpp \
@@ -56,7 +57,8 @@ SOURCES += syncmaster.cpp \
     parserengine.cpp \
     forumparser.cpp \
     patternmatcher.cpp \
-    usersettings.cpp
+    usersettings.cpp \
+    forumdataitem.cpp
 
 target.path = $$LIBDIR
 INSTALLS += target

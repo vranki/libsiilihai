@@ -20,10 +20,10 @@
 #include <QList>
 #include <QMap>
 #include <QTimer>
-#include "forumsubscription.h"
-#include "forumgroup.h"
-#include "forumthread.h"
 #include "forummessage.h"
+#include "forumthread.h"
+#include "forumgroup.h"
+#include "forumsubscription.h"
 
 // #define FDB_TEST 1
 // #define SANITY_CHECKS 1
@@ -56,6 +56,9 @@ public:
     void markForumRead(ForumSubscription *fs, bool read);
     bool markGroupRead(ForumGroup *group, bool read);
     int schemaVersion();
+    int recalcUnreads(ForumThread * thr);
+    int recalcUnreads(ForumGroup * grp);
+    int recalcUnreads(ForumSubscription * sub);
 
 public slots:
     void messageChanged(ForumMessage *message);
@@ -64,6 +67,7 @@ public slots:
     void groupChanged(ForumGroup *group);
     void subscriptionChanged(ForumSubscription *sub);
 
+    void checkSanity();
 signals:
     void subscriptionAdded(ForumSubscription *sub);
     void subscriptionFound(ForumSubscription *sub);
@@ -76,7 +80,8 @@ signals:
     void messageAdded(ForumMessage *msg);
 private:
     void bindMessageValues(QSqlQuery &query, const ForumMessage *message);
-    void checkSanity();
+
+
     QMap<int, ForumSubscription*> subscriptions;
 
 #ifdef FDB_TEST

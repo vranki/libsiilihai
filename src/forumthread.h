@@ -16,60 +16,52 @@
 #define FORUMTHREAD_H_
 #include <QString>
 #include <QObject>
-#include <QList>
+#include <QMap>
+#include "forumdataitem.h"
+//#include "forummessage.h"
 #include "forumgroup.h"
 
 class ForumMessage;
+//class ForumGroup : public ForumDataItem;
 
-class ForumThread : public QObject {
+class ForumThread : public ForumDataItem {
     Q_OBJECT
 public:
     ForumThread(ForumGroup *grp, bool temp=true);
     virtual ~ForumThread();
     bool operator<(const ForumThread &o);
     void copyFrom(ForumThread * o);
-
-    QString id() const;
     int ordernum() const;
-    QString name() const;
-    QString lastchange() const;
     int changeset() const;
     ForumGroup *group() const;
     bool hasMoreMessages() const;
     int getMessagesCount() const; // Max number of messages to get
-    int unreadCount() const;
-
-    void setId(QString nid);
     void setOrdernum(int on);
-    void setName(QString nname);
-    void setLastchange(QString lc);
     void setChangeset(int cs);
     void setHasMoreMessages(bool hmm);
     void setGetMessagesCount(int gmc);
     void setGroup(ForumGroup *ng);
-    void incrementUnreadCount(int urc);
-    QString toString() const;
+    virtual QString toString() const;
     bool isSane() const;
     QMap<QString, ForumMessage*> & messages();
     bool isTemp();
 signals:
     void changed(ForumThread *thr);
     void unreadCountChanged(ForumThread *thr);
-
+protected:
+    virtual void emitChanged();
+    virtual void emitUnreadCountChanged();
 private:
     Q_DISABLE_COPY(ForumThread);
     int _forumid;
     QString _groupid;
-    QString _id;
     int _ordernum;
-    QString _name;
     QString _lastchange;
     int _changeset;
     ForumGroup *_group;
     bool _hasMoreMessages;
     int _getMessagesCount;
     bool _hasChanged;
-    int _unreadCount;
     QMap<QString, ForumMessage*> _messages;
         bool _temp;
 };

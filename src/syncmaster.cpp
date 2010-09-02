@@ -209,7 +209,7 @@ void SyncMaster::serverMessageData(ForumMessage *tempMessage) { // Temporary obj
         ForumMessage *dbMessage = fdb.getMessage(tempMessage->thread()->group()->subscription()->parser(),
                                                  tempMessage->thread()->group()->id(), tempMessage->thread()->id(), tempMessage->id());
         if (dbMessage) { // Message already found, merge it
-            dbMessage->setRead(tempMessage->read());
+            dbMessage->setRead(tempMessage->isRead());
         } else { // message hasn't been found yet!
             ForumThread *dbThread = fdb.getThread(tempMessage->thread()->group()->subscription()->parser(),
                                                   tempMessage->thread()->group()->id(),

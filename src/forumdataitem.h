@@ -1,0 +1,30 @@
+#ifndef FORUMDATAITEM_H
+#define FORUMDATAITEM_H
+
+#include <QObject>
+
+class ForumDataItem : public QObject {
+    Q_OBJECT
+public:
+    ForumDataItem(QObject * parent);
+    virtual QString toString() const=0;
+    void setName(QString name);
+    void setId(QString id);
+    QString name() const;
+    QString id() const;
+    int unreadCount() const;
+    virtual void incrementUnreadCount(int urc);
+    void setLastchange(QString nlc);
+    QString lastchange() const;
+protected:
+    virtual void emitChanged()=0;
+    virtual void emitUnreadCountChanged()=0;
+private:
+    Q_DISABLE_COPY(ForumDataItem);
+    QString _name;
+    QString _id;
+    QString _lastchange;
+    int _unreadCount;
+};
+
+#endif // FORUMDATAITEM_H

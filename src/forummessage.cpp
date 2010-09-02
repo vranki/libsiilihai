@@ -17,9 +17,9 @@
 ForumMessage::~ForumMessage() {
 }
 
-ForumMessage::ForumMessage(ForumThread *thr, bool temp) : QObject(thr) {
+ForumMessage::ForumMessage(ForumThread *thr, bool temp) : ForumDataItem(thr) {
     _thread = thr;
-    _id = _subject = _author = _body = _lastchange = "";
+    _author = _body = "";
     _ordernum = -1;
     _read = true;
     _temp = temp;
@@ -29,11 +29,11 @@ void ForumMessage::copyFrom(ForumMessage * o) {
     setId(o->id());
     setOrdernum(o->ordernum());
     setUrl(o->url());
-    setSubject(o->subject());
+    setName(o->name());
     setAuthor(o->author());
     setLastchange(o->lastchange());
     setBody(o->body());
-    setRead(o->read());
+    setRead(o->isRead());
 }
 
 bool ForumMessage::operator<(const ForumMessage &o) {
@@ -41,10 +41,11 @@ bool ForumMessage::operator<(const ForumMessage &o) {
 }
 
 bool ForumMessage::isSane() const {
-    return (_thread && _id.length()>0);
+    return (_thread && id().length()>0);
 }
 
 QString ForumMessage::toString() const {
+return "MSG";/*
     QString parser = "Unknown";
     QString group = "Unknown";
     QString thread = "Unknown";
@@ -59,23 +60,16 @@ QString ForumMessage::toString() const {
 
     return QString().number(_thread->group()->subscription()->parser()) + "/" +
             _thread->group()->id() + "/" + _thread->id() + "/" + id() + ": " + subject() + "/ Read:" + QString().number(_read);
+*/
 }
 
 ForumThread* ForumMessage::thread() const { return _thread; }
-QString ForumMessage::id() const { return _id; }
 int ForumMessage::ordernum() const { return _ordernum; }
 QString ForumMessage::url() const { return _url; }
-QString ForumMessage::subject() const { return _subject; }
 QString ForumMessage::author() const { return _author; }
-QString ForumMessage::lastchange() const { return _lastchange; }
-QString ForumMessage::body() const { return _body; }
-bool ForumMessage::read() const { return _read; }
 
-void ForumMessage::setId(QString nid) {
-  if(nid == _id) return;
-  _id = nid ;
-  emit changed(this);
-}
+QString ForumMessage::body() const { return _body; }
+bool ForumMessage::isRead() const { return _read; }
 
 void ForumMessage::setOrdernum(int nod) {
 if(nod == _ordernum) return;
@@ -88,19 +82,9 @@ if(nurl == _url) return;
 _url = nurl;
   emit changed(this);
 }
-void ForumMessage::setSubject(QString ns) {
-if(ns == _subject) return;
-  _subject = ns;
-  emit changed(this);
- }
 void ForumMessage::setAuthor(QString na) {
 if(na == _author) return;
 _author = na;
-  emit changed(this);
-}
-void ForumMessage::setLastchange(QString nlc) {
-if(nlc==_lastchange) return;
-_lastchange = nlc ;
   emit changed(this);
 }
 void ForumMessage::setBody(QString nb) {
@@ -110,15 +94,23 @@ void ForumMessage::setBody(QString nb) {
 }
 void ForumMessage::setRead(bool nr) {
   if(nr==_read) return;
-  _read = nr ;
-  if(_read) {
-     thread()->incrementUnreadCount(-1);
-   } else {
-     thread()->incrementUnreadCount(1);
-  }
+  _read = nr;
+  int dsubs = 1;
+  if(_read)
+      dsubs = -1;
+  thread()->incrementUnreadCount(dsubs);
+  thread()->group()->incrementUnreadCount(dsubs);
+  thread()->group()->subscription()->incrementUnreadCount(dsubs);
   emit markedRead(this, nr);
 }
 
 bool ForumMessage::isTemp() {
 return _temp;
+}
+
+void ForumMessage::emitChanged() {
+    emit changed(this);
+}
+
+void ForumMessage::emitUnreadCountChanged() {
 }

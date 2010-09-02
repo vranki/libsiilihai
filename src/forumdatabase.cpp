@@ -190,12 +190,11 @@ bool ForumDatabase::openDatabase() {
                         m->setId(query.value(0).toString());
                         m->setOrdernum(query.value(1).toInt());
                         m->setUrl(query.value(2).toString());
-                        m->setSubject(query.value(3).toString());
+                        m->setName(query.value(3).toString());
                         m->setAuthor(query.value(4).toString());
                         m->setLastchange(query.value(5).toString());
                         m->setBody(query.value(6).toString());
                         bool msgRead = query.value(7).toBool();
-                        if(msgRead) m->thread()->incrementUnreadCount(1); // Do the trick to keep unread count correct
                         m->setRead(msgRead);
                         thread->messages().insert(m->id(), m);
                         connect(m, SIGNAL(changed(ForumMessage*)), this, SLOT(messageChanged(ForumMessage*)));
@@ -208,8 +207,11 @@ bool ForumDatabase::openDatabase() {
                     qDebug() << "Unable to list messages: " << query.lastError().text();
                     return false;
                 }
+                Q_ASSERT(thread->unreadCount() == recalcUnreads(thread));
             }
+            Q_ASSERT(grp->unreadCount() == recalcUnreads(grp));
         }
+        Q_ASSERT(sub->unreadCount() == recalcUnreads(sub));
     }
     checkSanity();
 
@@ -328,6 +330,7 @@ ForumThread* ForumDatabase::getThread(const int forum, QString groupid,
 }
 
 void ForumDatabase::addGroup(ForumGroup *grp) {
+    checkSanity();
     Q_ASSERT(grp);
     qDebug() << Q_FUNC_INFO << grp->toString();
     Q_ASSERT(grp->isSane());
@@ -378,6 +381,7 @@ void ForumDatabase::addGroup(ForumGroup *grp) {
 }
 
 void ForumDatabase::addThread(ForumThread *thread) {
+    checkSanity();
     Q_ASSERT(thread);
     Q_ASSERT(!thread->isTemp());
     Q_ASSERT(!thread->group()->isTemp());
@@ -506,7 +510,7 @@ void ForumDatabase::addMessage(ForumMessage *message) {
     message->thread()->group()->setHasChanged(true);
     connect(message, SIGNAL(changed(ForumMessage*)), this, SLOT(messageChanged(ForumMessage*)));
     connect(message, SIGNAL(markedRead(ForumMessage*, bool)), this, SLOT(messageMarkedRead(ForumMessage*, bool)));
-
+    if(!message->isRead()) message->thread()->incrementUnreadCount(1);
     emit messageAdded(message);
     emit messageFound(message);
     checkSanity();
@@ -514,7 +518,7 @@ void ForumDatabase::addMessage(ForumMessage *message) {
 
 ForumMessage* ForumDatabase::getMessage(const int forum, QString groupid,
                                         QString threadid, QString messageid) {
-    ForumThread *thr = getThread(forum, groupid, threadid);
+        ForumThread *thr = getThread(forum, groupid, threadid);
     Q_ASSERT(thr);
     if(!thr) return 0;
     return thr->messages().value(messageid);
@@ -528,15 +532,16 @@ void ForumDatabase::bindMessageValues(QSqlQuery &query,
     query.addBindValue(message->id());
     query.addBindValue(message->ordernum());
     query.addBindValue(message->url());
-    query.addBindValue(message->subject());
+    query.addBindValue(message->name());
     query.addBindValue(message->author());
     query.addBindValue(message->lastchange());
     query.addBindValue(message->body());
-    query.addBindValue(message->read());
+    query.addBindValue(message->isRead());
 }
 
 void ForumDatabase::messageChanged(ForumMessage *message) {
     Q_ASSERT(message);
+        checkSanity();
     qDebug() << Q_FUNC_INFO << message->toString();
     QSqlQuery query;
     query.prepare(
@@ -556,6 +561,7 @@ void ForumDatabase::messageChanged(ForumMessage *message) {
 }
 
 bool ForumDatabase::deleteMessage(ForumMessage *message) {
+        checkSanity();
     Q_ASSERT(message);
     Q_ASSERT(message->isSane());
     QSqlQuery query;
@@ -567,13 +573,15 @@ bool ForumDatabase::deleteMessage(ForumMessage *message) {
     query.addBindValue(message->id());
     if (!query.exec()) {
         qDebug() << "Deleting message failed: " << query.lastError().text();
+        Q_ASSERT(false);
         return false;
     }
-    message->thread()->group()->setHasChanged(true);
     Q_ASSERT(message->thread()->messages().remove(message->id()));
+    if(!message->isRead()) message->thread()->incrementUnreadCount(-1);
     message->deleteLater();
+    message->thread()->group()->setHasChanged(true);
     qDebug() << Q_FUNC_INFO << "Message " << message->toString() << " deleted";
-
+    checkSanity();
     return true;
 }
 
@@ -590,15 +598,18 @@ bool ForumDatabase::deleteGroup(ForumGroup *grp) {
     query.addBindValue(grp->id());
     if (!query.exec()) {
         qDebug() << "Deleting group failed: " << query.lastError().text();
+        Q_ASSERT(false);
         return false;
     }
     grp->subscription()->groups().remove(grp->id());
     grp->deleteLater();
     qDebug() << "Group " << grp->toString() << " deleted";
+    checkSanity();
     return true;
 }
 
 bool ForumDatabase::deleteThread(ForumThread *thread) {
+        checkSanity();
     Q_ASSERT(thread);
     Q_ASSERT(thread->isSane());
     if (!thread->isSane()) {
@@ -619,8 +630,11 @@ bool ForumDatabase::deleteThread(ForumThread *thread) {
     }
     QList<ForumMessage*> messages = thread->messages().values();
     qSort(messages);
-    while(!messages.isEmpty())
-        deleteMessage(messages.last());
+    while(!messages.isEmpty()) {
+        ForumMessage *lastMessage = messages.takeLast();
+        Q_ASSERT(lastMessage);
+        deleteMessage(lastMessage);
+    }
 
     query.prepare(
             "DELETE FROM threads WHERE (forumid=? AND groupid=? AND threadid=?)");
@@ -629,16 +643,19 @@ bool ForumDatabase::deleteThread(ForumThread *thread) {
     query.addBindValue(thread->id());
     if (!query.exec()) {
         qDebug() << "Deleting thread failed: " << query.lastError().text();
+        Q_ASSERT(false);
         return false;
     }
     thread->group()->setHasChanged(true);
     Q_ASSERT(thread->group()->threads().remove(thread->id()));
     qDebug() << "Thread " << thread->toString() << " deleted";
     thread->deleteLater();
+    checkSanity();
     return true;
 }
 
 void ForumDatabase::groupChanged(ForumGroup *grp) {
+        checkSanity();
     Q_ASSERT(grp->isSane());
     QSqlQuery query;
     query.prepare(
@@ -658,10 +675,11 @@ void ForumDatabase::groupChanged(ForumGroup *grp) {
 }
 
 void ForumDatabase::messageMarkedRead(ForumMessage *message, bool read) {
+        checkSanity();
     Q_ASSERT(message);
     qDebug() << Q_FUNC_INFO << read;
     Q_ASSERT(message->isSane());
-
+    checkSanity();
     message->thread()->group()->setHasChanged(true);
 
     QSqlQuery query;
@@ -675,6 +693,7 @@ void ForumDatabase::messageMarkedRead(ForumMessage *message, bool read) {
     if (!query.exec()) {
         qDebug() << "Setting message read failed: " << query.lastError().text();
     }
+    checkSanity();
 }
 ForumSubscription *ForumDatabase::getSubscription(int id) {
     Q_ASSERT(id > 0);
@@ -683,10 +702,12 @@ ForumSubscription *ForumDatabase::getSubscription(int id) {
 
 void ForumDatabase::markForumRead(ForumSubscription *fs, bool read) {
     Q_ASSERT(fs);
+    checkSanity();
     foreach(ForumGroup *group, fs->groups())
     {
         markGroupRead(group, read);
     }
+    checkSanity();
 }
 
 bool ForumDatabase::markGroupRead(ForumGroup *group, bool read) {
@@ -708,7 +729,36 @@ bool ForumDatabase::markGroupRead(ForumGroup *group, bool read) {
         Q_ASSERT(ft->unreadCount()==0);
     }
     Q_ASSERT(group->unreadCount()==0);
+    checkSanity();
     return true;
+}
+
+int ForumDatabase::recalcUnreads(ForumThread * thr) {
+    int unreads = 0;
+    foreach(ForumMessage * msg, thr->messages().values()) {
+        if(!msg->isRead())
+            unreads++;
+    }
+    thr->incrementUnreadCount(unreads - thr->unreadCount());
+    return unreads;
+}
+
+int ForumDatabase::recalcUnreads(ForumGroup * grp) {
+    int unreads = 0;
+    foreach(ForumThread *thr, grp->threads().values()) {
+        unreads += recalcUnreads(thr);
+    }
+    grp->incrementUnreadCount(unreads - grp->unreadCount());
+    return unreads;
+}
+
+int ForumDatabase::recalcUnreads(ForumSubscription * sub) {
+    int unreads = 0;
+    foreach(ForumGroup * grp, sub->groups().values()) {
+        unreads += recalcUnreads(grp);
+    }
+    sub->incrementUnreadCount(unreads - sub->unreadCount());
+    return unreads;
 }
 
 int ForumDatabase::schemaVersion() {
@@ -721,6 +771,7 @@ void ForumDatabase::checkSanity() {
         Q_ASSERT(sub->isSane());
         Q_ASSERT(!sub->isTemp());
         QSet<QString> grp_ids;
+        int unreadinforum = 0;
         foreach(ForumGroup * grp, sub->groups()) {
             Q_ASSERT(grp->isSane());
             Q_ASSERT(grp->subscription() == sub);
@@ -728,6 +779,7 @@ void ForumDatabase::checkSanity() {
             Q_ASSERT(!grp->isTemp());
             grp_ids.insert(grp->id());
             QSet<QString> thr_ids;
+            int unreadingroup = 0;
             foreach(ForumThread * thr, grp->threads()) {
                 Q_ASSERT(thr->isSane());
                 Q_ASSERT(thr->group() == grp);
@@ -735,6 +787,7 @@ void ForumDatabase::checkSanity() {
                 Q_ASSERT(!thr->isTemp());
                 thr_ids.insert(thr->id());
                 QSet<QString> msg_ids;
+                int unreadinthread = 0;
                 foreach(ForumMessage * msg, thr->messages()) {
                     Q_ASSERT(msg->isSane());
                     Q_ASSERT(msg->thread() == thr);
@@ -744,9 +797,15 @@ void ForumDatabase::checkSanity() {
 
                     ForumMessage *dbmsg = getMessage(msg->thread()->group()->subscription()->parser(), msg->thread()->group()->id(), msg->thread()->id(), msg->id());
                     Q_ASSERT(dbmsg==msg);
+                    if(!msg->isRead()) unreadinthread++;
                 }
+                Q_ASSERT(thr->unreadCount() == unreadinthread);
+                unreadingroup += unreadinthread;
             }
+            Q_ASSERT(grp->unreadCount()== unreadingroup);
+            unreadinforum += unreadingroup;
         }
+        Q_ASSERT(sub->unreadCount() == unreadinforum);
     }
 #endif
 }

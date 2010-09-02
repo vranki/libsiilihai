@@ -618,7 +618,7 @@ void SiilihaiProtocol::replyGetThreadData(QNetworkReply *reply) {
                             QString messageid = messageElement.attribute("id");
                             ForumMessage msg(&thr);
                             msg.setId(messageid);
-                            msg.setSubject("?");
+                            msg.setName("?");
                             msg.setBody("Please update forum to get message content.");
                             msg.setRead(true);
                             emit serverMessageData(&msg);
@@ -664,7 +664,7 @@ void SiilihaiProtocol::sendThreadData(ForumGroup *grp, QList<ForumMessage*> &fms
     // Sort 'em to threads:
     QMap<ForumThread*, QList<ForumMessage*> > threadedMessages; // Thread id, message
     foreach (ForumMessage *fm, fms) {
-        if (fm->read())
+        if (fm->isRead())
             threadedMessages[fm->thread()].append(fm);
     }
 

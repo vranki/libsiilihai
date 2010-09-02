@@ -17,15 +17,13 @@
 ForumThread::~ForumThread() {
 }
 
-ForumThread::ForumThread(ForumGroup *grp, bool temp) : QObject(grp) {
+ForumThread::ForumThread(ForumGroup *grp, bool temp) : ForumDataItem(grp) {
     _group = grp;
-    _id = _name = _lastchange = "";
     _changeset = -1;
     _ordernum = -1;
     _hasMoreMessages = false;
     _getMessagesCount = -1;
     _hasChanged = false;
-    _unreadCount = 0;
     _temp = temp;
 }
 
@@ -56,21 +54,14 @@ QString ForumThread::toString() const {
 }
 
 bool ForumThread::isSane() const {
-    return (_group && _id.length() > 0 && _getMessagesCount >= 0);
+    return (_group && id().length() > 0 && _getMessagesCount >= 0);
 }
 
-QString ForumThread::id() const {
-    return _id;
-}
+
 int ForumThread::ordernum() const {
     return _ordernum;
 }
-QString ForumThread::name() const {
-    return _name;
-}
-QString ForumThread::lastchange() const {
-    return _lastchange;
-}
+
 int ForumThread::changeset() const {
     return _changeset;
 }
@@ -82,32 +73,14 @@ bool ForumThread::hasMoreMessages() const {
     return _hasMoreMessages;
 }
 
-int ForumThread::unreadCount() const {
-    return _unreadCount;
-}
 
 int ForumThread::getMessagesCount() const {
     return _getMessagesCount;
 }
 
-void ForumThread::setId(QString nid) {
-    if(nid == _id) return;
-    _id = nid;
-    emit changed(this);
-}
 void ForumThread::setOrdernum(int on) {
 if(on == _ordernum) return;
     _ordernum = on;
-    emit changed(this);
-}
-void ForumThread::setName(QString nname) {
-if(nname == _name) return;
-    _name = nname;
-    emit changed(this);
-}
-void ForumThread::setLastchange(QString lc) {
-if(lc==_lastchange) return;
-    _lastchange = lc ;
     emit changed(this);
 }
 void ForumThread::setChangeset(int cs) {
@@ -131,17 +104,19 @@ void ForumThread::setGroup(ForumGroup *ng) {
     _group = ng;
 }
 
-void ForumThread::incrementUnreadCount(int urc) {
-    if(!urc) return;
-    _unreadCount += urc;
-    //Q_ASSERT(_unreadCount >= 0);
-    group()->incrementUnreadCount(urc);
-    emit unreadCountChanged(this);
-}
 
 QMap<QString, ForumMessage*> & ForumThread::messages() {
     return _messages;
 }
 bool ForumThread::isTemp() {
 return _temp;
+}
+
+
+void ForumThread::emitChanged() {
+    emit changed(this);
+}
+
+void ForumThread::emitUnreadCountChanged() {
+    emit unreadCountChanged(this);
 }

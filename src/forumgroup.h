@@ -19,52 +19,42 @@
 #include <QObject>
 #include <QList>
 #include "forumsubscription.h"
+#include "forumdataitem.h"
 
 class ForumThread;
 
-class ForumGroup : public QObject {
+class ForumGroup : public ForumDataItem {
     Q_OBJECT
-
 public:
     ForumGroup(ForumSubscription *sub, bool temp=true);
     virtual ~ForumGroup();
     void copyFrom(ForumGroup * o);
-    QString toString() const;
+    virtual QString toString() const;
     bool isSane() const;
     ForumSubscription *subscription() const;
-    QString name() const;
-    QString id() const;
-    QString lastchange() const;
     bool subscribed() const;
     int changeset() const;
     bool hasChanged() const;
-    int unreadCount() const;
-
-    void setName(QString name);
-    void setId(QString id);
-    void setLastchange(QString lc);
     void setSubscribed(bool s);
     void setChangeset(int cs);
     void setHasChanged(bool hc);
-    void incrementUnreadCount(int urc);
     QMap<QString, ForumThread*> & threads();
     bool isTemp();
 
 signals:
     void changed(ForumGroup *grp);
     void unreadCountChanged(ForumGroup *grp);
-
+protected:
+    virtual void emitChanged();
+    virtual void emitUnreadCountChanged();
 private:
     Q_DISABLE_COPY(ForumGroup);
-
     ForumSubscription *_subscription;
-    QString _name;
-    QString _id;
     QString _lastchange;
     bool _subscribed;
     int _changeset;
     bool _hasChanged;
-    int _unreadCount;
+
     QMap<QString, ForumThread*> _threads;
         bool _temp;
 };

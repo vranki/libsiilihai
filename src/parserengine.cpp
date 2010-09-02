@@ -215,6 +215,7 @@ void ParserEngine::listThreadsFinished(QList<ForumThread*> &tempThreads,
     Q_ASSERT(!group->isTemp());
     Q_ASSERT(group->isSane());
     threadsToUpdateQueue.clear();
+    fdb->checkSanity();
     if (tempThreads.isEmpty() && group->threads().size() > 0) {
         emit updateFailure(fsubscription, "Updating thread list failed. \nCheck your network connection.");
         cancelOperation();
@@ -293,7 +294,7 @@ void ParserEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages,
                 //            << " has been changed.";
             //    qDebug() << Q_FUNC_INFO << "Updating message " << msg->toString() << " to " << dbmessage->toString();
                 Q_ASSERT(tempMessage->thread() == dbMessage->thread());
-                bool wasRead = dbMessage->read();
+                bool wasRead = dbMessage->isRead();
                 dbMessage->copyFrom(tempMessage);
                 if(wasRead) dbMessage->setRead(true);
             }

@@ -33,15 +33,15 @@ QString ForumSession::convertCharset(const QByteArray &src) {
     QString converted;
     // I don't like this.. Support needed for more!
     if (fpar.charset == "" || fpar.charset == "utf-8") {
-        converted = QString().fromUtf8(src.data());
+        converted = QString::fromUtf8(src.data());
     } else if (fpar.charset == "iso-8859-1" || fpar.charset == "iso-8859-15") {
-        converted = (QString().fromLatin1(src.data()));
+        converted = QString::fromLatin1(src.data());
     } else {
         qDebug() << "Unknown charset " << fpar.charset << " - assuming ASCII";
-        converted = (QString().fromAscii(src.data()));
+        converted = QString().fromAscii(src.data());
     }
     // Remove silly newlines
-    converted.remove(QChar(13));
+    converted.replace(QChar(13), QChar(' '));
     return converted;
 }
 
@@ -331,7 +331,7 @@ void ForumSession::performListMessages(QString &html) {
         ForumMessage *fm = new ForumMessage(currentThread);
         fm->setRead(false);
         fm->setId(match["%a"]);
-        fm->setSubject(match["%b"]);
+        fm->setName(match["%b"]);
         fm->setBody(match["%c"]);
         fm->setAuthor(match["%d"]);
         fm->setLastchange(match["%e"]);
