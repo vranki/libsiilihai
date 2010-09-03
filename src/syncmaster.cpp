@@ -79,7 +79,7 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
         ForumSubscription *dbSub = fdb.getSubscription(serverSub->parser());
         if(!dbSub) { // Whole forum not found in db - add it
             qDebug() << Q_FUNC_INFO << "Forum not in db -  must add it!";
-            ForumSubscription *newSub = new ForumSubscription(&fdb);
+            ForumSubscription *newSub = new ForumSubscription(&fdb, false);
             newSub->copyFrom(serverSub);
             fdb.addSubscription(newSub);
             dbSub = newSub;
@@ -93,6 +93,7 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
                         groupIsSubscribed = true;
                 }
                 dbGrp->setSubscribed(groupIsSubscribed);
+                dbGrp->commitChanges();
             }
         }
 
@@ -108,7 +109,7 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
             ForumGroup *dbGroup = fdb.getGroup(dbSub, serverGrp->id());
             if(!dbGroup) { // Group doesn't exist yet
                 qDebug() << Q_FUNC_INFO << "Group " << serverGrp->toString() << " not in db -  must add it!";
-                ForumGroup *newGroup = new ForumGroup(dbSub);
+                ForumGroup *newGroup = new ForumGroup(dbSub, false);
                 serverGrp->setName("?");
                 serverGrp->setChangeset(-1); // Force update of group contents
                 serverGrp->setLastchange("UPDATE_NEEDED");
@@ -127,6 +128,7 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
                 dbGroup->setChangeset(serverGrp->changeset());
                 groupsToDownload.append(dbGroup);
             }
+            dbGroup->commitChanges();
         }
     }
 
@@ -155,6 +157,7 @@ void SyncMaster::processGroups() {
         connect(&protocol, SIGNAL(sendThreadDataFinished(bool, QString)),
                 this, SLOT(sendThreadDataFinished(bool, QString)));
         protocol.sendThreadData(g, messagesToUpload);
+        g->commitChanges();
         messagesToUpload.clear();
     }
     if(!groupsToDownload.isEmpty()) {
@@ -193,9 +196,12 @@ void SyncMaster::serverThreadData(ForumThread *tempThread) { // Thread is tempor
             ForumThread *newThread = new ForumThread(dbGroup, false);
             newThread->copyFrom(tempThread);
             fdb.addThread(newThread);
+            dbThread = newThread;
             // Make sure group will be updated
             dbGroup->setLastchange("UPDATE_NEEDED");
+            dbGroup->commitChanges();
         }
+        dbThread->commitChanges();
     } else {
         qDebug() << "Got invalid thread!" << tempThread->toString();
         Q_ASSERT(false);

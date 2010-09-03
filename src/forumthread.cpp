@@ -81,35 +81,36 @@ int ForumThread::getMessagesCount() const {
 void ForumThread::setOrdernum(int on) {
 if(on == _ordernum) return;
     _ordernum = on;
-    emit changed(this);
+    _propertiesChanged = true;
 }
 void ForumThread::setChangeset(int cs) {
 if(cs==_changeset) return;
     _changeset = cs;
-    emit changed(this);
+    _propertiesChanged = true;
 }
 
 void ForumThread::setHasMoreMessages(bool hmm) {
 if(hmm==_hasMoreMessages) return;
     _hasMoreMessages = hmm;
-    emit changed(this);
+    _propertiesChanged = true;
 }
 
 void ForumThread::setGetMessagesCount(int gmc) {
 if(gmc==_getMessagesCount) return;
     _getMessagesCount = gmc;
-    emit changed(this);
+    _propertiesChanged = true;
 }
+/*
 void ForumThread::setGroup(ForumGroup *ng) {
     _group = ng;
 }
-
+*/
 
 QMap<QString, ForumMessage*> & ForumThread::messages() {
     return _messages;
 }
 bool ForumThread::isTemp() {
-return _temp;
+   return _temp;
 }
 
 

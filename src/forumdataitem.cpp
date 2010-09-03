@@ -4,13 +4,13 @@ ForumDataItem::ForumDataItem(QObject * parent) : QObject(parent)
 {
     _name = _id = QString::null;
     _unreadCount = 0;
+    _propertiesChanged = false;
 }
-
 
 void ForumDataItem::setId(QString nid) {
   if(nid == _id) return;
   _id = nid ;
-  emitChanged();
+  _propertiesChanged = true;
 }
 
 QString ForumDataItem::id() const {
@@ -20,7 +20,7 @@ QString ForumDataItem::id() const {
 void ForumDataItem::setName(QString name) {
   if(name == _name) return;
   _name = name;
-  emitChanged();
+  _propertiesChanged = true;
 }
 
 QString ForumDataItem::name() const {
@@ -34,7 +34,12 @@ QString ForumDataItem::lastchange() const {
 void ForumDataItem::setLastchange(QString nlc) {
     if(nlc==_lastchange) return;
     _lastchange = nlc ;
-    emitChanged();
+    _propertiesChanged = true;
+}
+
+void ForumDataItem::commitChanges() {
+    if(_propertiesChanged) emitChanged();
+    _propertiesChanged = false;
 }
 
 int ForumDataItem::unreadCount() const {

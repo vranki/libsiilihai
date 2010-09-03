@@ -36,7 +36,7 @@ public:
     virtual ~ForumDatabase();
     bool openDatabase();
     void resetDatabase();
-    void addSubscription(ForumSubscription *fs); // Ownership changes!!!
+    bool addSubscription(ForumSubscription *fs); // Ownership changes!!!
     QList <ForumSubscription*> listSubscriptions();
     ForumSubscription* getSubscription(int id);
     void deleteSubscription(ForumSubscription *sub);

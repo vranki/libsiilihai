@@ -40,7 +40,7 @@ public:
     void setChangeset(int cs);
     void setHasMoreMessages(bool hmm);
     void setGetMessagesCount(int gmc);
-    void setGroup(ForumGroup *ng);
+    //void setGroup(ForumGroup *ng);
     virtual QString toString() const;
     bool isSane() const;
     QMap<QString, ForumMessage*> & messages();

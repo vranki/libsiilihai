@@ -45,7 +45,6 @@ bool ForumMessage::isSane() const {
 }
 
 QString ForumMessage::toString() const {
-return "MSG";/*
     QString parser = "Unknown";
     QString group = "Unknown";
     QString thread = "Unknown";
@@ -59,8 +58,7 @@ return "MSG";/*
     }
 
     return QString().number(_thread->group()->subscription()->parser()) + "/" +
-            _thread->group()->id() + "/" + _thread->id() + "/" + id() + ": " + subject() + "/ Read:" + QString().number(_read);
-*/
+            _thread->group()->id() + "/" + _thread->id() + "/" + id() + ": " + name() + "/ Read:" + QString().number(_read);
 }
 
 ForumThread* ForumMessage::thread() const { return _thread; }
@@ -74,23 +72,23 @@ bool ForumMessage::isRead() const { return _read; }
 void ForumMessage::setOrdernum(int nod) {
 if(nod == _ordernum) return;
   _ordernum = nod;
-  emit changed(this);
+  _propertiesChanged = true;
 }
 
 void ForumMessage::setUrl(QString nurl) {
 if(nurl == _url) return;
 _url = nurl;
-  emit changed(this);
+  _propertiesChanged = true;
 }
 void ForumMessage::setAuthor(QString na) {
 if(na == _author) return;
 _author = na;
-  emit changed(this);
+  _propertiesChanged = true;
 }
 void ForumMessage::setBody(QString nb) {
   if(nb == _body) return;
   _body = nb ;
-  emit changed(this);
+  _propertiesChanged = true;
 }
 void ForumMessage::setRead(bool nr) {
   if(nr==_read) return;

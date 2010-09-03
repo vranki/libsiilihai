@@ -16,9 +16,11 @@ public:
     virtual void incrementUnreadCount(int urc);
     void setLastchange(QString nlc);
     QString lastchange() const;
+    void commitChanges();
 protected:
     virtual void emitChanged()=0;
     virtual void emitUnreadCountChanged()=0;
+    bool _propertiesChanged;
 private:
     Q_DISABLE_COPY(ForumDataItem);
     QString _name;

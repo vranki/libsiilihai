@@ -593,9 +593,7 @@ void SiilihaiProtocol::replyGetThreadData(QNetworkReply *reply) {
                     QDomElement groupElement =
                             forumElement.childNodes().at(k).toElement();
                     QString groupid = groupElement.attribute("id");
-                    Q_ASSERT(groupid == getThreadDataGroup->id());  // Sometimes fails!
-                    // Not used yet:
-                    // int groupChangeset = groupElement.attribute("changeset").toInt();
+                    Q_ASSERT(groupid == getThreadDataGroup->id());
 
                     for (int l = 0; l < groupElement.childNodes().size(); l++) {
                         QDomElement threadElement =
@@ -623,6 +621,7 @@ void SiilihaiProtocol::replyGetThreadData(QNetworkReply *reply) {
                             msg.setRead(true);
                             emit serverMessageData(&msg);
                         }
+                        QCoreApplication::processEvents();
                     }
                 }
             }

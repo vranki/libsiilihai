@@ -54,9 +54,8 @@ private:
     bool _subscribed;
     int _changeset;
     bool _hasChanged;
-
     QMap<QString, ForumThread*> _threads;
-        bool _temp;
+    bool _temp;
 };
 
 #endif

@@ -225,11 +225,14 @@ bool ForumDatabase::openDatabase() {
 }
 
 
-void ForumDatabase::addSubscription(ForumSubscription *fs) {
+bool ForumDatabase::addSubscription(ForumSubscription *fs) {
     Q_ASSERT(fs);
     qDebug() << Q_FUNC_INFO << fs->toString();
     Q_ASSERT(fs->isSane());
+    if(subscriptions.value(fs->parser())) return false; // already sub'd
+
     Q_ASSERT(!subscriptions.value(fs->parser()));
+    Q_ASSERT(!fs->isTemp());
     QSqlQuery query;
     query.prepare("INSERT INTO forums("
                   "parser, name, username, password, latest_threads, latest_messages"
@@ -255,6 +258,7 @@ void ForumDatabase::addSubscription(ForumSubscription *fs) {
     emit subscriptionFound(fs);
 
     checkSanity();
+    return true;
 }
 
 void ForumDatabase::subscriptionChanged(ForumSubscription *sub) {
@@ -334,6 +338,7 @@ void ForumDatabase::addGroup(ForumGroup *grp) {
     Q_ASSERT(grp);
     qDebug() << Q_FUNC_INFO << grp->toString();
     Q_ASSERT(grp->isSane());
+    Q_ASSERT(!grp->isTemp());
     ForumSubscription *sub = getSubscription(grp->subscription()->parser());
     Q_ASSERT(sub);
     Q_ASSERT(sub == grp->subscription());
@@ -356,6 +361,8 @@ void ForumDatabase::addGroup(ForumGroup *grp) {
     query.addBindValue(sub->parser());
     query.addBindValue(grp->id());
     Q_ASSERT(query.exec());
+
+    grp->commitChanges();
 
     query.prepare(
             "INSERT INTO groups(forumid, groupid, name, lastchange, subscribed, changeset) VALUES (?, ?, ?, ?, ?, ?)");
@@ -398,6 +405,8 @@ void ForumDatabase::addThread(ForumThread *thread) {
     query.addBindValue(thread->group()->id());
     query.addBindValue(thread->id());
     Q_ASSERT(query.exec());
+
+    thread->commitChanges();
 
     // Delete all messages in this thread (if they exist for some reason)!
     // Otherwise they may cause havoc.
@@ -495,6 +504,8 @@ void ForumDatabase::addMessage(ForumMessage *message) {
     query.addBindValue(message->id());
     Q_ASSERT(query.exec());
 
+    message->commitChanges();
+
     query.prepare("INSERT INTO messages(forumid, groupid, threadid, messageid,"
                   " ordernum, url, subject, author, lastchange, body, read) VALUES "
                   "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
@@ -514,6 +525,7 @@ void ForumDatabase::addMessage(ForumMessage *message) {
     emit messageAdded(message);
     emit messageFound(message);
     checkSanity();
+    QCoreApplication::processEvents();
 }
 
 ForumMessage* ForumDatabase::getMessage(const int forum, QString groupid,

@@ -156,6 +156,7 @@ void ParserEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups) {
                     tempGroup->setSubscribed(true);
                     Q_ASSERT(tempGroup->subscription() == dbGroup->subscription());
                     dbGroup->copyFrom(tempGroup);
+                    dbGroup->commitChanges();
                 } else {
            //         qDebug() << "Group" << dbgroup->toString()
             //                << " hasn't changed or is not subscribed - not reloading.";
@@ -165,7 +166,7 @@ void ParserEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups) {
         if (!foundInDb) {
             // qDebug() << "Group " << grp->toString() << " not found in db - adding.";
             groupsChanged = true;
-            ForumGroup *newGroup = new ForumGroup(fsubscription);
+            ForumGroup *newGroup = new ForumGroup(fsubscription, false);
             newGroup->copyFrom(tempGroup);
             newGroup->setChangeset(rand());
             // DON'T set lastchange when only updating group list.
@@ -238,7 +239,7 @@ void ParserEngine::listThreadsFinished(QList<ForumThread*> &tempThreads,
                 dbThread->setChangeset(serverThread->changeset());
                 dbThread->setGetMessagesCount(oldGetMessagesCount);
                 dbThread->setHasMoreMessages(oldHasMoreMessages);
-
+                dbThread->commitChanges();
                 qDebug() << Q_FUNC_INFO << "Thread " << dbThread->toString()
                         << " has been changed, updating and adding to update queue";
                 threadsToUpdateQueue.enqueue(dbThread);
@@ -271,13 +272,13 @@ void ParserEngine::listThreadsFinished(QList<ForumThread*> &tempThreads,
 }
 
 void ParserEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages,
-                                        ForumThread *thread, bool moreAvailable) {
+                                        ForumThread *dbThread, bool moreAvailable) {
    // qDebug() << Q_FUNC_INFO << messages.size() << "new in " << thread->toString()
    //         << " more available: " << moreAvailable;
-    Q_ASSERT(thread);
-    Q_ASSERT(thread->isSane());
-    Q_ASSERT(!thread->isTemp());
-    Q_ASSERT(thread->group()->subscribed());
+    Q_ASSERT(dbThread);
+    Q_ASSERT(dbThread->isSane());
+    Q_ASSERT(!dbThread->isTemp());
+    Q_ASSERT(dbThread->group()->subscribed());
     //QList<ForumMessage*> dbmessages = fdb->listMessages(thread);
     // Diff the group list
    // qDebug() << "db contains " << dbmessages.size() << " msgs, got now "
@@ -285,7 +286,7 @@ void ParserEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages,
     bool messagesChanged = false;
     foreach (ForumMessage *tempMessage, tempMessages) {
         bool foundInDb = false;
-        foreach (ForumMessage *dbMessage, thread->messages()) {
+        foreach (ForumMessage *dbMessage, dbThread->messages()) {
             if (dbMessage->id() == tempMessage->id()) {
                 // qDebug() << "msg id " << dbmessage.id << " & " << msg.id;
                 foundInDb = true;
@@ -297,18 +298,19 @@ void ParserEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages,
                 bool wasRead = dbMessage->isRead();
                 dbMessage->copyFrom(tempMessage);
                 if(wasRead) dbMessage->setRead(true);
+                dbMessage->commitChanges();
             }
         }
         if (!foundInDb) {
             messagesChanged = true;
-            ForumMessage *newMessage = new ForumMessage(thread, false);
+            ForumMessage *newMessage = new ForumMessage(dbThread, false);
             newMessage->copyFrom(tempMessage);
             fdb->addMessage(newMessage);
         }
     }
 
     // check for DELETED threads
-    foreach (ForumMessage *dbmessage, thread->messages()) {
+    foreach (ForumMessage *dbmessage, dbThread->messages()) {
         bool messageFound = false;
         foreach (ForumMessage *msg, tempMessages) {
             if (dbmessage->id() == msg->id()) {
@@ -322,8 +324,8 @@ void ParserEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages,
         }
     }
     // update thread
-    thread->setHasMoreMessages(moreAvailable);
-
+    dbThread->setHasMoreMessages(moreAvailable);
+    dbThread->commitChanges();
     if(updateAll) {
         updateNextChangedThread();
     } else {

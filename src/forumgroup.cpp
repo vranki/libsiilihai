@@ -64,19 +64,19 @@ bool ForumGroup::hasChanged() const {
 void ForumGroup::setSubscribed(bool s) {
 if(s==_subscribed) return;
 _subscribed = s;
-emit changed(this);
+_propertiesChanged = true;
 }
 
 void ForumGroup::setChangeset(int cs) {
 if(cs==_changeset) return;
 _changeset = cs;
-emit changed(this);
+_propertiesChanged = true;
 }
 
 void ForumGroup::setHasChanged(bool hc) {
 if(hc==_hasChanged) return;
    _hasChanged = hc;
-   emit changed(this); // @todo should we? this bool goes nowhere
+   _propertiesChanged = true; // @todo should we? this bool goes nowhere
 }
 
 QMap<QString, ForumThread*> & ForumGroup::threads() {
