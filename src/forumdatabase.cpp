@@ -300,7 +300,7 @@ void ForumDatabase::deleteSubscription(ForumSubscription *sub) {
     Q_ASSERT(sub);
     Q_ASSERT(subscriptions.value(sub->parser()));
 
-    while(sub->groups().isEmpty())
+    while(!sub->groups().isEmpty())
         deleteGroup(sub->groups().begin().value());
 
     QSqlQuery query;
@@ -314,7 +314,7 @@ void ForumDatabase::deleteSubscription(ForumSubscription *sub) {
 
     subscriptions.erase(subscriptions.find(sub->parser()));
     // emit subscriptionDeleted(sub);
-    qDebug() << "Subscription " << sub->toString() << " deleted";
+    qDebug() << Q_FUNC_INFO << "Subscription " << sub->toString() << " deleted";
     sub->deleteLater();
     checkSanity();
 }
@@ -378,12 +378,12 @@ void ForumDatabase::addGroup(ForumGroup *grp) {
     }
     Q_ASSERT(subscriptions.value(sub->parser()) == grp->subscription());
 
-    connect(grp, SIGNAL(changed(ForumSubscription*)), this, SLOT(subscriptionChanged(ForumSubscription*)));
+    connect(grp, SIGNAL(changed(ForumGroup*)), this, SLOT(groupChanged(ForumGroup*)));
     sub->groups().insert(grp->id(), grp);
     emit groupAdded(grp);
     emit groupFound(grp);
 
-    qDebug() << "Group " << grp->toString() << " stored";
+    qDebug() << Q_FUNC_INFO << "Group " << grp->toString() << " stored";
     checkSanity();
 }
 
@@ -600,7 +600,7 @@ bool ForumDatabase::deleteMessage(ForumMessage *message) {
 bool ForumDatabase::deleteGroup(ForumGroup *grp) {
     Q_ASSERT(grp);
     Q_ASSERT(grp->isSane());
-
+    qDebug() << Q_FUNC_INFO << grp->toString();
     while(!grp->threads().isEmpty())
         deleteThread(grp->threads().begin().value());
 
@@ -615,7 +615,6 @@ bool ForumDatabase::deleteGroup(ForumGroup *grp) {
     }
     grp->subscription()->groups().remove(grp->id());
     grp->deleteLater();
-    qDebug() << "Group " << grp->toString() << " deleted";
     checkSanity();
     return true;
 }

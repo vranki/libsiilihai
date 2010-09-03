@@ -1,8 +1,9 @@
 libsiilihai (0.9.14-1) lucid; urgency=low
 
-  * Arch changes (NR)
+  * Major architectural change
+  * Performance optimizations
 
- -- Ville Ranki <ville.ranki@iki.fi>  Fri, 06 Aug 2010 20:29:43 +0300
+ -- Ville Ranki <ville.ranki@iki.fi>  Fri, 03 Sep 2010 20:29:43 +0300
 
 libsiilihai (0.9.12-2) lucid; urgency=low
 
