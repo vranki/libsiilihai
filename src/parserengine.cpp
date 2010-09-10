@@ -37,9 +37,12 @@ ParserEngine::ParserEngine(ForumDatabase *fd, QObject *parent) :
     forceUpdate = false;
     sessionInitialized = false;
     forumBusy = false;
+    fsubscription = 0;
 }
 
 ParserEngine::~ParserEngine() {
+   if(fsubscription)
+       fsubscription->setParserEngine(0);
 }
 
 void ParserEngine::setParser(ForumParser &fp) {
@@ -47,7 +50,10 @@ void ParserEngine::setParser(ForumParser &fp) {
 }
 
 void ParserEngine::setSubscription(ForumSubscription *fs) {
+    Q_ASSERT(!fsubscription); // Don't reuse this class, plz!
     fsubscription = fs;
+    connect(fsubscription, SIGNAL(destroyed()), this, SLOT(subscriptionDeleted()));
+    fsubscription->setParserEngine(this);
 }
 
 void ParserEngine::updateForum(bool force) {
@@ -130,7 +136,6 @@ void ParserEngine::updateNextChangedThread() {
 void ParserEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups) {
    // qDebug() << Q_FUNC_INFO << " rx groups " << groups.size()
    //         << " in " << parser.toString();
-  //  QList<ForumGroup*> dbgroups = fdb->listGroups(fsubscription);
     bool dbGroupsWasEmpty = fsubscription->groups().isEmpty();
     groupsToUpdateQueue.clear();
     if (tempGroups.size() == 0 && fsubscription->groups().size() > 0) {
@@ -174,11 +179,6 @@ void ParserEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups) {
                 newGroup->setLastchange("UPDATE_NEEDED");
             }
             fdb->addGroup(newGroup);
-            /* Don't update a group that isn't known & subscribed!
-            if (updateAll) {
-                groupsToUpdateQueue.enqueue(newGroup);
-            }
-            */
         }
     }
 
@@ -368,4 +368,9 @@ void ParserEngine::loginFinishedSlot(ForumSubscription *sub, bool success) {
 
 ForumSubscription* ParserEngine::subscription() {
     return fsubscription;
+}
+
+void ParserEngine::subscriptionDeleted() {
+    cancelOperation();
+    fsubscription = 0;
 }

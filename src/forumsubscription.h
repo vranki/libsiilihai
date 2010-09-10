@@ -19,7 +19,9 @@
 #include <QMap>
 #include <QList>
 #include <QDebug>
+
 class ForumGroup;
+class ParserEngine;
 
 class ForumSubscription : public QObject  {
 	Q_OBJECT
@@ -48,6 +50,8 @@ public:
         int unreadCount() const;
         QMap<QString, ForumGroup*> &groups();
         bool isTemp();
+        void setParserEngine(ParserEngine *eng);
+        ParserEngine *parserEngine();
 signals:
     void changed(ForumSubscription *s);
     void unreadCountChanged(ForumSubscription *s);
@@ -65,6 +69,7 @@ Q_DISABLE_COPY(ForumSubscription)
         int _unreadCount;
         QMap<QString, ForumGroup*> _groups;
         bool _temp;
+        ParserEngine *_engine;
 };
 
 #endif /* FORUMSUBSCRIPTION_H_ */

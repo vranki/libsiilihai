@@ -23,6 +23,7 @@ ForumSubscription::ForumSubscription(QObject *parent, bool temp) : QObject(paren
         _unreadCount = 0;
         _username = _password = QString::null;
         _temp = temp;
+        _engine = 0;
 }
 
 void ForumSubscription::copyFrom(ForumSubscription * other) {
@@ -119,4 +120,12 @@ QMap<QString, ForumGroup*>& ForumSubscription::groups() {
 }
 bool ForumSubscription::isTemp() {
 return _temp;
+}
+
+void ForumSubscription::setParserEngine(ParserEngine *eng) {
+ _engine = eng;
+}
+
+ParserEngine *ForumSubscription::parserEngine() {
+return _engine;
 }

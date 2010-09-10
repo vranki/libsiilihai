@@ -313,9 +313,8 @@ void ForumDatabase::deleteSubscription(ForumSubscription *sub) {
     }
 
     subscriptions.erase(subscriptions.find(sub->parser()));
-    // emit subscriptionDeleted(sub);
     qDebug() << Q_FUNC_INFO << "Subscription " << sub->toString() << " deleted";
-    sub->deleteLater();
+    delete(sub);
     checkSanity();
 }
 
@@ -590,9 +589,9 @@ bool ForumDatabase::deleteMessage(ForumMessage *message) {
     }
     Q_ASSERT(message->thread()->messages().remove(message->id()));
     if(!message->isRead()) message->thread()->incrementUnreadCount(-1);
-    message->deleteLater();
     message->thread()->group()->setHasChanged(true);
     qDebug() << Q_FUNC_INFO << "Message " << message->toString() << " deleted";
+    delete(message);
     checkSanity();
     return true;
 }
@@ -613,8 +612,8 @@ bool ForumDatabase::deleteGroup(ForumGroup *grp) {
         Q_ASSERT(false);
         return false;
     }
-    grp->subscription()->groups().remove(grp->id());
-    grp->deleteLater();
+    Q_ASSERT(grp->subscription()->groups().remove(grp->id()));
+    delete(grp);
     checkSanity();
     return true;
 }
@@ -660,7 +659,7 @@ bool ForumDatabase::deleteThread(ForumThread *thread) {
     thread->group()->setHasChanged(true);
     Q_ASSERT(thread->group()->threads().remove(thread->id()));
     qDebug() << "Thread " << thread->toString() << " deleted";
-    thread->deleteLater();
+    delete(thread);
     checkSanity();
     return true;
 }

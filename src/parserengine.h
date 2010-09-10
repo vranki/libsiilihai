@@ -43,6 +43,7 @@ public slots:
     void networkFailure(QString message);
     void cancelOperation();
     void loginFinishedSlot(ForumSubscription *sub, bool success);
+    void subscriptionDeleted();
 signals:
     // Emitted if initially group list was empty but new groups
     // were found.
