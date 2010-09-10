@@ -57,7 +57,7 @@ void ParserEngine::setSubscription(ForumSubscription *fs) {
 }
 
 void ParserEngine::updateForum(bool force) {
-   // qDebug() << Q_FUNC_INFO << "for forum " << parser.toString();
+    if(!parser.isSane()) qDebug() << Q_FUNC_INFO << "Warning: Parser not sane!";
     Q_ASSERT(fsubscription);
 
     forceUpdate = force;
@@ -71,6 +71,7 @@ void ParserEngine::updateForum(bool force) {
 }
 
 void ParserEngine::updateGroupList() {
+    if(!parser.isSane()) qDebug() << Q_FUNC_INFO << "Warning: Parser not sane!";
     updateAll = false;
     if (!sessionInitialized) {
         session.initialize(parser, fsubscription);
@@ -84,7 +85,7 @@ void ParserEngine::updateGroupList() {
 void ParserEngine::updateThread(ForumThread *thread) {
     Q_ASSERT(fsubscription);
     Q_ASSERT(thread);
-    // qDebug() << Q_FUNC_INFO << "for thread " << thread->toString();
+    if(!parser.isSane()) qDebug() << Q_FUNC_INFO << "Warning: Parser not sane!";
 
     forceUpdate = false;
     updateAll = false;

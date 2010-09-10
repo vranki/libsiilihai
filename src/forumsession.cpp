@@ -207,8 +207,8 @@ void ForumSession::performLogin(QString &html) {
 }
 
 void ForumSession::fetchCookie() {
-    qDebug() << Q_FUNC_INFO;
-
+    qDebug() << Q_FUNC_INFO << fpar.forum_url;
+    Q_ASSERT(fpar.forum_url.length() > 0);
     if (operationInProgress == FSONoOp)
         return;
     QNetworkRequest req(QUrl(fpar.forum_url));
