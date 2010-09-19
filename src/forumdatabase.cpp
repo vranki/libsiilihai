@@ -69,6 +69,7 @@ bool ForumDatabase::openDatabase() {
                         "changeset INTEGER, "
                         "hasmoremessages BOOLEAN, "
                         "getmessagescount INTEGER, "
+                        "lastpage INTEGER, "
                         "PRIMARY KEY (forumid, groupid, threadid)"
                         ")")) {
             qDebug() << "Couldn't create threads table!";
@@ -147,7 +148,7 @@ bool ForumDatabase::openDatabase() {
     // Load threads
     foreach(ForumSubscription *sub, subscriptions) {
         foreach(ForumGroup *grp, sub->groups()) {
-            query.prepare("SELECT threadid,ordernum,name,lastchange,changeset,hasmoremessages,getmessagescount FROM threads WHERE forumid=? AND groupid=? ORDER BY ordernum");
+            query.prepare("SELECT threadid,ordernum,name,lastchange,changeset,hasmoremessages,getmessagescount,lastpage FROM threads WHERE forumid=? AND groupid=? ORDER BY ordernum");
             query.addBindValue(grp->subscription()->parser());
             query.addBindValue(grp->id());
 
@@ -161,6 +162,7 @@ bool ForumDatabase::openDatabase() {
                     t->setChangeset(query.value(4).toInt());
                     t->setHasMoreMessages(query.value(5).toBool());
                     t->setGetMessagesCount(query.value(6).toInt());
+                    t->setLastPage(query.value(7).toInt());
                     grp->threads().insert(t->id(), t);
                     connect(t, SIGNAL(changed(ForumThread*)), this, SLOT(threadChanged(ForumThread*)));
                     emit threadFound(t);
@@ -422,7 +424,7 @@ void ForumDatabase::addThread(ForumThread *thread) {
     }
 
     query.prepare(
-            "INSERT INTO threads(forumid, groupid, threadid, name, ordernum, lastchange, changeset, hasmoremessages, getmessagescount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            "INSERT INTO threads(forumid, groupid, threadid, name, ordernum, lastchange, changeset, hasmoremessages, getmessagescount, lastpage) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     query.addBindValue(thread->group()->subscription()->parser());
     query.addBindValue(thread->group()->id());
     query.addBindValue(thread->id());
@@ -432,7 +434,7 @@ void ForumDatabase::addThread(ForumThread *thread) {
     query.addBindValue(thread->changeset());
     query.addBindValue(thread->hasMoreMessages());
     query.addBindValue(thread->getMessagesCount());
-
+    query.addBindValue(thread->getLastPage());
     if (!query.exec()) {
         qDebug() << Q_FUNC_INFO << "Adding thread " << thread->toString() << " failed: "
                 << query.lastError().text();
@@ -454,13 +456,14 @@ void ForumDatabase::threadChanged(ForumThread *thread) {
     Q_ASSERT(thread->isSane());
     QSqlQuery query;
     query.prepare(
-            "UPDATE threads SET name=?, ordernum=?, lastchange=?, changeset=?, hasmoremessages=?, getmessagescount=? WHERE(forumid=? AND groupid=? AND threadid=?)");
+            "UPDATE threads SET name=?, ordernum=?, lastchange=?, changeset=?, hasmoremessages=?, getmessagescount=?, lastpage=? WHERE(forumid=? AND groupid=? AND threadid=?)");
     query.addBindValue(thread->name());
     query.addBindValue(thread->ordernum());
     query.addBindValue(thread->lastchange());
     query.addBindValue(thread->changeset());
     query.addBindValue(thread->hasMoreMessages());
     query.addBindValue(thread->getMessagesCount());
+    query.addBindValue(thread->getLastPage());
     // Where
     query.addBindValue(thread->group()->subscription()->parser());
     query.addBindValue(thread->group()->id());
@@ -772,7 +775,7 @@ int ForumDatabase::recalcUnreads(ForumSubscription * sub) {
 }
 
 int ForumDatabase::schemaVersion() {
-    return 5;
+    return 6;
 }
 
 void ForumDatabase::checkSanity() {

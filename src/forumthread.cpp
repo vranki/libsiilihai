@@ -25,6 +25,7 @@ ForumThread::ForumThread(ForumGroup *grp, bool temp) : ForumDataItem(grp) {
     _getMessagesCount = -1;
     _hasChanged = false;
     _temp = temp;
+    _lastPage = 0;
 }
 
 void ForumThread::copyFrom(ForumThread * o) {
@@ -35,6 +36,7 @@ void ForumThread::copyFrom(ForumThread * o) {
     setOrdernum(o->ordernum());
     setHasMoreMessages(o->hasMoreMessages());
     setGetMessagesCount(o->getMessagesCount());
+    setLastPage(o->getLastPage());
 }
 
 bool ForumThread::operator<(const ForumThread &o) {
@@ -100,11 +102,7 @@ if(gmc==_getMessagesCount) return;
     _getMessagesCount = gmc;
     _propertiesChanged = true;
 }
-/*
-void ForumThread::setGroup(ForumGroup *ng) {
-    _group = ng;
-}
-*/
+
 
 QMap<QString, ForumMessage*> & ForumThread::messages() {
     return _messages;
@@ -120,4 +118,14 @@ void ForumThread::emitChanged() {
 
 void ForumThread::emitUnreadCountChanged() {
     emit unreadCountChanged(this);
+}
+
+void ForumThread::setLastPage(int lp) {
+if(_lastPage == lp) return;
+    _lastPage = lp;
+    _propertiesChanged = true;
+}
+
+int ForumThread::getLastPage() {
+    return _lastPage;
 }

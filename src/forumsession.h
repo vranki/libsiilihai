@@ -40,7 +40,7 @@ class ForumSession : public QObject {
 public:
     enum ForumSessionOperation { FSONoOp, FSOListGroups, FSOUpdateThreads, FSOUpdateMessages };
 
-    ForumSession(QObject *parent=0);
+    ForumSession(QObject *parent, QNetworkAccessManager *n);
     virtual ~ForumSession();
     void initialize(ForumParser &fop, ForumSubscription *fos, PatternMatcher *matcher=0);
     void clearAuthentications();
@@ -49,7 +49,6 @@ public:
     void listThreads(ForumGroup *group);
     void listMessages(ForumThread *thread);
     void loginToForum();
-
     QString getMessageUrl(const ForumMessage *msg);
     QString getLoginUrl();
     QString getThreadListUrl(const ForumGroup *grp, int page=-1);

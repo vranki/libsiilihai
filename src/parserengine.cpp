@@ -15,7 +15,7 @@
 #include "parserengine.h"
 
 ParserEngine::ParserEngine(ForumDatabase *fd, QObject *parent) :
-	QObject(parent), session(this) {
+        QObject(parent), nam(this), session(this, &nam) {
     connect(&session, SIGNAL(listGroupsFinished(QList<ForumGroup*>&)), this,
             SLOT(listGroupsFinished(QList<ForumGroup*>&)));
     connect(&session,
@@ -82,7 +82,7 @@ void ParserEngine::updateGroupList() {
     setBusy(true);
 }
 
-void ParserEngine::updateThread(ForumThread *thread) {
+void ParserEngine::updateThread(ForumThread *thread, bool force) {
     Q_ASSERT(fsubscription);
     Q_ASSERT(thread);
     if(!parser.isSane()) qDebug() << Q_FUNC_INFO << "Warning: Parser not sane!";
@@ -94,7 +94,7 @@ void ParserEngine::updateThread(ForumThread *thread) {
         session.initialize(parser, fsubscription);
         sessionInitialized = true;
     }
-
+    if(force) thread->setLastPage(0);
     session.listMessages(thread);
     setBusy(true);
 }
@@ -125,8 +125,11 @@ void ParserEngine::updateNextChangedGroup() {
 }
 
 void ParserEngine::updateNextChangedThread() {
-    if (threadsToUpdateQueue.size() > 0) {
-        session.listMessages(threadsToUpdateQueue.dequeue());
+    if (!threadsToUpdateQueue.isEmpty()) {
+        ForumThread *thread = threadsToUpdateQueue.dequeue();
+        if(forceUpdate)
+           thread->setLastPage(0);
+        session.listMessages(thread);
     } else {
       //  qDebug() << "PE: no more threads to update - updating next group.";
         updateNextChangedGroup();
@@ -274,27 +277,17 @@ void ParserEngine::listThreadsFinished(QList<ForumThread*> &tempThreads,
 
 void ParserEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages,
                                         ForumThread *dbThread, bool moreAvailable) {
-   // qDebug() << Q_FUNC_INFO << messages.size() << "new in " << thread->toString()
-   //         << " more available: " << moreAvailable;
     Q_ASSERT(dbThread);
     Q_ASSERT(dbThread->isSane());
     Q_ASSERT(!dbThread->isTemp());
     Q_ASSERT(dbThread->group()->subscribed());
-    //QList<ForumMessage*> dbmessages = fdb->listMessages(thread);
-    // Diff the group list
-   // qDebug() << "db contains " << dbmessages.size() << " msgs, got now "
-  //          << messages.size() << " thread " << thread->toString();
+
     bool messagesChanged = false;
     foreach (ForumMessage *tempMessage, tempMessages) {
         bool foundInDb = false;
         foreach (ForumMessage *dbMessage, dbThread->messages()) {
             if (dbMessage->id() == tempMessage->id()) {
-                // qDebug() << "msg id " << dbmessage.id << " & " << msg.id;
                 foundInDb = true;
-                //if ((dbmessage->lastchange() != msg->lastchange()) || forceUpdate) {
-                //    qDebug() << "Message " << dbmessage->toString()
-                //            << " has been changed.";
-            //    qDebug() << Q_FUNC_INFO << "Updating message " << msg->toString() << " to " << dbmessage->toString();
                 Q_ASSERT(tempMessage->thread() == dbMessage->thread());
                 bool wasRead = dbMessage->isRead();
                 dbMessage->copyFrom(tempMessage);
@@ -320,7 +313,6 @@ void ParserEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages,
         }
         if (!messageFound) {
             messagesChanged = true;
-        //    qDebug() << "Message " << dbmessage->toString() << " has been deleted!";
             fdb->deleteMessage(dbmessage);
         }
     }
@@ -374,4 +366,7 @@ ForumSubscription* ParserEngine::subscription() {
 void ParserEngine::subscriptionDeleted() {
     cancelOperation();
     fsubscription = 0;
+}
+QNetworkAccessManager * ParserEngine::networkAccessManager() {
+    return &nam;
 }

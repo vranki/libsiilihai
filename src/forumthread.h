@@ -22,7 +22,6 @@
 #include "forumgroup.h"
 
 class ForumMessage;
-//class ForumGroup : public ForumDataItem;
 
 class ForumThread : public ForumDataItem {
     Q_OBJECT
@@ -40,7 +39,8 @@ public:
     void setChangeset(int cs);
     void setHasMoreMessages(bool hmm);
     void setGetMessagesCount(int gmc);
-    //void setGroup(ForumGroup *ng);
+    void setLastPage(int lp);
+    int getLastPage();
     virtual QString toString() const;
     bool isSane() const;
     QMap<QString, ForumMessage*> & messages();
@@ -64,6 +64,7 @@ private:
     bool _hasChanged;
     QMap<QString, ForumMessage*> _messages;
         bool _temp;
+        int _lastPage;
 };
 
 #endif /* FORUMTHREAD_H_ */

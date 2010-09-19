@@ -15,6 +15,7 @@
 #ifndef PARSERENGINE_H_
 #define PARSERENGINE_H_
 #include <QObject>
+#include <QNetworkAccessManager>
 #include "forumparser.h"
 #include "forumsubscription.h"
 #include "forumsession.h"
@@ -33,9 +34,10 @@ public:
     void setSubscription(ForumSubscription *fs);
     void updateGroupList();
     void updateForum(bool force=false);
-    void updateThread(ForumThread *thread);
+    void updateThread(ForumThread *thread, bool force=false);
     bool isBusy();
     ForumSubscription* subscription();
+    QNetworkAccessManager *networkAccessManager();
 public slots:
     void listMessagesFinished(QList<ForumMessage*> &messages, ForumThread *thread, bool moreAvailable);
     void listGroupsFinished(QList<ForumGroup*> &groups);
@@ -61,6 +63,7 @@ private:
     void updateCurrentProgress();
     ForumParser parser;
     ForumSubscription *fsubscription;
+    QNetworkAccessManager nam;
     ForumSession session;
     bool sessionInitialized;
     bool updateAll;

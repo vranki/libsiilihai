@@ -1,3 +1,9 @@
+libsiilihai (0.9.15-1) lucid; urgency=low
+
+  * Added last page property to threads to speed up updating long threads.
+
+ -- Ville Ranki <ville.ranki@iki.fi>  Fri, 03 Sep 2010 20:29:43 +0300
+
 libsiilihai (0.9.14-2) lucid; urgency=low
 
   * Major architectural change

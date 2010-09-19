@@ -14,9 +14,8 @@
     along with libSiilihai.  If not, see <http://www.gnu.org/licenses/>. */
 #include "forumsession.h"
 
-ForumSession::ForumSession(QObject *parent) : QObject(parent) {
+ForumSession::ForumSession(QObject *parent, QNetworkAccessManager *n) : QObject(parent), nam(n) {
     operationInProgress = FSONoOp;
-    nam = 0;
     cookieJar = 0;
     currentListPage = 0;
     pm = 0;
@@ -298,7 +297,11 @@ void ForumSession::listMessages(ForumThread *thread) {
     messages.clear();
     moreMessagesAvailable = false;
     if(prepareForUse()) return;
-    currentListPage = fpar.view_thread_page_start;
+    if(thread->getLastPage()) { // Start from last known page if possible
+        currentListPage = thread->getLastPage();
+    } else {
+        currentListPage = fpar.view_thread_page_start;
+    }
     updateThreadPage();
 }
 
@@ -384,9 +387,8 @@ void ForumSession::performListMessages(QString &html) {
     if (newMessagesFound) {
         if (fpar.view_thread_page_increment > 0) {
             // Continue to next page
+            currentThread->setLastPage(currentListPage); // To be updated to db in listMessagesFinished
             currentListPage += fpar.view_thread_page_increment;
-           // qDebug() << "New messages were found - continuing to next page "
-           //         << currentListPage;
             updateThreadPage();
         } else {
            // qDebug() << "Forum doesn't support multipage - NOT continuing to next page.";
@@ -607,17 +609,14 @@ void ForumSession::authenticationRequired(QNetworkReply * reply,
 }
 
 void ForumSession::clearAuthentications() {
-    qDebug() << Q_FUNC_INFO;
     cancelOperation();
 
     if (cookieJar)
         cookieJar->deleteLater();
-    if (nam)
-        nam->deleteLater();
     loggedIn = false;
 
-    nam = new QNetworkAccessManager(this);
     cookieJar = new QNetworkCookieJar();
+    nam->disconnect(this);
     nam->setCookieJar(cookieJar);
     connect(nam, SIGNAL(authenticationRequired(QNetworkReply *,
                                                QAuthenticator *)),
