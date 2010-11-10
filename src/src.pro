@@ -1,5 +1,5 @@
 TEMPLATE = lib
-VERSION = 0.9.14
+VERSION = 1.0.0
 TARGET = siilihai
 
 isEmpty(PREFIX) {
@@ -15,7 +15,7 @@ INCLUDEDIR = $$PREFIX/include/siilihai
    LIBDIR = $$PREFIX/lib64
 }
 
-CONFIG += create_prl debug
+CONFIG += create_prl
 
 QT += core \
     sql \

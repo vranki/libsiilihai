@@ -93,7 +93,8 @@ void ForumSession::fetchCookieReply(QNetworkReply *reply) {
     disconnect(nam, SIGNAL(finished(QNetworkReply*)), this,
                SLOT(fetchCookieReply(QNetworkReply*)));
     if (reply->error() != QNetworkReply::NoError) {
-    Q_ASSERT(false);
+        qDebug() << Q_FUNC_INFO << reply->errorString();
+        Q_ASSERT(false);
         emit(networkFailure(reply->errorString()));
         cancelOperation();
         return;
