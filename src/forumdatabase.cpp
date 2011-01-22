@@ -747,8 +747,10 @@ bool ForumDatabase::markGroupRead(ForumGroup *group, bool read) {
 }
 
 int ForumDatabase::recalcUnreads(ForumThread * thr) {
+    qDebug() << Q_FUNC_INFO << thr->toString() << this;
     int unreads = 0;
     foreach(ForumMessage * msg, thr->messages().values()) {
+        qDebug() << Q_FUNC_INFO << msg->toString();
         if(!msg->isRead())
             unreads++;
     }
