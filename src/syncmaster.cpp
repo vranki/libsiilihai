@@ -226,6 +226,7 @@ void SyncMaster::serverMessageData(ForumMessage *tempMessage) { // Temporary obj
             newMessage->copyFrom(tempMessage);
             newMessage->setRead(true);
             fdb.addMessage(newMessage);
+            dbThread->setLastPage(0); // Mark as 0 to force update of full thread
         }
     } else {
         qDebug() << Q_FUNC_INFO << "Got invalid message!" << tempMessage->toString();

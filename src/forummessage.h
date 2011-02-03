@@ -41,7 +41,8 @@ public:
     void setBody(QString nb);
     void setRead(bool nr);
     bool isTemp();
-
+    bool isSynced();
+    void setSynced(bool synced);
 signals:
     void changed(ForumMessage * fm);
     void markedRead(ForumMessage * fm, bool read);
@@ -52,11 +53,11 @@ private:
     int _ordernum;
     QString _url;
     QString _author;
-
     QString _body;
     bool _read;
     ForumThread *_thread;
     bool _temp;
+    bool _synced; // To database @todo is needed? use commit less!
 };
 
 #endif /* FORUMMESSAGE_H_ */

@@ -1,8 +1,7 @@
-libsiilihai (1.0.0-1) maverick; urgency=low
+libsiilihai (0.9.16-1) maverick; urgency=low
 
-  * 1.0 release
-  * Debug disabled
   * Updated to Ubuntu Maverick
+  * Bugfixes
 
  -- Ville Ranki <ville.ranki@iki.fi>  Wed, 10 Nov 2010 20:29:43 +0300
 

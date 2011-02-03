@@ -23,6 +23,7 @@ ForumMessage::ForumMessage(ForumThread *thr, bool temp) : ForumDataItem(thr) {
     _ordernum = -1;
     _read = true;
     _temp = temp;
+    _synced = false;
 }
 
 void ForumMessage::copyFrom(ForumMessage * o) {
@@ -37,7 +38,7 @@ void ForumMessage::copyFrom(ForumMessage * o) {
 }
 
 bool ForumMessage::operator<(const ForumMessage &o) {
-   return ordernum() < o.ordernum();
+    return ordernum() < o.ordernum();
 }
 
 bool ForumMessage::isSane() const {
@@ -70,40 +71,40 @@ QString ForumMessage::body() const { return _body; }
 bool ForumMessage::isRead() const { return _read; }
 
 void ForumMessage::setOrdernum(int nod) {
-if(nod == _ordernum) return;
-  _ordernum = nod;
-  _propertiesChanged = true;
+    if(nod == _ordernum) return;
+    _ordernum = nod;
+    _propertiesChanged = true;
 }
 
 void ForumMessage::setUrl(QString nurl) {
-if(nurl == _url) return;
-_url = nurl;
-  _propertiesChanged = true;
+    if(nurl == _url) return;
+    _url = nurl;
+    _propertiesChanged = true;
 }
 void ForumMessage::setAuthor(QString na) {
-if(na == _author) return;
-_author = na;
-  _propertiesChanged = true;
+    if(na == _author) return;
+    _author = na;
+    _propertiesChanged = true;
 }
 void ForumMessage::setBody(QString nb) {
-  if(nb == _body) return;
-  _body = nb ;
-  _propertiesChanged = true;
+    if(nb == _body) return;
+    _body = nb ;
+    _propertiesChanged = true;
 }
 void ForumMessage::setRead(bool nr) {
-  if(nr==_read) return;
-  _read = nr;
-  int dsubs = 1;
-  if(_read)
-      dsubs = -1;
-  thread()->incrementUnreadCount(dsubs);
-  thread()->group()->incrementUnreadCount(dsubs);
-  thread()->group()->subscription()->incrementUnreadCount(dsubs);
-  emit markedRead(this, nr);
+    if(nr==_read) return;
+    _read = nr;
+    int dsubs = 1;
+    if(_read)
+        dsubs = -1;
+    thread()->incrementUnreadCount(dsubs);
+    thread()->group()->incrementUnreadCount(dsubs);
+    thread()->group()->subscription()->incrementUnreadCount(dsubs);
+    emit markedRead(this, nr);
 }
 
 bool ForumMessage::isTemp() {
-return _temp;
+    return _temp;
 }
 
 void ForumMessage::emitChanged() {
@@ -111,4 +112,12 @@ void ForumMessage::emitChanged() {
 }
 
 void ForumMessage::emitUnreadCountChanged() {
+}
+
+bool ForumMessage::isSynced() {
+    return _synced;
+}
+
+void ForumMessage::setSynced(bool synced) {
+    _synced = synced;
 }
