@@ -23,7 +23,6 @@ ForumMessage::ForumMessage(ForumThread *thr, bool temp) : ForumDataItem(thr) {
     _ordernum = -1;
     _read = true;
     _temp = temp;
-    _synced = false;
 }
 
 void ForumMessage::copyFrom(ForumMessage * o) {
@@ -112,12 +111,4 @@ void ForumMessage::emitChanged() {
 }
 
 void ForumMessage::emitUnreadCountChanged() {
-}
-
-bool ForumMessage::isSynced() {
-    return _synced;
-}
-
-void ForumMessage::setSynced(bool synced) {
-    _synced = synced;
 }

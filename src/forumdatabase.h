@@ -20,6 +20,7 @@
 #include <QList>
 #include <QMap>
 #include <QTimer>
+#include <QSqlDatabase>
 #include "forummessage.h"
 #include "forumthread.h"
 #include "forumgroup.h"
@@ -34,7 +35,7 @@ class ForumDatabase : public QObject {
 public:
     ForumDatabase(QObject *parent);
     virtual ~ForumDatabase();
-    bool openDatabase();
+    bool openDatabase(QSqlDatabase *database);
     void resetDatabase();
     bool addSubscription(ForumSubscription *fs); // Ownership changes!!!
     QList <ForumSubscription*> listSubscriptions();
@@ -66,7 +67,7 @@ public slots:
     void threadChanged(ForumThread *thread);
     void groupChanged(ForumGroup *group);
     void subscriptionChanged(ForumSubscription *sub);
-
+    void storeDatabase();
     void checkSanity();
 signals:
     void subscriptionAdded(ForumSubscription *sub);
@@ -80,10 +81,15 @@ signals:
     void messageAdded(ForumMessage *msg);
 private:
     void bindMessageValues(QSqlQuery &query, const ForumMessage *message);
-
+    void updateMessage(ForumMessage *message);
+    void updateThread(ForumThread *thread);
 
     QMap<int, ForumSubscription*> subscriptions;
-
+    QSet<ForumMessage*> messagesNotInDatabase;
+    QSet<ForumMessage*> changedMessages;
+    QSet<ForumThread*> threadsNotInDatabase;
+    QSet<ForumThread*> changedThreads;
+    QSqlDatabase *db;
 #ifdef FDB_TEST
 public slots:
     void updateTest();
