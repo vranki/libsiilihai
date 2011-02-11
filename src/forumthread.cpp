@@ -13,6 +13,8 @@
     You should have received a copy of the GNU Lesser General Public License
     along with libSiilihai.  If not, see <http://www.gnu.org/licenses/>. */
 #include "forumthread.h"
+#include "forumgroup.h"
+#include "forummessage.h"
 
 ForumThread::~ForumThread() {
 }
@@ -23,7 +25,7 @@ ForumThread::ForumThread(ForumGroup *grp, bool temp) : ForumDataItem(grp) {
     _ordernum = -1;
     _hasMoreMessages = false;
     _getMessagesCount = -1;
-    _hasChanged = false;
+//    _hasChanged = false;
     _temp = temp;
     _lastPage = 0;
 }
@@ -40,7 +42,7 @@ void ForumThread::copyFrom(ForumThread * o) {
 }
 
 bool ForumThread::operator<(const ForumThread &o) {
-   return ordernum() < o.ordernum();
+    return ordernum() < o.ordernum();
 }
 
 QString ForumThread::toString() const {
@@ -51,14 +53,12 @@ QString ForumThread::toString() const {
         if(group()->subscription())
             tparser = QString().number(group()->subscription()->parser());
     }
-    return tparser + "/" + tgroup +
-            "/" + id() + ": " + name();
+    return tparser + "/" + tgroup + "/" + id() + ": " + name();
 }
 
 bool ForumThread::isSane() const {
     return (_group && id().length() > 0 && _getMessagesCount >= 0);
 }
-
 
 int ForumThread::ordernum() const {
     return _ordernum;
@@ -75,42 +75,36 @@ bool ForumThread::hasMoreMessages() const {
     return _hasMoreMessages;
 }
 
-
 int ForumThread::getMessagesCount() const {
     return _getMessagesCount;
 }
 
 void ForumThread::setOrdernum(int on) {
-if(on == _ordernum) return;
+    if(on == _ordernum) return;
     _ordernum = on;
     _propertiesChanged = true;
 }
 void ForumThread::setChangeset(int cs) {
-if(cs==_changeset) return;
+    if(cs==_changeset) return;
     _changeset = cs;
     _propertiesChanged = true;
 }
 
 void ForumThread::setHasMoreMessages(bool hmm) {
-if(hmm==_hasMoreMessages) return;
+    if(hmm==_hasMoreMessages) return;
     _hasMoreMessages = hmm;
     _propertiesChanged = true;
 }
 
 void ForumThread::setGetMessagesCount(int gmc) {
-if(gmc==_getMessagesCount) return;
+    if(gmc==_getMessagesCount) return;
     _getMessagesCount = gmc;
     _propertiesChanged = true;
 }
 
-
-QMap<QString, ForumMessage*> & ForumThread::messages() {
-    return _messages;
-}
 bool ForumThread::isTemp() {
-   return _temp;
+    return _temp;
 }
-
 
 void ForumThread::emitChanged() {
     emit changed(this);
@@ -121,11 +115,40 @@ void ForumThread::emitUnreadCountChanged() {
 }
 
 void ForumThread::setLastPage(int lp) {
-if(_lastPage == lp) return;
+    if(_lastPage == lp) return;
     _lastPage = lp;
     _propertiesChanged = true;
 }
 
 int ForumThread::getLastPage() {
     return _lastPage;
+}
+
+void ForumThread::addMessage(ForumMessage* msg, bool affectsSync) {
+    Q_ASSERT(msg->thread() == this);
+    if(!msg->isRead()) {
+        incrementUnreadCount(1);
+        group()->incrementUnreadCount(1);
+        group()->subscription()->incrementUnreadCount(1);
+    } else {
+        if(affectsSync) group()->setHasChanged(true);
+    }
+    Q_ASSERT(!contains(msg->id()));
+    insert(msg->id(), msg);
+//    qDebug() << Q_FUNC_INFO << msg->toString() << unreadCount() << "/" << size();
+    Q_ASSERT(unreadCount() <= size());
+    emit messageAdded(msg);
+}
+
+void ForumThread::removeMessage(ForumMessage* msg, bool affectsSync) {
+    Q_ASSERT(msg->thread() == this);
+    if(!msg->isRead()) {
+        incrementUnreadCount(-1);
+        group()->incrementUnreadCount(-1);
+        group()->subscription()->incrementUnreadCount(-1);
+    }
+    if(affectsSync) group()->setHasChanged(true);
+    Q_ASSERT(contains(msg->id()));
+    remove(msg->id());
+    emit messageRemoved(msg);
 }

@@ -13,12 +13,14 @@
     You should have received a copy of the GNU Lesser General Public License
     along with libSiilihai.  If not, see <http://www.gnu.org/licenses/>. */
 #include "forummessage.h"
+#include "forumgroup.h"
+#include "forumthread.h"
 
 ForumMessage::~ForumMessage() {
 }
 
-ForumMessage::ForumMessage(ForumThread *thr, bool temp) : ForumDataItem(thr) {
-    _thread = thr;
+ForumMessage::ForumMessage(ForumThread *thread, bool temp) : ForumDataItem(thread) {
+    _thread = thread;
     _author = _body = "";
     _ordernum = -1;
     _read = true;
@@ -33,7 +35,7 @@ void ForumMessage::copyFrom(ForumMessage * o) {
     setAuthor(o->author());
     setLastchange(o->lastchange());
     setBody(o->body());
-    setRead(o->isRead());
+    setRead(o->isRead(), false);
 }
 
 bool ForumMessage::operator<(const ForumMessage &o) {
@@ -90,15 +92,20 @@ void ForumMessage::setBody(QString nb) {
     _body = nb ;
     _propertiesChanged = true;
 }
-void ForumMessage::setRead(bool nr) {
+
+void ForumMessage::setRead(bool nr, bool affectsParents) {
     if(nr==_read) return;
     _read = nr;
-    int dsubs = 1;
-    if(_read)
-        dsubs = -1;
-    thread()->incrementUnreadCount(dsubs);
-    thread()->group()->incrementUnreadCount(dsubs);
-    thread()->group()->subscription()->incrementUnreadCount(dsubs);
+    if(!affectsParents) return;
+    if(_read) {
+        thread()->incrementUnreadCount(-1);
+        thread()->group()->incrementUnreadCount(-1);
+        thread()->group()->subscription()->incrementUnreadCount(-1);
+    } else {
+        thread()->incrementUnreadCount(1);
+        thread()->group()->incrementUnreadCount(1);
+        thread()->group()->subscription()->incrementUnreadCount(1);
+    }
     emit markedRead(this, nr);
 }
 

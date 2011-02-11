@@ -50,7 +50,7 @@ binary-arch: build install
 	dh_installexamples
 	dh_installman
 	dh_link
-	dh_strip --dbg-package=libsiilihai
+#	dh_strip --dbg-package=libsiilihai
 	dh_compress
 	dh_fixperms
 	dh_installdeb

@@ -18,12 +18,12 @@
 #include <QObject>
 #include <QMap>
 #include "forumdataitem.h"
-//#include "forummessage.h"
-#include "forumgroup.h"
+#include <QMultiMap>
 
 class ForumMessage;
+class ForumGroup;
 
-class ForumThread : public ForumDataItem {
+class ForumThread : public ForumDataItem, public QMap<QString, ForumMessage*> {
     Q_OBJECT
 public:
     ForumThread(ForumGroup *grp, bool temp=true);
@@ -43,11 +43,14 @@ public:
     int getLastPage();
     virtual QString toString() const;
     bool isSane() const;
-    QMap<QString, ForumMessage*> & messages();
     bool isTemp();
+    void addMessage(ForumMessage* msg, bool affectsSync = true);
+    void removeMessage(ForumMessage* msg, bool affectsSync = true);
 signals:
     void changed(ForumThread *thr);
     void unreadCountChanged(ForumThread *thr);
+    void messageRemoved(ForumMessage *msg);
+    void messageAdded(ForumMessage *msg);
 protected:
     virtual void emitChanged();
     virtual void emitUnreadCountChanged();
@@ -61,10 +64,9 @@ private:
     ForumGroup *_group;
     bool _hasMoreMessages;
     int _getMessagesCount;
-    bool _hasChanged;
-    QMap<QString, ForumMessage*> _messages;
-        bool _temp;
-        int _lastPage;
+//    bool _hasChanged; // As in needs sync?
+    bool _temp;
+    int _lastPage;
 };
 
 #endif /* FORUMTHREAD_H_ */

@@ -285,13 +285,13 @@ void ParserEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages,
     bool messagesChanged = false;
     foreach (ForumMessage *tempMessage, tempMessages) {
         bool foundInDb = false;
-        foreach (ForumMessage *dbMessage, dbThread->messages()) {
+        foreach (ForumMessage *dbMessage, dbThread->values()) {
             if (dbMessage->id() == tempMessage->id()) {
                 foundInDb = true;
                 Q_ASSERT(tempMessage->thread() == dbMessage->thread());
                 bool wasRead = dbMessage->isRead();
                 dbMessage->copyFrom(tempMessage);
-                if(wasRead) dbMessage->setRead(true);
+                if(wasRead) dbMessage->setRead(true, false);
                 dbMessage->commitChanges();
             }
         }
@@ -299,12 +299,12 @@ void ParserEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages,
             messagesChanged = true;
             ForumMessage *newMessage = new ForumMessage(dbThread, false);
             newMessage->copyFrom(tempMessage);
-            fdb->addMessage(newMessage);
+            dbThread->addMessage(newMessage);
         }
     }
 
     // check for DELETED threads
-    foreach (ForumMessage *dbmessage, dbThread->messages()) {
+    foreach (ForumMessage *dbmessage, dbThread->values()) {
         bool messageFound = false;
         foreach (ForumMessage *msg, tempMessages) {
             if (dbmessage->id() == msg->id()) {
@@ -313,7 +313,7 @@ void ParserEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages,
         }
         if (!messageFound) {
             messagesChanged = true;
-            fdb->deleteMessage(dbmessage);
+            dbThread->removeMessage(dbmessage);
         }
     }
     // update thread

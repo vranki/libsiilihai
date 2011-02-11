@@ -17,7 +17,6 @@
 #include <QString>
 #include <QObject>
 #include "forumdataitem.h"
-#include "forumthread.h"
 class ForumThread;
 
 class ForumMessage : public ForumDataItem {
@@ -39,7 +38,7 @@ public:
     void setUrl(QString nurl);
     void setAuthor(QString na);
     void setBody(QString nb);
-    void setRead(bool nr);
+    void setRead(bool nr, bool affectsParents=true);
     bool isTemp();
 signals:
     void changed(ForumMessage * fm);

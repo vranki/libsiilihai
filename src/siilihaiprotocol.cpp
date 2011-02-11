@@ -604,21 +604,21 @@ void SiilihaiProtocol::replyGetThreadData(QNetworkReply *reply) {
                                 threadElement.attribute("changeset").toInt();
                         int threadGetMessagesCount =
                                 threadElement.attribute("getmessagescount").toInt();
-                        ForumThread thr(getThreadDataGroup);
-                        thr.setId(threadid);
-                        thr.setChangeset(threadChangeset);
-                        thr.setGetMessagesCount(threadGetMessagesCount);
-                        thr.setName("?");
-                        emit serverThreadData(&thr);
+                        ForumThread thread(getThreadDataGroup);
+                        thread.setId(threadid);
+                        thread.setChangeset(threadChangeset);
+                        thread.setGetMessagesCount(threadGetMessagesCount);
+                        thread.setName("?");
+                        emit serverThreadData(&thread);
                         for (int m = 0; m < threadElement.childNodes().size(); m++) {
                             QDomElement messageElement =
                                     threadElement.childNodes().at(m).toElement();
                             QString messageid = messageElement.attribute("id");
-                            ForumMessage msg(&thr);
+                            ForumMessage msg(&thread);
                             msg.setId(messageid);
                             msg.setName("?");
                             msg.setBody("Please update forum to get message content.");
-                            msg.setRead(true);
+                            msg.setRead(true, false);
                             emit serverMessageData(&msg);
                         }
                         QCoreApplication::processEvents();

@@ -152,7 +152,7 @@ void SyncMaster::processGroups() {
         qDebug() << Q_FUNC_INFO << "Group " << g->toString() << "new changeset: " << g->changeset();
         foreach(ForumThread *thread, g->threads().values())
         {
-            messagesToUpload.append(thread->messages().values());
+            messagesToUpload.append(thread->values());
         }
         connect(&protocol, SIGNAL(sendThreadDataFinished(bool, QString)),
                 this, SLOT(sendThreadDataFinished(bool, QString)));
@@ -224,8 +224,8 @@ void SyncMaster::serverMessageData(ForumMessage *tempMessage) { // Temporary obj
             Q_ASSERT(!dbThread->isTemp());
             ForumMessage *newMessage = new ForumMessage(dbThread, false);
             newMessage->copyFrom(tempMessage);
-            newMessage->setRead(true);
-            fdb.addMessage(newMessage);
+            newMessage->setRead(true, false);
+            dbThread->addMessage(newMessage);
             dbThread->setLastPage(0); // Mark as 0 to force update of full thread
         }
     } else {

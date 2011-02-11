@@ -49,6 +49,6 @@ int ForumDataItem::unreadCount() const {
 void ForumDataItem::incrementUnreadCount(int urc) {
     if(!urc) return;
     _unreadCount += urc;
-    // Q_ASSERT(_unreadCount >= 0);
+    Q_ASSERT(_unreadCount >= 0);
     emitUnreadCountChanged();
 }

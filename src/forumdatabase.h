@@ -51,16 +51,15 @@ public:
     bool deleteThread(ForumThread *thread);
 
     ForumMessage* getMessage(const int forum, QString groupid, QString threadid, QString messageid);
-    void addMessage(ForumMessage *message);
-    bool deleteMessage(ForumMessage *message);
+
 
     void markForumRead(ForumSubscription *fs, bool read);
     bool markGroupRead(ForumGroup *group, bool read);
-    int schemaVersion();
+    int schemaVersion();/*
     int recalcUnreads(ForumThread * thr);
     int recalcUnreads(ForumGroup * grp);
     int recalcUnreads(ForumSubscription * sub);
-
+*/
 public slots:
     void messageChanged(ForumMessage *message);
     void messageMarkedRead(ForumMessage *message, bool read=true);
@@ -79,6 +78,9 @@ signals:
     void threadAdded(ForumThread *thr);
     void messageFound(ForumMessage *msg);
     void messageAdded(ForumMessage *msg);
+private slots:
+    void deleteMessage(ForumMessage *message);
+    void addMessage(ForumMessage *message);
 private:
     void bindMessageValues(QSqlQuery &query, const ForumMessage *message);
     void updateMessage(ForumMessage *message);
@@ -90,6 +92,8 @@ private:
     QSet<ForumThread*> threadsNotInDatabase;
     QSet<ForumThread*> changedThreads;
     QSqlDatabase *db;
+    bool databaseOpened;
+
 #ifdef FDB_TEST
 public slots:
     void updateTest();

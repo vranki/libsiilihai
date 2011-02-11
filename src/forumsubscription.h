@@ -24,52 +24,52 @@ class ForumGroup;
 class ParserEngine;
 
 class ForumSubscription : public QObject  {
-	Q_OBJECT
+    Q_OBJECT
 
 public:
-        ForumSubscription(QObject *parent=0, bool temp=true);
-        void copyFrom(ForumSubscription * o);
-	virtual ~ForumSubscription();
-	bool isSane() const;
-	QString toString() const;
-	void setParser(int parser);
-        void setAlias(QString alias);
-	void setUsername(QString username);
-	void setPassword(QString password);
-	void setLatestThreads(unsigned int lt);
-	void setLatestMessages(unsigned int lm);
-        void setAuthenticated(bool na);
-        void incrementUnreadCount(int urc);
-	int parser() const;
-        QString alias() const;
-	QString username() const;
-	QString password() const;
-        int latestThreads() const;
-        int latestMessages() const;
-        bool authenticated() const; // True if username & password should be set
-        int unreadCount() const;
-        QMap<QString, ForumGroup*> &groups();
-        bool isTemp();
-        void setParserEngine(ParserEngine *eng);
-        ParserEngine *parserEngine();
+    ForumSubscription(QObject *parent=0, bool temp=true);
+    void copyFrom(ForumSubscription * o);
+    virtual ~ForumSubscription();
+    bool isSane() const;
+    QString toString() const;
+    void setParser(int parser);
+    void setAlias(QString alias);
+    void setUsername(QString username);
+    void setPassword(QString password);
+    void setLatestThreads(unsigned int lt);
+    void setLatestMessages(unsigned int lm);
+    void setAuthenticated(bool na);
+    void incrementUnreadCount(int urc);
+    int parser() const;
+    QString alias() const;
+    QString username() const;
+    QString password() const;
+    int latestThreads() const;
+    int latestMessages() const;
+    bool authenticated() const; // True if username & password should be set
+    int unreadCount() const;
+    QMap<QString, ForumGroup*> &groups();
+    bool isTemp();
+    void setParserEngine(ParserEngine *eng);
+    ParserEngine *parserEngine();
 signals:
     void changed(ForumSubscription *s);
     void unreadCountChanged(ForumSubscription *s);
 
 private:
-Q_DISABLE_COPY(ForumSubscription)
+    Q_DISABLE_COPY(ForumSubscription)
 
-	int _parser;
-        QString _alias;
-	QString _username;
-	QString _password;
-	unsigned int _latestThreads;
-	unsigned int _latestMessages;
-        bool _authenticated;
-        int _unreadCount;
-        QMap<QString, ForumGroup*> _groups;
-        bool _temp;
-        ParserEngine *_engine;
+    int _parser;
+    QString _alias;
+    QString _username;
+    QString _password;
+    unsigned int _latestThreads;
+    unsigned int _latestMessages;
+    bool _authenticated;
+    int _unreadCount;
+    QMap<QString, ForumGroup*> _groups;
+    bool _temp;
+    ParserEngine *_engine;
 };
 
 #endif /* FORUMSUBSCRIPTION_H_ */

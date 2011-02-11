@@ -47,7 +47,7 @@ QString ForumSession::convertCharset(const QByteArray &src) {
 void ForumSession::listGroupsReply(QNetworkReply *reply) {
     if(operationInProgress == FSONoOp) return;
     qDebug() << Q_FUNC_INFO;
-    qDebug() << statusReport();
+    //    qDebug() << statusReport();
 
     disconnect(nam, SIGNAL(finished(QNetworkReply*)), this,
                SLOT(listGroupsReply(QNetworkReply*)));
@@ -87,7 +87,7 @@ void ForumSession::fetchCookieReply(QNetworkReply *reply) {
     if(operationInProgress == FSONoOp) return;
 
     qDebug() << Q_FUNC_INFO;
-    qDebug() << statusReport();
+    //  qDebug() << statusReport();
 
     cookieFetched = true;
     disconnect(nam, SIGNAL(finished(QNetworkReply*)), this,
@@ -101,19 +101,19 @@ void ForumSession::fetchCookieReply(QNetworkReply *reply) {
     if (operationInProgress == FSONoOp)
         return;
     /*
-	QList<QNetworkCookie> cookies = cookieJar->cookiesForUrl(QUrl(
-			fpar.forum_url));
-	for (int i = 0; i < cookies.size(); i++) {
-		qDebug() << "\t" << cookies[i].name();
-	}
-	*/
+ QList<QNetworkCookie> cookies = cookieJar->cookiesForUrl(QUrl(
+   fpar.forum_url));
+ for (int i = 0; i < cookies.size(); i++) {
+  qDebug() << "\t" << cookies[i].name();
+ }
+ */
     nextOperation();
 }
 
 void ForumSession::listGroups() {
     qDebug() << Q_FUNC_INFO;
     if (operationInProgress != FSONoOp && operationInProgress != FSOListGroups) {
-        statusReport();
+        //statusReport();
         qDebug() << Q_FUNC_INFO << "Operation in progress!! Don't command me yet! ";
         Q_ASSERT(false);
         return;
@@ -173,7 +173,7 @@ void ForumSession::loginToForum() {
 
 void ForumSession::loginReply(QNetworkReply *reply) {
     qDebug() << Q_FUNC_INFO;
-    qDebug() << statusReport();
+    // qDebug() << statusReport();
 
     disconnect(nam, SIGNAL(finished(QNetworkReply*)), this,
                SLOT(loginReply(QNetworkReply*)));
@@ -267,9 +267,9 @@ void ForumSession::listThreads(ForumGroup *group) {
     qDebug() << Q_FUNC_INFO << group->toString();
 
     if (operationInProgress != FSONoOp && operationInProgress
-        != FSOUpdateThreads)
+            != FSOUpdateThreads)
     {
-        statusReport();
+        //statusReport();
         qDebug() << Q_FUNC_INFO << "Operation in progress!! Don't command me yet!";
         Q_ASSERT(false);
         return;
@@ -284,8 +284,8 @@ void ForumSession::listThreads(ForumGroup *group) {
 void ForumSession::listMessages(ForumThread *thread) {
     Q_ASSERT(thread->isSane());
     if (operationInProgress != FSONoOp && operationInProgress
-        != FSOUpdateMessages) {
-                statusReport();
+            != FSOUpdateMessages) {
+        //statusReport();
         qDebug() << Q_FUNC_INFO << "Operation in progress!! Don't command me yet!";
         Q_ASSERT(false);
         return;
@@ -309,7 +309,7 @@ void ForumSession::listMessagesReply(QNetworkReply *reply) {
     if(operationInProgress == FSONoOp) return;
 
     qDebug() << Q_FUNC_INFO;
-    qDebug() << statusReport();
+    // qDebug() << statusReport();
     disconnect(nam, SIGNAL(finished(QNetworkReply*)), this,
                SLOT(listMessagesReply(QNetworkReply*)));
     if (reply->error() != QNetworkReply::NoError) {
@@ -328,12 +328,12 @@ void ForumSession::performListMessages(QString &html) {
     operationInProgress = FSOUpdateMessages;
     pm->setPattern(fpar.message_list_pattern);
     QList<QHash<QString, QString> > matches = pm->findMatches(html);
-   // qDebug() << "ListMessages Found " << matches.size() << " matches";
+    // qDebug() << "ListMessages Found " << matches.size() << " matches";
     QHash<QString, QString> match;
     foreach(match, matches){
         // This will be deleted or added to messages
         ForumMessage *fm = new ForumMessage(currentThread);
-        fm->setRead(false);
+        fm->setRead(false, false);
         fm->setId(match["%a"]);
         fm->setName(match["%b"]);
         fm->setBody(match["%c"]);
@@ -374,7 +374,7 @@ void ForumSession::performListMessages(QString &html) {
                 messages.append(newMessage);
                 newMessage = 0;
             } else {
-              //  qDebug() << "Number of messages exceeding maximum latest messages limit - not adding.";
+                //  qDebug() << "Number of messages exceeding maximum latest messages limit - not adding.";
                 newMessagesFound = false;
                 moreMessagesAvailable = true;
                 delete newMessage;
@@ -391,11 +391,11 @@ void ForumSession::performListMessages(QString &html) {
             currentListPage += fpar.view_thread_page_increment;
             updateThreadPage();
         } else {
-           // qDebug() << "Forum doesn't support multipage - NOT continuing to next page.";
+            // qDebug() << "Forum doesn't support multipage - NOT continuing to next page.";
             finished = true;
         }
     } else {
-       // qDebug() << "NOT continuing to next page, no new messages found on this one.";
+        // qDebug() << "NOT continuing to next page, no new messages found on this one.";
         finished = true;
     }
 
@@ -425,14 +425,14 @@ QString ForumSession::statusReport() {
             + QString().number(threads.size()) + "\n" + "Messages: "
             + QString().number(messages.size()) + "\n" + "Page: "
             + QString().number(currentListPage)/* + "\n" + "Group: "
-			+ currentGroup->toString() + "\n" + "Thread: "
-                        + currentThread->toString() + "\n"*/;
+           + currentGroup->toString() + "\n" + "Thread: "
+                                + currentThread->toString() + "\n"*/;
 }
 
 void ForumSession::listThreadsReply(QNetworkReply *reply) {
     if(operationInProgress == FSONoOp) return;
     qDebug() << Q_FUNC_INFO << currentGroup->toString();
-    qDebug() << statusReport();
+    // qDebug() << statusReport();
     disconnect(nam, SIGNAL(finished(QNetworkReply*)), this,
                SLOT(listThreadsReply(QNetworkReply*)));
     if (reply->error() != QNetworkReply::NoError) {
@@ -503,7 +503,7 @@ void ForumSession::performListThreads(QString &html) {
             // Continue to next page
             currentListPage += fpar.thread_list_page_increment;
             qDebug() << "New threads were found - continuing to next page "
-                    << currentListPage;
+                     << currentListPage;
             updateGroupPage();
         } else {
             qDebug() << "Forum doesn't support multipage - NOT continuing to next page.";
@@ -592,11 +592,11 @@ void ForumSession::authenticationRequired(QNetworkReply * reply,
     if(fpar.login_type == ForumParser::LoginTypeHttpAuth) {
         if (fsub->username().length() <= 0 || fsub->password().length() <= 0) {
             qDebug() << Q_FUNC_INFO << "FAIL: no credentials given for subscription "
-                    << fsub->toString();
+                     << fsub->toString();
             cancelOperation();
             emit networkFailure(
-                    "Server requested for username and password for forum "
-                    + fsub->alias() + " but you haven't provided them.");
+                        "Server requested for username and password for forum "
+                        + fsub->alias() + " but you haven't provided them.");
         } else {
             qDebug() << Q_FUNC_INFO << "Gave credentials to server";
             authenticator->setUser(fsub->username());
