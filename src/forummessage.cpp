@@ -106,6 +106,8 @@ void ForumMessage::setRead(bool nr, bool affectsParents) {
         thread()->group()->incrementUnreadCount(1);
         thread()->group()->subscription()->incrementUnreadCount(1);
     }
+    thread()->group()->setHasChanged(true);
+    _propertiesChanged = true;
     emit markedRead(this, nr);
 }
 

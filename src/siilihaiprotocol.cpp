@@ -620,8 +620,8 @@ void SiilihaiProtocol::replyGetThreadData(QNetworkReply *reply) {
                             msg.setBody("Please update forum to get message content.");
                             msg.setRead(true, false);
                             emit serverMessageData(&msg);
+                            QCoreApplication::processEvents();
                         }
-                        QCoreApplication::processEvents();
                     }
                 }
             }

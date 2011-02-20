@@ -62,28 +62,28 @@ bool ForumGroup::hasChanged() const {
     return _hasChanged;
 }
 void ForumGroup::setSubscribed(bool s) {
-if(s==_subscribed) return;
-_subscribed = s;
-_propertiesChanged = true;
+    if(s==_subscribed) return;
+    _subscribed = s;
+    _propertiesChanged = true;
 }
 
 void ForumGroup::setChangeset(int cs) {
-if(cs==_changeset) return;
-_changeset = cs;
-_propertiesChanged = true;
+    if(cs==_changeset) return;
+    _changeset = cs;
+    _propertiesChanged = true;
 }
 
 void ForumGroup::setHasChanged(bool hc) {
-if(hc==_hasChanged) return;
-   _hasChanged = hc;
-   _propertiesChanged = true; // @todo should we? this bool goes nowhere
+    if(hc==_hasChanged) return;
+    _hasChanged = hc;
+    _propertiesChanged = true; // @todo should we? this bool goes nowhere
 }
 
 QMap<QString, ForumThread*> & ForumGroup::threads() {
-   return _threads;
+    return _threads;
 }
 bool ForumGroup::isTemp() {
-return _temp;
+    return _temp;
 }
 
 void ForumGroup::emitChanged() {
