@@ -1,5 +1,5 @@
 TEMPLATE = lib
-VERSION = 0.9.16
+VERSION = 0.9.18
 TARGET = siilihai
 
 DESTDIR = .

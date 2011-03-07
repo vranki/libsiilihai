@@ -159,7 +159,7 @@ void ParserEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups) {
                 if ((dbGroup->subscribed() && ((dbGroup->lastchange()
                     != tempGroup->lastchange()) || forceUpdate))) {
                     groupsToUpdateQueue.enqueue(dbGroup);
-                    qDebug() << "Group " << dbGroup->toString()
+                    qDebug() << Q_FUNC_INFO << "Group " << dbGroup->toString()
                             << " has been changed, adding to list";
                     // Store the updated version to database
                     tempGroup->setSubscribed(true);

@@ -664,6 +664,7 @@ void ForumDatabase::markForumRead(ForumSubscription *fs, bool read) {
 bool ForumDatabase::markGroupRead(ForumGroup *group, bool read) {
     Q_ASSERT(group);
     qDebug() << Q_FUNC_INFO << " " << group->toString() << ", " << read;
+    /*
     QSqlQuery query;
     query.prepare("UPDATE messages SET read=? WHERE(forumid=? AND groupid=?)");
     query.addBindValue(read);
@@ -673,13 +674,13 @@ bool ForumDatabase::markGroupRead(ForumGroup *group, bool read) {
         qDebug() << "Setting group read failed: " << query.lastError().text();
         return false;
     }
+    */
     foreach(ForumThread *ft, group->threads()) {
         foreach(ForumMessage *msg, ft->values()) {
-            msg->setRead(true);
+            msg->setRead(read);
         }
-        Q_ASSERT(ft->unreadCount()==0);
+        QCoreApplication::processEvents();
     }
-    Q_ASSERT(group->unreadCount()==0);
     checkSanity();
     return true;
 }

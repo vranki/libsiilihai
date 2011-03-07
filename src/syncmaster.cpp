@@ -232,6 +232,7 @@ void SyncMaster::serverMessageData(ForumMessage *tempMessage) { // Temporary obj
         qDebug() << Q_FUNC_INFO << "Got invalid message!" << tempMessage->toString();
         Q_ASSERT(false);
     }
+    QCoreApplication::processEvents();
 }
 
 void SyncMaster::getThreadDataFinished(bool success, QString message){
