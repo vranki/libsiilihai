@@ -46,6 +46,7 @@ public:
     bool isTemp();
     void addMessage(ForumMessage* msg, bool affectsSync = true);
     void removeMessage(ForumMessage* msg, bool affectsSync = true);
+    void markToBeUpdated();
 signals:
     void changed(ForumThread *thr);
     void unreadCountChanged(ForumThread *thr);

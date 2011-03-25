@@ -180,7 +180,7 @@ void ParserEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups) {
             newGroup->setChangeset(rand());
             // DON'T set lastchange when only updating group list.
             if(!updateAll) {
-                newGroup->setLastchange("UPDATE_NEEDED");
+                newGroup->markToBeUpdated();
             }
             fdb->addGroup(newGroup);
         }

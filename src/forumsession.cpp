@@ -216,8 +216,7 @@ void ForumSession::fetchCookie() {
     nam->post(req, emptyData);
 }
 
-void ForumSession::initialize(ForumParser &fop, ForumSubscription *fos,
-                              PatternMatcher *matcher) {
+void ForumSession::initialize(ForumParser &fop, ForumSubscription *fos, PatternMatcher *matcher) {
     Q_ASSERT(fos);
     fsub = fos;
     fpar = fop;

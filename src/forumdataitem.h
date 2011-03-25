@@ -3,6 +3,8 @@
 
 #include <QObject>
 
+#define ITEM_UPDATE_NEEDED "UPDATE_NEEDED"
+
 class ForumDataItem : public QObject {
     Q_OBJECT
 public:

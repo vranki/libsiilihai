@@ -247,18 +247,19 @@ bool ForumDatabase::addSubscription(ForumSubscription *fs) {
                   ") VALUES (?, ?, ?, ?, ?, ?)");
     query.addBindValue(QString().number(fs->parser()));
     query.addBindValue(fs->alias());
-    if (fs->username().isNull()) {
+    if (fs->username().isNull() || fs->password().isNull()) {
         query.addBindValue(QString(""));
         query.addBindValue(QString(""));
     } else {
         query.addBindValue(fs->username());
         query.addBindValue(fs->password());
     }
-    query.addBindValue(QString().number(fs->latestThreads()));
-    query.addBindValue(QString().number(fs->latestMessages()));
-
+    query.addBindValue(fs->latestThreads());
+    query.addBindValue(fs->latestMessages());
+    bool success = true;
     if (!query.exec()) {
-        qDebug() << "Adding forum failed: " << query.lastError().text();
+        qDebug() << Q_FUNC_INFO << "Adding forum failed: " << query.lastError().text();
+        success = false;
     }
     connect(fs, SIGNAL(changed(ForumSubscription*)), this, SLOT(subscriptionChanged(ForumSubscription*)));
     subscriptions[fs->parser()] = fs;
@@ -266,7 +267,7 @@ bool ForumDatabase::addSubscription(ForumSubscription *fs) {
     emit subscriptionFound(fs);
 
     checkSanity();
-    return true;
+    return success;
 }
 
 void ForumDatabase::subscriptionChanged(ForumSubscription *sub) {
@@ -553,8 +554,10 @@ bool ForumDatabase::deleteGroup(ForumGroup *grp) {
     Q_ASSERT(grp);
     Q_ASSERT(grp->isSane());
     qDebug() << Q_FUNC_INFO << grp->toString();
-    while(!grp->threads().isEmpty())
+    while(!grp->threads().isEmpty()) {
         deleteThread(grp->threads().begin().value());
+        QCoreApplication::processEvents();
+    }
 
     QSqlQuery query;
     query.prepare("DELETE FROM groups WHERE (forumid=? AND groupid=?)");
@@ -576,7 +579,7 @@ bool ForumDatabase::deleteThread(ForumThread *thread) {
     Q_ASSERT(thread);
     Q_ASSERT(thread->isSane());
     if (!thread->isSane()) {
-        qDebug() << "Error: tried to delete invalid thread " << thread->toString();
+        qDebug() << Q_FUNC_INFO << "Error: tried to delete invalid thread " << thread->toString();
     }
     db->transaction();
     QSqlQuery query;
@@ -585,8 +588,9 @@ bool ForumDatabase::deleteThread(ForumThread *thread) {
     query.addBindValue(thread->group()->id());
     query.addBindValue(thread->id());
     if (!query.exec()) {
-        qDebug() << "Deleting messages from thread " << thread->toString()
+        qDebug() << Q_FUNC_INFO << "Deleting messages from thread " << thread->toString()
                  << " failed: " << query.lastError().text();
+        db->rollback();
         return false;
     }
     db->commit();
@@ -608,12 +612,13 @@ bool ForumDatabase::deleteThread(ForumThread *thread) {
     if (!query.exec()) {
         qDebug() << "Deleting thread failed: " << query.lastError().text();
         Q_ASSERT(false);
+        db->rollback();
         return false;
     }
     db->commit();
     thread->group()->setHasChanged(true);
     Q_ASSERT(thread->group()->threads().remove(thread->id()));
-    qDebug() << "Thread " << thread->toString() << " deleted";
+    qDebug() << Q_FUNC_INFO << "Thread " << thread->toString() << " deleted";
     delete(thread);
     checkSanity();
     return true;
@@ -631,7 +636,7 @@ void ForumDatabase::groupChanged(ForumGroup *grp) {
     query.addBindValue(grp->subscription()->parser());
     query.addBindValue(grp->id());
     if (!query.exec()) {
-        qDebug() << "Updating group failed: " << query.lastError().text();
+        qDebug() << Q_FUNC_INFO << "Updating group failed: " << query.lastError().text();
     }
     checkSanity();
 }
@@ -663,18 +668,7 @@ void ForumDatabase::markForumRead(ForumSubscription *fs, bool read) {
 
 bool ForumDatabase::markGroupRead(ForumGroup *group, bool read) {
     Q_ASSERT(group);
-    qDebug() << Q_FUNC_INFO << " " << group->toString() << ", " << read;
-    /*
-    QSqlQuery query;
-    query.prepare("UPDATE messages SET read=? WHERE(forumid=? AND groupid=?)");
-    query.addBindValue(read);
-    query.addBindValue(group->subscription()->parser());
-    query.addBindValue(group->id());
-    if (!query.exec()) {
-        qDebug() << "Setting group read failed: " << query.lastError().text();
-        return false;
-    }
-    */
+//    qDebug() << Q_FUNC_INFO << " " << group->toString() << ", " << read;
     foreach(ForumThread *ft, group->threads()) {
         foreach(ForumMessage *msg, ft->values()) {
             msg->setRead(read);

@@ -82,6 +82,7 @@ void ForumGroup::setHasChanged(bool hc) {
 QMap<QString, ForumThread*> & ForumGroup::threads() {
     return _threads;
 }
+
 bool ForumGroup::isTemp() {
     return _temp;
 }
@@ -92,4 +93,8 @@ void ForumGroup::emitChanged() {
 
 void ForumGroup::emitUnreadCountChanged() {
     emit unreadCountChanged(this);
+}
+
+void ForumGroup::markToBeUpdated() {
+    setLastchange(ITEM_UPDATE_NEEDED);
 }

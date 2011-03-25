@@ -96,8 +96,8 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
                 dbGrp->commitChanges();
             }
         }
-
         Q_ASSERT(dbSub);
+        QCoreApplication::processEvents();
     }
     // Update group lists
     foreach(ForumSubscription *serverSub, subs) {
@@ -112,7 +112,7 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
                 ForumGroup *newGroup = new ForumGroup(dbSub, false);
                 serverGrp->setName("?");
                 serverGrp->setChangeset(-1); // Force update of group contents
-                serverGrp->setLastchange("UPDATE_NEEDED");
+                serverGrp->markToBeUpdated();
                 serverGrp->setSubscribed(true);
                 newGroup->copyFrom(serverGrp);
                 newGroup->setChangeset(-2); // .. by setting changesets different
@@ -129,6 +129,7 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
                 groupsToDownload.append(dbGroup);
             }
             dbGroup->commitChanges();
+            QCoreApplication::processEvents();
         }
     }
 
@@ -198,7 +199,7 @@ void SyncMaster::serverThreadData(ForumThread *tempThread) { // Thread is tempor
             fdb.addThread(newThread);
             dbThread = newThread;
             // Make sure group will be updated
-            dbGroup->setLastchange("UPDATE_NEEDED");
+            dbGroup->markToBeUpdated();
             dbGroup->commitChanges();
         }
         dbThread->commitChanges();

@@ -152,3 +152,8 @@ void ForumThread::removeMessage(ForumMessage* msg, bool affectsSync) {
     remove(msg->id());
     emit messageRemoved(msg);
 }
+
+void ForumThread::markToBeUpdated() {
+    setLastchange(ITEM_UPDATE_NEEDED);
+    group()->setLastchange(ITEM_UPDATE_NEEDED);
+}

@@ -40,7 +40,7 @@ public:
     void setHasChanged(bool hc);
     QMap<QString, ForumThread*> & threads();
     bool isTemp();
-
+    void markToBeUpdated();
 signals:
     void changed(ForumGroup *grp);
     void unreadCountChanged(ForumGroup *grp);
