@@ -275,8 +275,8 @@ void ParserEngine::listThreadsFinished(QList<ForumThread*> &tempThreads,
         updateNextChangedThread();
 }
 
-void ParserEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages,
-                                        ForumThread *dbThread, bool moreAvailable) {
+void ParserEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages, ForumThread *dbThread,
+                                        bool moreAvailable) {
     Q_ASSERT(dbThread);
     Q_ASSERT(dbThread->isSane());
     Q_ASSERT(!dbThread->isTemp());
@@ -285,6 +285,7 @@ void ParserEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages,
     bool messagesChanged = false;
     foreach (ForumMessage *tempMessage, tempMessages) {
         bool foundInDb = false;
+        if(tempMessage->)
         foreach (ForumMessage *dbMessage, dbThread->values()) {
             if (dbMessage->id() == tempMessage->id()) {
                 foundInDb = true;
@@ -311,7 +312,8 @@ void ParserEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages,
                 messageFound = true;
             }
         }
-        if (!messageFound) {
+        if (!messageFound) { // @todo don't delete, if tempMessages doesn't start from first page!!
+            // @todo are ordernums ok then? This is probably causing a bug.
             messagesChanged = true;
             dbThread->removeMessage(dbmessage);
         }

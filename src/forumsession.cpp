@@ -211,8 +211,7 @@ void ForumSession::fetchCookie() {
     if (operationInProgress == FSONoOp)
         return;
     QNetworkRequest req(QUrl(fpar.forum_url));
-    connect(nam, SIGNAL(finished(QNetworkReply*)), this,
-            SLOT(fetchCookieReply(QNetworkReply*)));
+    connect(nam, SIGNAL(finished(QNetworkReply*)), this, SLOT(fetchCookieReply(QNetworkReply*)));
     nam->post(req, emptyData);
 }
 
@@ -282,9 +281,7 @@ void ForumSession::listThreads(ForumGroup *group) {
 
 void ForumSession::listMessages(ForumThread *thread) {
     Q_ASSERT(thread->isSane());
-    if (operationInProgress != FSONoOp && operationInProgress
-            != FSOUpdateMessages) {
-        //statusReport();
+    if (operationInProgress != FSONoOp && operationInProgress != FSOUpdateMessages) {
         qDebug() << Q_FUNC_INFO << "Operation in progress!! Don't command me yet!";
         Q_ASSERT(false);
         return;
@@ -308,7 +305,6 @@ void ForumSession::listMessagesReply(QNetworkReply *reply) {
     if(operationInProgress == FSONoOp) return;
 
     qDebug() << Q_FUNC_INFO;
-    // qDebug() << statusReport();
     disconnect(nam, SIGNAL(finished(QNetworkReply*)), this,
                SLOT(listMessagesReply(QNetworkReply*)));
     if (reply->error() != QNetworkReply::NoError) {
@@ -327,7 +323,6 @@ void ForumSession::performListMessages(QString &html) {
     operationInProgress = FSOUpdateMessages;
     pm->setPattern(fpar.message_list_pattern);
     QList<QHash<QString, QString> > matches = pm->findMatches(html);
-    // qDebug() << "ListMessages Found " << matches.size() << " matches";
     QHash<QString, QString> match;
     foreach(match, matches){
         // This will be deleted or added to messages
