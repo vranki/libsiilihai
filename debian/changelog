@@ -1,3 +1,10 @@
+libsiilihai (0.9.20-1) maverick; urgency=low
+
+  * Bugfixes
+  * Disabled "update only from last page" optimization as it causes issues.
+
+ -- Ville Ranki <ville.ranki@iki.fi>  Fri, 12 Feb 2011 20:29:43 +0300
+
 libsiilihai (0.9.19-1) maverick; urgency=low
 
   * Bugfixes

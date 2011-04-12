@@ -96,5 +96,5 @@ void ForumGroup::emitUnreadCountChanged() {
 }
 
 void ForumGroup::markToBeUpdated() {
-    setLastchange(ITEM_UPDATE_NEEDED);
+    setLastchange("GROUP_UPDATE_NEEDED");
 }

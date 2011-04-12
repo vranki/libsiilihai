@@ -15,7 +15,7 @@
 #include "parserengine.h"
 
 ParserEngine::ParserEngine(ForumDatabase *fd, QObject *parent) :
-        QObject(parent), nam(this), session(this, &nam) {
+    QObject(parent), nam(this), session(this, &nam) {
     connect(&session, SIGNAL(listGroupsFinished(QList<ForumGroup*>&)), this,
             SLOT(listGroupsFinished(QList<ForumGroup*>&)));
     connect(&session,
@@ -41,8 +41,8 @@ ParserEngine::ParserEngine(ForumDatabase *fd, QObject *parent) :
 }
 
 ParserEngine::~ParserEngine() {
-   if(fsubscription)
-       fsubscription->setParserEngine(0);
+    if(fsubscription)
+        fsubscription->setParserEngine(0);
 }
 
 void ParserEngine::setParser(ForumParser &fp) {
@@ -94,7 +94,10 @@ void ParserEngine::updateThread(ForumThread *thread, bool force) {
         session.initialize(parser, fsubscription);
         sessionInitialized = true;
     }
-    if(force) thread->setLastPage(0);
+    if(force) {
+        thread->setLastPage(0);
+        thread->markToBeUpdated();
+    }
     session.listMessages(thread);
     setBusy(true);
 }
@@ -114,7 +117,7 @@ void ParserEngine::updateNextChangedGroup() {
         Q_ASSERT(grp->subscribed());
         session.listThreads(grp);
     } else {
-      //  qDebug() << Q_FUNC_INFO << "No more changed groups - end of update.";
+        //  qDebug() << Q_FUNC_INFO << "No more changed groups - end of update.";
         updateAll = false;
         Q_ASSERT(groupsToUpdateQueue.size()==0 &&
                  threadsToUpdateQueue.size()==0);
@@ -128,18 +131,18 @@ void ParserEngine::updateNextChangedThread() {
     if (!threadsToUpdateQueue.isEmpty()) {
         ForumThread *thread = threadsToUpdateQueue.dequeue();
         if(forceUpdate)
-           thread->setLastPage(0);
+            thread->setLastPage(0);
         session.listMessages(thread);
     } else {
-      //  qDebug() << "PE: no more threads to update - updating next group.";
+        //  qDebug() << "PE: no more threads to update - updating next group.";
         updateNextChangedGroup();
     }
     updateCurrentProgress();
 }
 
 void ParserEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups) {
-   // qDebug() << Q_FUNC_INFO << " rx groups " << groups.size()
-   //         << " in " << parser.toString();
+    // qDebug() << Q_FUNC_INFO << " rx groups " << groups.size()
+    //         << " in " << parser.toString();
     bool dbGroupsWasEmpty = fsubscription->groups().isEmpty();
     groupsToUpdateQueue.clear();
     if (tempGroups.size() == 0 && fsubscription->groups().size() > 0) {
@@ -157,18 +160,18 @@ void ParserEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups) {
             if (dbGroup->id() == tempGroup->id()) {
                 foundInDb = true;
                 if ((dbGroup->subscribed() && ((dbGroup->lastchange()
-                    != tempGroup->lastchange()) || forceUpdate))) {
+                                                != tempGroup->lastchange()) || forceUpdate))) {
                     groupsToUpdateQueue.enqueue(dbGroup);
                     qDebug() << Q_FUNC_INFO << "Group " << dbGroup->toString()
-                            << " has been changed, adding to list";
+                             << " has been changed, adding to list";
                     // Store the updated version to database
                     tempGroup->setSubscribed(true);
                     Q_ASSERT(tempGroup->subscription() == dbGroup->subscription());
                     dbGroup->copyFrom(tempGroup);
                     dbGroup->commitChanges();
                 } else {
-           //         qDebug() << "Group" << dbgroup->toString()
-            //                << " hasn't changed or is not subscribed - not reloading.";
+                    //         qDebug() << "Group" << dbgroup->toString()
+                    //                << " hasn't changed or is not subscribed - not reloading.";
                 }
             }
         }
@@ -213,8 +216,8 @@ void ParserEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups) {
 
 void ParserEngine::listThreadsFinished(QList<ForumThread*> &tempThreads,
                                        ForumGroup *group) {
-   // qDebug() << Q_FUNC_INFO << "rx threads " << threads.size() << " in group "
-      //      << group->toString();
+    // qDebug() << Q_FUNC_INFO << "rx threads " << threads.size() << " in group "
+    //      << group->toString();
     Q_ASSERT(group);
     Q_ASSERT(group->subscribed());
     Q_ASSERT(!group->isTemp());
@@ -245,7 +248,7 @@ void ParserEngine::listThreadsFinished(QList<ForumThread*> &tempThreads,
                 dbThread->setHasMoreMessages(oldHasMoreMessages);
                 dbThread->commitChanges();
                 qDebug() << Q_FUNC_INFO << "Thread " << dbThread->toString()
-                        << " has been changed, updating and adding to update queue";
+                         << " has been changed, updating and adding to update queue";
                 threadsToUpdateQueue.enqueue(dbThread);
             }
         } else {
@@ -267,7 +270,7 @@ void ParserEngine::listThreadsFinished(QList<ForumThread*> &tempThreads,
         }
         if (!threadFound) {
             qDebug() << "Thread " << dbThread->toString()
-                    << " has been deleted!";
+                     << " has been deleted!";
             fdb->deleteThread(dbThread);
         }
     }
@@ -285,7 +288,6 @@ void ParserEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages, Foru
     bool messagesChanged = false;
     foreach (ForumMessage *tempMessage, tempMessages) {
         bool foundInDb = false;
-        if(tempMessage->)
         foreach (ForumMessage *dbMessage, dbThread->values()) {
             if (dbMessage->id() == tempMessage->id()) {
                 foundInDb = true;

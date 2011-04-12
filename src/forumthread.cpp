@@ -135,7 +135,6 @@ void ForumThread::addMessage(ForumMessage* msg, bool affectsSync) {
     }
     Q_ASSERT(!contains(msg->id()));
     insert(msg->id(), msg);
-//    qDebug() << Q_FUNC_INFO << msg->toString() << unreadCount() << "/" << size();
     Q_ASSERT(unreadCount() <= size());
     emit messageAdded(msg);
 }
@@ -154,6 +153,6 @@ void ForumThread::removeMessage(ForumMessage* msg, bool affectsSync) {
 }
 
 void ForumThread::markToBeUpdated() {
-    setLastchange(ITEM_UPDATE_NEEDED);
-    group()->setLastchange(ITEM_UPDATE_NEEDED);
+    setLastchange("THREAD_UPDATE_NEEDED");
+    group()->markToBeUpdated();
 }

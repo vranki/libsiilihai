@@ -65,7 +65,6 @@ private:
     ForumGroup *_group;
     bool _hasMoreMessages;
     int _getMessagesCount;
-//    bool _hasChanged; // As in needs sync?
     bool _temp;
     int _lastPage;
 };

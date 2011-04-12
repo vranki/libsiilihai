@@ -33,7 +33,7 @@ QString ForumDataItem::lastchange() const {
 
 void ForumDataItem::setLastchange(QString nlc) {
     if(nlc==_lastchange) return;
-    _lastchange = nlc ;
+    _lastchange = nlc;
     _propertiesChanged = true;
 }
 

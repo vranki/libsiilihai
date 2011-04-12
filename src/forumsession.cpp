@@ -44,24 +44,34 @@ QString ForumSession::convertCharset(const QByteArray &src) {
     return converted;
 }
 
+void ForumSession::listGroups() {
+    qDebug() << Q_FUNC_INFO << fpar.forum_url;
+    if (operationInProgress != FSONoOp && operationInProgress != FSOListGroups) {
+        qDebug() << Q_FUNC_INFO << "Operation in progress!! Don't command me yet! ";
+        Q_ASSERT(false);
+        return;
+    }
+    operationInProgress = FSOListGroups;
+    if(prepareForUse()) return;
+
+    QNetworkRequest req(QUrl(fpar.forum_url));
+    connect(nam, SIGNAL(finished(QNetworkReply*)), this, SLOT(listGroupsReply(QNetworkReply*)));
+    nam->post(req, emptyData);
+}
+
 void ForumSession::listGroupsReply(QNetworkReply *reply) {
     if(operationInProgress == FSONoOp) return;
     qDebug() << Q_FUNC_INFO;
-    //    qDebug() << statusReport();
 
-    disconnect(nam, SIGNAL(finished(QNetworkReply*)), this,
-               SLOT(listGroupsReply(QNetworkReply*)));
+    disconnect(nam, SIGNAL(finished(QNetworkReply*)), this, SLOT(listGroupsReply(QNetworkReply*)));
     QString data = convertCharset(reply->readAll());
-    qDebug() << "RX " << data.size() << " chars";
     if (reply->error() != QNetworkReply::NoError) {
         emit(networkFailure(reply->errorString()));
         cancelOperation();
         return;
     }
-
     performListGroups(data);
 }
-
 
 void ForumSession::performListGroups(QString &html) {
     Q_ASSERT(pm);
@@ -90,8 +100,7 @@ void ForumSession::fetchCookieReply(QNetworkReply *reply) {
     //  qDebug() << statusReport();
 
     cookieFetched = true;
-    disconnect(nam, SIGNAL(finished(QNetworkReply*)), this,
-               SLOT(fetchCookieReply(QNetworkReply*)));
+    disconnect(nam, SIGNAL(finished(QNetworkReply*)), this, SLOT(fetchCookieReply(QNetworkReply*)));
     if (reply->error() != QNetworkReply::NoError) {
         qDebug() << Q_FUNC_INFO << reply->errorString();
         emit(networkFailure(reply->errorString()));
@@ -108,23 +117,6 @@ void ForumSession::fetchCookieReply(QNetworkReply *reply) {
  }
  */
     nextOperation();
-}
-
-void ForumSession::listGroups() {
-    qDebug() << Q_FUNC_INFO;
-    if (operationInProgress != FSONoOp && operationInProgress != FSOListGroups) {
-        //statusReport();
-        qDebug() << Q_FUNC_INFO << "Operation in progress!! Don't command me yet! ";
-        Q_ASSERT(false);
-        return;
-    }
-    operationInProgress = FSOListGroups;
-    if(prepareForUse()) return;
-
-    QNetworkRequest req(QUrl(fpar.forum_url));
-    connect(nam, SIGNAL(finished(QNetworkReply*)), this,
-            SLOT(listGroupsReply(QNetworkReply*)));
-    nam->post(req, emptyData);
 }
 
 void ForumSession::loginToForum() {
@@ -255,8 +247,7 @@ void ForumSession::updateThreadPage() {
     QNetworkRequest req;
     req.setUrl(QUrl(urlString));
 
-    connect(nam, SIGNAL(finished(QNetworkReply*)), this,
-            SLOT(listMessagesReply(QNetworkReply*)));
+    connect(nam, SIGNAL(finished(QNetworkReply*)), this, SLOT(listMessagesReply(QNetworkReply*)));
 
     nam->post(req, emptyData);
 }
@@ -293,11 +284,15 @@ void ForumSession::listMessages(ForumThread *thread) {
     messages.clear();
     moreMessagesAvailable = false;
     if(prepareForUse()) return;
+    /* @todo enable this when it's figured out how to add the new messages to
+      end of thread and NOT delete the messages in beginning of thread.
+
     if(thread->getLastPage()) { // Start from last known page if possible
         currentListPage = thread->getLastPage();
     } else {
         currentListPage = fpar.view_thread_page_start;
     }
+    */
     updateThreadPage();
 }
 
@@ -419,8 +414,8 @@ QString ForumSession::statusReport() {
             + QString().number(threads.size()) + "\n" + "Messages: "
             + QString().number(messages.size()) + "\n" + "Page: "
             + QString().number(currentListPage)/* + "\n" + "Group: "
-           + currentGroup->toString() + "\n" + "Thread: "
-                                + currentThread->toString() + "\n"*/;
+                   + currentGroup->toString() + "\n" + "Thread: "
+                                        + currentThread->toString() + "\n"*/;
 }
 
 void ForumSession::listThreadsReply(QNetworkReply *reply) {
@@ -588,9 +583,8 @@ void ForumSession::authenticationRequired(QNetworkReply * reply,
             qDebug() << Q_FUNC_INFO << "FAIL: no credentials given for subscription "
                      << fsub->toString();
             cancelOperation();
-            emit networkFailure(
-                        "Server requested for username and password for forum "
-                        + fsub->alias() + " but you haven't provided them.");
+            emit networkFailure("Server requested for username and password for forum "
+                                + fsub->alias() + " but you haven't provided them.");
         } else {
             qDebug() << Q_FUNC_INFO << "Gave credentials to server";
             authenticator->setUser(fsub->username());
@@ -599,7 +593,6 @@ void ForumSession::authenticationRequired(QNetworkReply * reply,
     } else {
         emit getAuthentication(fsub, authenticator);
     }
-
 }
 
 void ForumSession::clearAuthentications() {
@@ -612,10 +605,8 @@ void ForumSession::clearAuthentications() {
     cookieJar = new QNetworkCookieJar();
     nam->disconnect(this);
     nam->setCookieJar(cookieJar);
-    connect(nam, SIGNAL(authenticationRequired(QNetworkReply *,
-                                               QAuthenticator *)),
-            this, SLOT(authenticationRequired(QNetworkReply *,
-                                              QAuthenticator *)));
+    connect(nam, SIGNAL(authenticationRequired(QNetworkReply *, QAuthenticator *)),
+            this, SLOT(authenticationRequired(QNetworkReply *, QAuthenticator *)));
 }
 
 bool ForumSession::prepareForUse() {
