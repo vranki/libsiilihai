@@ -289,10 +289,11 @@ void ForumSession::listMessages(ForumThread *thread) {
 
     if(thread->getLastPage()) { // Start from last known page if possible
         currentListPage = thread->getLastPage();
-    } else {
-        currentListPage = fpar.view_thread_page_start;
-    }
-    */
+    } else {*/
+    currentListPage = fpar.view_thread_page_start;
+  //  }
+
+
     updateThreadPage();
 }
 
