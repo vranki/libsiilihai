@@ -45,6 +45,7 @@ void SyncMaster::startSync() {
 
 void SyncMaster::endSync() {
     qDebug( ) << Q_FUNC_INFO;
+    fdb.checkSanity();
     canceled = false;
     errorCount = 0;
 

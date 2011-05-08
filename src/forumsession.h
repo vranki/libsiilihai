@@ -26,6 +26,7 @@
 #include <QNetworkCookieJar>
 #include <QDebug>
 #include <QAuthenticator>
+#include <QTimer>
 
 #include "forumparser.h"
 #include "forumsubscription.h"
@@ -76,7 +77,8 @@ signals:
     void loginFinished(ForumSubscription *sub, bool success);
     void receivedHtml(const QString &data);
     void getAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator);
-
+private slots:
+    void cookieExpired(); // Called when cookie needs to be fetched again
 private:
     bool prepareForUse(); // get cookie & login if needed
     void nextOperation();
@@ -100,6 +102,7 @@ private:
     QList<ForumMessage*> messages; // Represents messages in thread listMessages
     bool moreMessagesAvailable; // True if thread would have more messages but limit stops search
     QString currentMessagesUrl;
+    QTimer cookieExpiredTimer;
 };
 
 #endif /* FORUMSESSION_H_ */

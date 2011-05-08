@@ -23,6 +23,9 @@ ForumSession::ForumSession(QObject *parent, QNetworkAccessManager *n) : QObject(
     loggedIn = false;
     cookieFetched = false;
     clearAuthentications();
+    cookieExpiredTimer.setSingleShot(true);
+    cookieExpiredTimer.setInterval(10*60*1000);
+    connect(&cookieExpiredTimer, SIGNAL(timeout()), this, SLOT(cookieExpired()));
 }
 
 ForumSession::~ForumSession() {
@@ -99,7 +102,6 @@ void ForumSession::fetchCookieReply(QNetworkReply *reply) {
     qDebug() << Q_FUNC_INFO;
     //  qDebug() << statusReport();
 
-    cookieFetched = true;
     disconnect(nam, SIGNAL(finished(QNetworkReply*)), this, SLOT(fetchCookieReply(QNetworkReply*)));
     if (reply->error() != QNetworkReply::NoError) {
         qDebug() << Q_FUNC_INFO << reply->errorString();
@@ -116,6 +118,8 @@ void ForumSession::fetchCookieReply(QNetworkReply *reply) {
   qDebug() << "\t" << cookies[i].name();
  }
  */
+    cookieFetched = true;
+    cookieExpiredTimer.start();
     nextOperation();
 }
 
@@ -639,4 +643,8 @@ void ForumSession::nextOperation() {
     default:
         Q_ASSERT(false);
     }
+}
+
+void ForumSession::cookieExpired() {
+    cookieFetched = false;
 }

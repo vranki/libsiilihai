@@ -269,8 +269,8 @@ void ParserEngine::listThreadsFinished(QList<ForumThread*> &tempThreads,
             }
         }
         if (!threadFound) {
-            qDebug() << "Thread " << dbThread->toString()
-                     << " has been deleted!";
+            fdb->checkSanity();
+            qDebug() << "Thread " << dbThread->toString() << " has been deleted!";
             fdb->deleteThread(dbThread);
         }
     }
