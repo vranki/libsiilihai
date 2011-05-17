@@ -58,7 +58,7 @@ void ForumSession::listGroups() {
     if(prepareForUse()) return;
 
     QNetworkRequest req(QUrl(fpar.forum_url));
-    connect(nam, SIGNAL(finished(QNetworkReply*)), this, SLOT(listGroupsReply(QNetworkReply*)));
+    connect(nam, SIGNAL(finished(QNetworkReply*)), this, SLOT(listGroupsReply(QNetworkReply*)), Qt::UniqueConnection);
     nam->post(req, emptyData);
 }
 
@@ -160,7 +160,7 @@ void ForumSession::loginToForum() {
         loginData = HttpPost::setPostParameters(&req, params);
 
         connect(nam, SIGNAL(finished(QNetworkReply*)), this,
-                SLOT(loginReply(QNetworkReply*)));
+                SLOT(loginReply(QNetworkReply*)), Qt::UniqueConnection);
         nam->post(req, loginData);
     } else {
         qDebug("Sorry, http auth not yet implemented.");
@@ -207,7 +207,7 @@ void ForumSession::fetchCookie() {
     if (operationInProgress == FSONoOp)
         return;
     QNetworkRequest req(QUrl(fpar.forum_url));
-    connect(nam, SIGNAL(finished(QNetworkReply*)), this, SLOT(fetchCookieReply(QNetworkReply*)));
+    connect(nam, SIGNAL(finished(QNetworkReply*)), this, SLOT(fetchCookieReply(QNetworkReply*)), Qt::UniqueConnection);
     nam->post(req, emptyData);
 }
 
@@ -233,9 +233,7 @@ void ForumSession::updateGroupPage() {
     QNetworkRequest req;
     req.setUrl(QUrl(urlString));
 
-    connect(nam, SIGNAL(finished(QNetworkReply*)), this,
-            SLOT(listThreadsReply(QNetworkReply*)));
-
+    connect(nam, SIGNAL(finished(QNetworkReply*)), this, SLOT(listThreadsReply(QNetworkReply*)), Qt::UniqueConnection);
     nam->post(req, emptyData);
 }
 
@@ -251,7 +249,7 @@ void ForumSession::updateThreadPage() {
     QNetworkRequest req;
     req.setUrl(QUrl(urlString));
 
-    connect(nam, SIGNAL(finished(QNetworkReply*)), this, SLOT(listMessagesReply(QNetworkReply*)));
+    connect(nam, SIGNAL(finished(QNetworkReply*)), this, SLOT(listMessagesReply(QNetworkReply*)), Qt::UniqueConnection);
 
     nam->post(req, emptyData);
 }
@@ -259,9 +257,7 @@ void ForumSession::updateThreadPage() {
 void ForumSession::listThreads(ForumGroup *group) {
     qDebug() << Q_FUNC_INFO << group->toString();
 
-    if (operationInProgress != FSONoOp && operationInProgress
-            != FSOUpdateThreads)
-    {
+    if (operationInProgress != FSONoOp && operationInProgress != FSOUpdateThreads) {
         //statusReport();
         qDebug() << Q_FUNC_INFO << "Operation in progress!! Don't command me yet!";
         Q_ASSERT(false);
@@ -274,6 +270,21 @@ void ForumSession::listThreads(ForumGroup *group) {
     updateGroupPage();
 }
 
+void ForumSession::listThreadsReply(QNetworkReply *reply) {
+    if(operationInProgress == FSONoOp) return;
+    Q_ASSERT(currentGroup);
+
+    qDebug() << Q_FUNC_INFO << currentGroup->toString();
+    disconnect(nam, SIGNAL(finished(QNetworkReply*)), this,
+               SLOT(listThreadsReply(QNetworkReply*)));
+    if (reply->error() != QNetworkReply::NoError) {
+        emit(networkFailure(reply->errorString()));
+        cancelOperation();
+        return;
+    }
+    QString data = convertCharset(reply->readAll());
+    performListThreads(data);
+}
 void ForumSession::listMessages(ForumThread *thread) {
     Q_ASSERT(thread->isSane());
     if (operationInProgress != FSONoOp && operationInProgress != FSOUpdateMessages) {
@@ -423,21 +434,6 @@ QString ForumSession::statusReport() {
                                         + currentThread->toString() + "\n"*/;
 }
 
-void ForumSession::listThreadsReply(QNetworkReply *reply) {
-    if(operationInProgress == FSONoOp) return;
-    qDebug() << Q_FUNC_INFO << currentGroup->toString();
-    // qDebug() << statusReport();
-    disconnect(nam, SIGNAL(finished(QNetworkReply*)), this,
-               SLOT(listThreadsReply(QNetworkReply*)));
-    if (reply->error() != QNetworkReply::NoError) {
-        emit(networkFailure(reply->errorString()));
-        cancelOperation();
-        return;
-    }
-    QString data = convertCharset(reply->readAll());
-    performListThreads(data);
-}
-
 void ForumSession::performListThreads(QString &html) {
     QList<ForumThread*> newThreads;
     emit receivedHtml(html);
@@ -523,10 +519,10 @@ void ForumSession::cancelOperation() {
     operationInProgress = FSONoOp;
     cookieFetched = false;
     currentListPage = -1;
-    qDeleteAll(threads);
-    threads.clear();
     qDeleteAll(messages);
     messages.clear();
+    qDeleteAll(threads);
+    threads.clear();
     currentGroup = 0;
     currentThread = 0;
 }
@@ -576,8 +572,7 @@ QString ForumSession::getMessageListUrl(const ForumThread *thread, int page) {
     return urlString;
 }
 
-void ForumSession::authenticationRequired(QNetworkReply * reply,
-                                          QAuthenticator * authenticator) {
+void ForumSession::authenticationRequired(QNetworkReply * reply, QAuthenticator * authenticator) {
     Q_UNUSED(reply);
     if(operationInProgress == FSONoOp) return;
 
@@ -611,7 +606,7 @@ void ForumSession::clearAuthentications() {
     nam->disconnect(this);
     nam->setCookieJar(cookieJar);
     connect(nam, SIGNAL(authenticationRequired(QNetworkReply *, QAuthenticator *)),
-            this, SLOT(authenticationRequired(QNetworkReply *, QAuthenticator *)));
+            this, SLOT(authenticationRequired(QNetworkReply *, QAuthenticator *)), Qt::UniqueConnection);
 }
 
 bool ForumSession::prepareForUse() {
