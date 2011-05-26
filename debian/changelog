@@ -1,3 +1,10 @@
+libsiilihai (0.9.23-2) natty; urgency=low
+
+  * User account settings
+  * Minor changes
+
+ -- Ville Ranki <ville.ranki@iki.fi>  Thu, 26 May 2011 20:29:43 +0300
+
 libsiilihai (0.9.22-1) maverick; urgency=low
 
   * Fixed another crash on release build
