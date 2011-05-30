@@ -37,29 +37,25 @@ public:
     virtual ~ForumDatabase();
     bool openDatabase(QSqlDatabase *database);
     void resetDatabase();
+    int schemaVersion();
+    // Subscription related
     bool addSubscription(ForumSubscription *fs); // Ownership changes!!!
     QList <ForumSubscription*> listSubscriptions();
     ForumSubscription* getSubscription(int id);
     void deleteSubscription(ForumSubscription *sub);
-
+    // Group related
     ForumGroup* getGroup(ForumSubscription *fs, QString id);
     void addGroup(ForumGroup *grp);
     bool deleteGroup(ForumGroup *grp);
-
+    // Thread related
     ForumThread* getThread(const int forum, QString groupid, QString threadid);
     void addThread(ForumThread *thread);
     bool deleteThread(ForumThread *thread);
-
+    // Message related
     ForumMessage* getMessage(const int forum, QString groupid, QString threadid, QString messageid);
-
-
     void markForumRead(ForumSubscription *fs, bool read);
     bool markGroupRead(ForumGroup *group, bool read);
-    int schemaVersion();/*
-    int recalcUnreads(ForumThread * thr);
-    int recalcUnreads(ForumGroup * grp);
-    int recalcUnreads(ForumSubscription * sub);
-*/
+
 public slots:
     void messageChanged(ForumMessage *message);
     void messageMarkedRead(ForumMessage *message, bool read=true);
@@ -71,13 +67,13 @@ public slots:
 signals:
     void subscriptionAdded(ForumSubscription *sub);
     void subscriptionFound(ForumSubscription *sub);
-//    void subscriptionDeleted(ForumSubscription *sub);
     void groupAdded(ForumGroup *grp);
     void groupFound(ForumGroup *grp);
     void threadFound(ForumThread *thr);
     void threadAdded(ForumThread *thr);
     void messageFound(ForumMessage *msg);
     void messageAdded(ForumMessage *msg);
+    void databaseStored();
 private slots:
     void deleteMessage(ForumMessage *message);
     void addMessage(ForumMessage *message);

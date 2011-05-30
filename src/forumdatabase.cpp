@@ -21,8 +21,6 @@ ForumDatabase::ForumDatabase(QObject *parent) :
 }
 
 ForumDatabase::~ForumDatabase() {
-    storeDatabase();
-    disconnect(this);
 }
 
 void ForumDatabase::resetDatabase() {
@@ -423,6 +421,7 @@ void ForumDatabase::updateThread(ForumThread *thread) {
     checkSanity();
     Q_ASSERT(thread);
     Q_ASSERT(thread->isSane());
+    db->transaction();
     QSqlQuery query;
     query.prepare("UPDATE threads SET name=?, ordernum=?, lastchange=?, changeset=?, hasmoremessages=?, getmessagescount=?, "
                   "lastpage=? WHERE(forumid=? AND groupid=? AND threadid=?)");
@@ -441,6 +440,7 @@ void ForumDatabase::updateThread(ForumThread *thread) {
     if (!query.exec()) {
         qDebug() << Q_FUNC_INFO << "Updating thread " << thread->toString() << " failed: " << query.lastError().text();
     }
+    db->commit();
     changedThreads.remove(thread);
     // qDebug() << "Thread " << thread->toString() << " updated";
     checkSanity();
@@ -505,6 +505,7 @@ void ForumDatabase::messageChanged(ForumMessage *message) {
 void ForumDatabase::updateMessage(ForumMessage *message) {
     Q_ASSERT(message);
     checkSanity();
+    db->transaction();
     QSqlQuery query;
     query.prepare("UPDATE messages SET forumid=?, groupid=?, threadid=?, messageid=?,"
                   " ordernum=?, url=?, subject=?, author=?, lastchange=?, body=?, read=? "
@@ -519,6 +520,7 @@ void ForumDatabase::updateMessage(ForumMessage *message) {
         qDebug() << "Updating message failed: " << query.lastError().text();
         Q_ASSERT(false);
     }
+    db->commit();
     changedMessages.remove(message);
     checkSanity();
 }
@@ -628,6 +630,7 @@ bool ForumDatabase::deleteThread(ForumThread *thread) {
 void ForumDatabase::groupChanged(ForumGroup *grp) {
     checkSanity();
     Q_ASSERT(grp->isSane());
+    db->transaction();
     QSqlQuery query;
     query.prepare("UPDATE groups SET name=?, lastchange=?, subscribed=?, changeset=? WHERE(forumid=? AND groupid=?)");
     query.addBindValue(grp->name());
@@ -639,6 +642,7 @@ void ForumDatabase::groupChanged(ForumGroup *grp) {
     if (!query.exec()) {
         qDebug() << Q_FUNC_INFO << "Updating group failed: " << query.lastError().text();
     }
+    db->commit();
     checkSanity();
 }
 
@@ -730,6 +734,7 @@ void ForumDatabase::storeDatabase() {
             Q_ASSERT(false);
         }
         changedThreads.remove(thread);
+        QCoreApplication::processEvents();
     }
     db->commit();
     db->transaction();
@@ -760,21 +765,25 @@ void ForumDatabase::storeDatabase() {
             Q_ASSERT(false);
         }
         changedMessages.remove(message);
+        QCoreApplication::processEvents();
     }
     db->commit();
 
     while(!changedThreads.isEmpty()) {
         ForumThread *thread = *changedThreads.begin();
         updateThread(thread);
+        QCoreApplication::processEvents();
     }
     while(!changedMessages.isEmpty()) {
         ForumMessage *message = *changedMessages.begin();
         updateMessage(message);
+        QCoreApplication::processEvents();
     }
     messagesNotInDatabase.clear();
     threadsNotInDatabase.clear();
     Q_ASSERT(changedMessages.isEmpty());
     Q_ASSERT(changedThreads.isEmpty());
+    emit databaseStored();
 }
 
 void ForumDatabase::checkSanity() {
