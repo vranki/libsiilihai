@@ -38,6 +38,8 @@ public:
     bool openDatabase(QSqlDatabase *database);
     void resetDatabase();
     int schemaVersion();
+    bool isStored();
+
     // Subscription related
     bool addSubscription(ForumSubscription *fs); // Ownership changes!!!
     QList <ForumSubscription*> listSubscriptions();

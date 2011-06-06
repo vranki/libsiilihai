@@ -372,7 +372,7 @@ void ForumDatabase::addGroup(ForumGroup *grp) {
     query.addBindValue(grp->id());
     query.addBindValue(grp->name());
     query.addBindValue(grp->lastchange());
-    query.addBindValue(grp->subscribed());
+    query.addBindValue(grp->isSubscribed());
     query.addBindValue(grp->changeset());
     if (!query.exec()) {
         qDebug() << "Adding group failed: " << query.lastError().text() << grp->toString();
@@ -635,7 +635,7 @@ void ForumDatabase::groupChanged(ForumGroup *grp) {
     query.prepare("UPDATE groups SET name=?, lastchange=?, subscribed=?, changeset=? WHERE(forumid=? AND groupid=?)");
     query.addBindValue(grp->name());
     query.addBindValue(grp->lastchange());
-    query.addBindValue(grp->subscribed());
+    query.addBindValue(grp->isSubscribed());
     query.addBindValue(grp->changeset());
     query.addBindValue(grp->subscription()->parser());
     query.addBindValue(grp->id());
@@ -783,8 +783,15 @@ void ForumDatabase::storeDatabase() {
     threadsNotInDatabase.clear();
     Q_ASSERT(changedMessages.isEmpty());
     Q_ASSERT(changedThreads.isEmpty());
+    Q_ASSERT(isStored());
     emit databaseStored();
 }
+
+bool ForumDatabase::isStored() {
+    return threadsNotInDatabase.isEmpty() && messagesNotInDatabase.isEmpty()
+            && changedMessages.isEmpty() && changedThreads.isEmpty();
+}
+
 
 void ForumDatabase::checkSanity() {
 #ifdef SANITY_CHECKS

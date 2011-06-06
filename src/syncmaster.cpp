@@ -55,9 +55,8 @@ void SyncMaster::endSync() {
         qDebug() << Q_FUNC_INFO << fsub;
         foreach(ForumGroup *grp, fsub->groups()) {
             qDebug() << Q_FUNC_INFO << grp;
-            if(grp->subscribed()) totalGroups++;
-            if(grp->subscribed() && grp->hasChanged()) {
-                qDebug() << Q_FUNC_INFO << "adding to groupstoupload" << grp->toString();
+            if(grp->isSubscribed()) totalGroups++;
+            if(grp->isSubscribed() && grp->hasChanged()) {
                 groupsToUpload.append(grp);
             }
         }

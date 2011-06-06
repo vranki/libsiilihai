@@ -97,16 +97,18 @@ void ForumMessage::setRead(bool nr, bool affectsParents) {
     if(nr==_read) return;
     _read = nr;
     if(!affectsParents) return;
-    if(_read) {
-        thread()->incrementUnreadCount(-1);
-        thread()->group()->incrementUnreadCount(-1);
-        thread()->group()->subscription()->incrementUnreadCount(-1);
-    } else {
-        thread()->incrementUnreadCount(1);
-        thread()->group()->incrementUnreadCount(1);
-        thread()->group()->subscription()->incrementUnreadCount(1);
+    if(thread()->group()->isSubscribed()) {
+        if(_read) {
+            thread()->incrementUnreadCount(-1);
+            thread()->group()->incrementUnreadCount(-1);
+            thread()->group()->subscription()->incrementUnreadCount(-1);
+        } else {
+            thread()->incrementUnreadCount(1);
+            thread()->group()->incrementUnreadCount(1);
+            thread()->group()->subscription()->incrementUnreadCount(1);
+        }
+        thread()->group()->setHasChanged(true);
     }
-    thread()->group()->setHasChanged(true);
     _propertiesChanged = true;
     emit markedRead(this, nr);
 }

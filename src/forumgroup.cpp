@@ -28,7 +28,7 @@ void ForumGroup::copyFrom(ForumGroup * o) {
     setId(o->id());
     setName(o->name());
     setLastchange(o->lastchange());
-    setSubscribed(o->subscribed());
+    setSubscribed(o->isSubscribed());
     setChangeset(o->changeset());
     setHasChanged(o->hasChanged());
 }
@@ -47,7 +47,7 @@ bool ForumGroup::isSane() const {
     return (id().length() > 0 && name().length() > 0 && _subscription);
 }
 
-bool ForumGroup::subscribed() const {
+bool ForumGroup::isSubscribed() const {
     return _subscribed;
 }
 int ForumGroup::changeset() const {

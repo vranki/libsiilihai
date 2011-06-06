@@ -424,7 +424,7 @@ void SiilihaiProtocol::updateGroupSubscriptions(ForumSubscription *fs) {
     foreach(ForumGroup *g, fs->groups().values())
     {
         QDomElement subTag;
-        if (g->subscribed()) {
+        if (g->isSubscribed()) {
             subTag = doc.createElement("subscribe");
             subTag.setAttribute("changeset", g->changeset());
         } else {

@@ -32,7 +32,7 @@ public:
     virtual QString toString() const;
     bool isSane() const;
     ForumSubscription *subscription() const;
-    bool subscribed() const;
+    bool isSubscribed() const;
     int changeset() const;
     bool hasChanged() const;
     void setSubscribed(bool s);
