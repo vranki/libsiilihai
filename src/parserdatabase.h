@@ -19,17 +19,22 @@
 #include <QList>
 #include "forumparser.h"
 
+/**
+  * Stores ForumParsers in a local sqlite database.
+  *
+  * @see ForumParser
+  */
 class ParserDatabase : public QObject {
-	Q_OBJECT
+    Q_OBJECT
 
 public:
-	ParserDatabase(QObject *parent);
-	virtual ~ParserDatabase();
-	bool openDatabase( );
-	bool storeParser(const ForumParser &p );
-	void deleteParser(const int id);
-	ForumParser getParser(const int id);
-	QList <ForumParser> listParsers();
+    ParserDatabase(QObject *parent);
+    virtual ~ParserDatabase();
+    bool openDatabase( );
+    bool storeParser(const ForumParser &p );
+    void deleteParser(const int id);
+    ForumParser getParser(const int id);
+    QList <ForumParser> listParsers();
 private:
 };
 

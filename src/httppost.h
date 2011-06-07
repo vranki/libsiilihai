@@ -21,14 +21,18 @@
 #include <QDebug>
 #include <QNetworkRequest>
 
-
+/**
+  * Surprisingly Qt doesn't have functionality for making
+  * HTTP POST requests. This implements HTTP POST in a
+  * (hopefully) decent way.
+  */
 class HttpPost {
 public:
-	HttpPost();
-	virtual ~HttpPost();
-	static QByteArray setPostParameters(QNetworkRequest *req, const QHash<QString, QString> &params);
+    HttpPost();
+    virtual ~HttpPost();
+    static QByteArray setPostParameters(QNetworkRequest *req, const QHash<QString, QString> &params);
 private:
-	static void encodeParam(QString &p);
+    static void encodeParam(QString &p);
 };
 
 #endif /* HTTPPOST_H_ */

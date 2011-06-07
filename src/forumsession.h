@@ -36,6 +36,14 @@
 #include "forumthread.h"
 #include "forummessage.h"
 
+/**
+  * ForumSession makes HTTP requests to forum, uses
+  * patternmatcher to scrape data from the returned HTML and
+  * returns wanted data such as threads and messages. ForumSession is used
+  * by ParserEngine.
+  *
+  * @see ParserEngine
+  */
 class ForumSession : public QObject {
     Q_OBJECT
 public:

@@ -37,6 +37,11 @@
 
 #define CLIENT_VERSION "0.9.0"
 
+/**
+  * Implements communication protocol between siilihai.com server and the client.
+  *
+  * @todo https
+  */
 class SiilihaiProtocol: public QObject {
     Q_OBJECT
 public:

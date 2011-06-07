@@ -22,8 +22,10 @@
 #include "forumdataitem.h"
 
 class ForumThread;
-
-class ForumGroup : public ForumDataItem {
+/**
+  * Represents a single thread in a forum. Contains threads.
+  */
+class ForumGroup : public ForumDataItem, public QMap<QString, ForumThread*> {
     Q_OBJECT
 public:
     ForumGroup(ForumSubscription *sub, bool temp=true);
@@ -38,12 +40,16 @@ public:
     void setSubscribed(bool s);
     void setChangeset(int cs);
     void setHasChanged(bool hc);
-    QMap<QString, ForumThread*> & threads();
     bool isTemp();
     void markToBeUpdated();
+    void addThread(ForumThread* thr, bool affectsSync = true);
+    void removeThread(ForumThread* thr, bool affectsSync = true);
+
 signals:
     void changed(ForumGroup *grp);
     void unreadCountChanged(ForumGroup *grp);
+    void threadRemoved(ForumThread *thr);
+    void threadAdded(ForumThread *thr);
 protected:
     virtual void emitChanged();
     virtual void emitUnreadCountChanged();
@@ -54,7 +60,6 @@ private:
     bool _subscribed;
     int _changeset;
     bool _hasChanged;
-    QMap<QString, ForumThread*> _threads;
     bool _temp;
 };
 

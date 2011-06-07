@@ -23,6 +23,12 @@
 class ForumGroup;
 class ParserEngine;
 
+/**
+  * Represents a subscription to a forum. Contains a list of
+  * groups.
+  *
+  * @see ForumGroup
+  */
 class ForumSubscription : public QObject  {
     Q_OBJECT
 

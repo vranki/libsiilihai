@@ -16,15 +16,19 @@
 #ifndef FORUMREQUEST_H_
 #define FORUMREQUEST_H_
 #include <QString>
-
+/**
+  * Represents a single forum request.
+  *
+  * @todo make a proper class
+  */
 class ForumRequest {
 public:
-	ForumRequest();
-	virtual ~ForumRequest();
-	QString forum_url;
-	QString date;
-	QString user;
-	QString comment;
+    ForumRequest();
+    virtual ~ForumRequest();
+    QString forum_url;
+    QString date;
+    QString user;
+    QString comment;
 };
 
 #endif /* FORUMREQUEST_H_ */

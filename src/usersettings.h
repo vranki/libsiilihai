@@ -15,6 +15,9 @@
 #ifndef USERSETTINGS_H
 #define USERSETTINGS_H
 
+/**
+  * Siilihai user's settings (which are synced with server)
+  */
 class UserSettings
 {
 public:

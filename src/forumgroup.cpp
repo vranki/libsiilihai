@@ -14,7 +14,7 @@
     along with libSiilihai.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "forumgroup.h"
-
+#include "forumthread.h"
 
 ForumGroup::ForumGroup(ForumSubscription *sub, bool temp) : ForumDataItem(sub) {
     _subscription = sub;
@@ -34,6 +34,22 @@ void ForumGroup::copyFrom(ForumGroup * o) {
 }
 
 ForumGroup::~ForumGroup() {
+}
+
+void ForumGroup::addThread(ForumThread* thr, bool affectsSync) {
+    Q_ASSERT(thr->group() == this);
+    incrementUnreadCount(thr->unreadCount());
+    if(affectsSync) setHasChanged(true);
+    insert(thr->id(), thr);
+    emit threadAdded(thr);
+}
+
+void ForumGroup::removeThread(ForumThread* thr, bool affectsSync) {
+    Q_ASSERT(thr->group() == this);
+    incrementUnreadCount(-thr->unreadCount());
+    if(affectsSync) setHasChanged(true);
+    remove(thr->id());
+    emit threadRemoved(thr);
 }
 
 QString ForumGroup::toString() const {
@@ -77,10 +93,6 @@ void ForumGroup::setHasChanged(bool hc) {
     if(hc==_hasChanged) return;
     _hasChanged = hc;
     _propertiesChanged = true; // @todo should we? this bool goes nowhere
-}
-
-QMap<QString, ForumThread*> & ForumGroup::threads() {
-    return _threads;
 }
 
 bool ForumGroup::isTemp() {

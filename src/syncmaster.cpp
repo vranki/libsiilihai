@@ -160,8 +160,7 @@ void SyncMaster::processGroups() {
         qDebug() << Q_FUNC_INFO << g->toString();
         g->setChangeset(rand());
         qDebug() << Q_FUNC_INFO << "Group " << g->toString() << "new changeset: " << g->changeset();
-        foreach(ForumThread *thread, g->threads().values())
-        {
+        foreach(ForumThread *thread, g->values()) {
             Q_ASSERT(thread);
             qDebug() << Q_FUNC_INFO << "appending thread " << thread->toString() << thread->values().size();
             messagesToUpload.append(thread->values());
@@ -206,7 +205,7 @@ void SyncMaster::serverThreadData(ForumThread *tempThread) { // Thread is tempor
             Q_ASSERT(!dbGroup->isTemp());
             ForumThread *newThread = new ForumThread(dbGroup, false);
             newThread->copyFrom(tempThread);
-            fdb.addThread(newThread);
+            dbGroup->addThread(newThread);
             dbThread = newThread;
             // Make sure group will be updated
             dbGroup->markToBeUpdated();

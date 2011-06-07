@@ -22,13 +22,25 @@
 #include "forumthread.h"
 #include "siilihaiprotocol.h"
 
+/**
+  * Handles synchronization of reader state with siilihai.com server.
+  * Uses SiilihaiProtocol for actual communication to server.
+  *
+  * @see SiilihaiProtocol
+  */
 class SyncMaster : public QObject {
 	Q_OBJECT
 
 public:
 	SyncMaster(QObject *parent, ForumDatabase &fd, SiilihaiProtocol &prot);
 	virtual ~SyncMaster();
+        /**
+          * Downloads state from server (done in startup)
+          */
 	void startSync();
+        /**
+          * Uploads state to server (done in end)
+          */
 	void endSync();
         void cancel();
 public slots:

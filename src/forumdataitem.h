@@ -3,6 +3,10 @@
 
 #include <QObject>
 
+/**
+  * Pure virtual class containing common functionality for
+  * groups, threads and messages.
+  */
 class ForumDataItem : public QObject {
     Q_OBJECT
 public:

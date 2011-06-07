@@ -23,6 +23,11 @@
 class ForumMessage;
 class ForumGroup;
 
+/**
+  * Represents a single thread in a forum. Contains a list of ForumMessages.
+  *
+  * @see ForumMessage
+  */
 class ForumThread : public ForumDataItem, public QMap<QString, ForumMessage*> {
     Q_OBJECT
 public:

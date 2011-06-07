@@ -224,7 +224,7 @@ void ParserEngine::listThreadsFinished(QList<ForumThread*> &tempThreads,
     Q_ASSERT(group->isSane());
     threadsToUpdateQueue.clear();
     fdb->checkSanity();
-    if (tempThreads.isEmpty() && group->threads().size() > 0) {
+    if (tempThreads.isEmpty() && !group->isEmpty()) {
         emit updateFailure(fsubscription, "Updating thread list failed. \nCheck your network connection.");
         cancelOperation();
         return;
@@ -255,13 +255,13 @@ void ParserEngine::listThreadsFinished(QList<ForumThread*> &tempThreads,
             ForumThread *newThread = new ForumThread(group, false);
             newThread->copyFrom(serverThread);
             newThread->setChangeset(-1);
-            fdb->addThread(newThread);
+            group->addThread(newThread);
             threadsToUpdateQueue.enqueue(newThread);
         }
     }
-
+    QSet<ForumThread*> deletedThreads;
     // check for DELETED threads
-    foreach (ForumThread *dbThread, group->threads()) { // Iterate all db threads and find if any is missing
+    foreach (ForumThread *dbThread, group->values()) { // Iterate all db threads and find if any is missing
         bool threadFound = false;
         foreach(ForumThread *tempThread, tempThreads) {
             if (dbThread->id() == tempThread->id()) {
@@ -269,11 +269,13 @@ void ParserEngine::listThreadsFinished(QList<ForumThread*> &tempThreads,
             }
         }
         if (!threadFound) {
-            fdb->checkSanity();
+            deletedThreads.insert(dbThread);
             qDebug() << "Thread " << dbThread->toString() << " has been deleted!";
-            fdb->deleteThread(dbThread);
         }
     }
+    foreach(ForumThread *thr, deletedThreads.values())
+        thr->group()->removeThread(thr);
+
     if(updateAll)
         updateNextChangedThread();
 }

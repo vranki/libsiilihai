@@ -19,6 +19,9 @@
 #include "forumdataitem.h"
 class ForumThread;
 
+/**
+  * Represents a single message in a thread
+  */
 class ForumMessage : public ForumDataItem {
     Q_OBJECT
 public:

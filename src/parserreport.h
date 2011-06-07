@@ -17,6 +17,9 @@
 
 #include <QString>
 
+/**
+  * Report wheter a parser is working or not.
+  */
 class ParserReport {
 public:
     enum ParserReportType {PRTNoType=0, PRTWorking=1, PRTNotWorking=2, PRTComment=3};

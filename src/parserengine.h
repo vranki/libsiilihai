@@ -23,7 +23,15 @@
 #include "forumthread.h"
 #include "forummessage.h"
 #include "forumdatabase.h"
-
+/**
+  * Handles updating a forum's data (threads, messages, etc) using a
+  * ForumParser. Uses ForumSession to do low-level things. Stores
+  * changes directly to a ForumDatabase.
+  *
+  * @see ForumDatabase
+  * @see ForumSession
+  * @see ForumParser
+  */
 class ParserEngine : public QObject {
     Q_OBJECT
 
@@ -39,13 +47,8 @@ public:
     ForumSubscription* subscription();
     QNetworkAccessManager *networkAccessManager();
 public slots:
-    void listMessagesFinished(QList<ForumMessage*> &messages, ForumThread *thread, bool moreAvailable);
-    void listGroupsFinished(QList<ForumGroup*> &groups);
-    void listThreadsFinished(QList<ForumThread*> &threads, ForumGroup *group);
-    void networkFailure(QString message);
     void cancelOperation();
-    void loginFinishedSlot(ForumSubscription *sub, bool success);
-    void subscriptionDeleted();
+
 signals:
     // Emitted if initially group list was empty but new groups
     // were found.
@@ -55,6 +58,14 @@ signals:
     void updateFailure(ForumSubscription *forum, QString message);
     void getAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator);
     void loginFinished(ForumSubscription *sub, bool success);
+
+private slots:
+    void listMessagesFinished(QList<ForumMessage*> &messages, ForumThread *thread, bool moreAvailable);
+    void listGroupsFinished(QList<ForumGroup*> &groups);
+    void listThreadsFinished(QList<ForumThread*> &threads, ForumGroup *group);
+    void networkFailure(QString message);
+    void loginFinishedSlot(ForumSubscription *sub, bool success);
+    void subscriptionDeleted();
 
 private:
     void updateNextChangedGroup();

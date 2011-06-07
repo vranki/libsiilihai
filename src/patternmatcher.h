@@ -22,27 +22,32 @@
 #define PATTERNMATCHER_H_
 
 enum PatternMatchType { PMTNoMatch, PMTMatch, PMTIgnored, PMTTag, PMTWhitespace };
-
+/**
+  * Searches the HTML from web page for matches using given pattern.
+  * Can also emit signals during search (used by parser maker for color coding)
+  *
+  * @see ForumParser
+  */
 class PatternMatcher : public QObject {
-	Q_OBJECT
+    Q_OBJECT
 public:
 
-	PatternMatcher(QObject *parent=0, bool emitStatus=false);
-	virtual ~PatternMatcher();
-	QList <QHash<QString, QString> > findMatches(QString &html);
-	void setPattern(QString &pattern);
-	bool isPatternSet();
+    PatternMatcher(QObject *parent=0, bool emitStatus=false);
+    virtual ~PatternMatcher();
+    QList <QHash<QString, QString> > findMatches(QString &html);
+    void setPattern(QString &pattern);
+    bool isPatternSet();
 signals:
-	void dataMatchingStart(QString &html);
-	void dataMatchingEnd();
-	void dataMatched(int pos, QString data, PatternMatchType type);
+    void dataMatchingStart(QString &html);
+    void dataMatchingEnd();
+    void dataMatched(int pos, QString data, PatternMatchType type);
 private:
-	QList<QString> tokenizePattern(QString pattern);
-	bool isTag(QString &tag);
-	bool isNumberTag(QString &tag);
-	QString numberize(QString &txt);
-	QList<QString> patternTokens;
-	bool patternSet, es;
+    QList<QString> tokenizePattern(QString pattern);
+    bool isTag(QString &tag);
+    bool isNumberTag(QString &tag);
+    QString numberize(QString &txt);
+    QList<QString> patternTokens;
+    bool patternSet, es;
 };
 
 #endif /* PATTERNMATCHER_H_ */

@@ -14,6 +14,10 @@
     along with libSiilihai.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "forumdatabase.h"
+#include "forummessage.h"
+#include "forumthread.h"
+#include "forumgroup.h"
+#include "forumsubscription.h"
 
 ForumDatabase::ForumDatabase(QObject *parent) :
     QObject(parent), db(0) {
@@ -164,7 +168,7 @@ bool ForumDatabase::openDatabase(QSqlDatabase *database) {
                     thread->setHasMoreMessages(query.value(5).toBool());
                     thread->setGetMessagesCount(query.value(6).toInt());
                     thread->setLastPage(query.value(7).toInt());
-                    grp->threads().insert(thread->id(), thread);
+                    grp->addThread(thread, false);
                     connect(thread, SIGNAL(changed(ForumThread*)), this, SLOT(threadChanged(ForumThread*)));
                     connect(thread, SIGNAL(messageRemoved(ForumMessage*)), this, SLOT(deleteMessage(ForumMessage*)));
                     connect(thread, SIGNAL(messageAdded(ForumMessage*)), this, SLOT(addMessage(ForumMessage*)));
@@ -183,7 +187,7 @@ bool ForumDatabase::openDatabase(QSqlDatabase *database) {
     // Load messages
     foreach(ForumSubscription *sub, subscriptions) {
         foreach(ForumGroup *grp, sub->groups()) {
-            foreach(ForumThread *thread, grp->threads()) {
+            foreach(ForumThread *thread, grp->values()) {
                 Q_ASSERT(thread->unreadCount()==0);
                 query.prepare("SELECT messageid,ordernum,url,subject,author,lastchange,body,read FROM messages WHERE "\
                               "forumid=? AND groupid=? AND threadid=? ORDER BY ordernum");
@@ -336,7 +340,7 @@ ForumThread* ForumDatabase::getThread(const int forum, QString groupid,
     Q_ASSERT(fs);
     ForumGroup *fg = getGroup(fs, groupid);
     Q_ASSERT(fg);
-    return fg->threads().value(threadid);
+    return fg->value(threadid);
 }
 
 void ForumDatabase::addGroup(ForumGroup *grp) {
@@ -381,6 +385,8 @@ void ForumDatabase::addGroup(ForumGroup *grp) {
     Q_ASSERT(subscriptions.value(sub->parser()) == grp->subscription());
 
     connect(grp, SIGNAL(changed(ForumGroup*)), this, SLOT(groupChanged(ForumGroup*)));
+    connect(grp, SIGNAL(threadAdded(ForumThread*)), this, SLOT(addThread(ForumThread*)));
+    connect(grp, SIGNAL(threadRemoved(ForumThread*)), this, SLOT(deleteThread(ForumThread*)));
     sub->groups().insert(grp->id(), grp);
     emit groupAdded(grp);
     emit groupFound(grp);
@@ -398,11 +404,7 @@ void ForumDatabase::addThread(ForumThread *thread) {
     qDebug() << Q_FUNC_INFO << thread->toString();
     Q_ASSERT(thread->isSane());
     Q_ASSERT(thread->group());
-    ForumThread *dbThread = getThread(thread->group()->subscription()->parser(), thread->group()->id(), thread->id());
-    Q_ASSERT(!dbThread);
     threadsNotInDatabase.insert(thread);
-    thread->group()->threads().insert(thread->id(), thread);
-    thread->group()->setHasChanged(true);
     connect(thread, SIGNAL(changed(ForumThread*)), this, SLOT(threadChanged(ForumThread*)));
     connect(thread, SIGNAL(messageRemoved(ForumMessage*)), this, SLOT(deleteMessage(ForumMessage*)));
     connect(thread, SIGNAL(messageAdded(ForumMessage*)), this, SLOT(addMessage(ForumMessage*)));
@@ -412,10 +414,59 @@ void ForumDatabase::addThread(ForumThread *thread) {
     checkSanity();
 }
 
+
+bool ForumDatabase::deleteThread(ForumThread *thread) {
+    qDebug() << Q_FUNC_INFO;
+    checkSanity();
+    Q_ASSERT(thread);
+    Q_ASSERT(thread->isSane());
+    if (!thread->isSane()) {
+        qDebug() << Q_FUNC_INFO << "Error: tried to delete invalid thread " << thread->toString();
+    }
+    db->transaction();
+    QSqlQuery query;
+    query.prepare("DELETE FROM messages WHERE (forumid=? AND groupid=? AND threadid=?)");
+    query.addBindValue(thread->group()->subscription()->parser());
+    query.addBindValue(thread->group()->id());
+    query.addBindValue(thread->id());
+    if (!query.exec()) {
+        qDebug() << Q_FUNC_INFO << "Deleting messages from thread " << thread->toString()
+                 << " failed: " << query.lastError().text();
+        db->rollback();
+        return false;
+    }
+    db->commit();
+    changedThreads.remove(thread);
+    threadsNotInDatabase.remove(thread);
+
+    QList<ForumMessage*> messages = thread->values();
+    qSort(messages);
+    while(!messages.isEmpty()) {
+        ForumMessage *lastMessage = messages.takeLast();
+        Q_ASSERT(lastMessage);
+        thread->removeMessage(lastMessage);
+    }
+    db->transaction();
+    query.prepare("DELETE FROM threads WHERE (forumid=? AND groupid=? AND threadid=?)");
+    query.addBindValue(thread->group()->subscription()->parser());
+    query.addBindValue(thread->group()->id());
+    query.addBindValue(thread->id());
+    if (!query.exec()) {
+        qDebug() << "Deleting thread failed: " << query.lastError().text();
+        Q_ASSERT(false);
+        db->rollback();
+        return false;
+    }
+    db->commit();
+    qDebug() << Q_FUNC_INFO << "Thread " << thread->toString() << " deleted";
+    thread->deleteLater();
+    checkSanity();
+    return true;
+}
+
 void ForumDatabase::threadChanged(ForumThread *thread) {
     changedThreads.insert(thread);
 }
-
 
 void ForumDatabase::updateThread(ForumThread *thread) {
     checkSanity();
@@ -474,6 +525,32 @@ void ForumDatabase::addMessage(ForumMessage *message) {
     checkSanity();
 }
 
+void ForumDatabase::deleteMessage(ForumMessage *message) {
+    if(!databaseOpened) return;
+
+    checkSanity();
+    Q_ASSERT(message);
+    Q_ASSERT(message->isSane());
+    messagesNotInDatabase.remove(message);
+    db->transaction();
+    QSqlQuery query;
+    query.prepare("DELETE FROM messages WHERE (forumid=? AND groupid=? AND threadid=? AND messageid=?)");
+    query.addBindValue(message->thread()->group()->subscription()->parser());
+    query.addBindValue(message->thread()->group()->id());
+    query.addBindValue(message->thread()->id());
+    query.addBindValue(message->id());
+    if (!query.exec()) {
+        qDebug() << "Deleting message failed: " << query.lastError().text();
+        Q_ASSERT(false);
+    }
+    db->commit();
+    message->thread()->group()->setHasChanged(true);
+    changedMessages.remove(message);
+    qDebug() << Q_FUNC_INFO << "Message " << message->toString() << " deleted";
+    message->deleteLater();
+    checkSanity();
+}
+
 ForumMessage* ForumDatabase::getMessage(const int forum, QString groupid,
                                         QString threadid, QString messageid) {
     ForumThread *thread = getThread(forum, groupid, threadid);
@@ -525,39 +602,13 @@ void ForumDatabase::updateMessage(ForumMessage *message) {
     checkSanity();
 }
 
-void ForumDatabase::deleteMessage(ForumMessage *message) {
-    if(!databaseOpened) return;
-
-    checkSanity();
-    Q_ASSERT(message);
-    Q_ASSERT(message->isSane());
-    messagesNotInDatabase.remove(message);
-    db->transaction();
-    QSqlQuery query;
-    query.prepare("DELETE FROM messages WHERE (forumid=? AND groupid=? AND threadid=? AND messageid=?)");
-    query.addBindValue(message->thread()->group()->subscription()->parser());
-    query.addBindValue(message->thread()->group()->id());
-    query.addBindValue(message->thread()->id());
-    query.addBindValue(message->id());
-    if (!query.exec()) {
-        qDebug() << "Deleting message failed: " << query.lastError().text();
-        Q_ASSERT(false);
-    }
-    db->commit();
-    message->thread()->group()->setHasChanged(true);
-    changedMessages.remove(message);
-    qDebug() << Q_FUNC_INFO << "Message " << message->toString() << " deleted";
-    message->deleteLater();
-    checkSanity();
-    return;
-}
 
 bool ForumDatabase::deleteGroup(ForumGroup *grp) {
     Q_ASSERT(grp);
     Q_ASSERT(grp->isSane());
     qDebug() << Q_FUNC_INFO << grp->toString();
-    while(!grp->threads().isEmpty()) {
-        deleteThread(grp->threads().begin().value());
+    while(!grp->isEmpty()) {
+        deleteThread(grp->begin().value());
         QCoreApplication::processEvents();
     }
 
@@ -575,58 +626,6 @@ bool ForumDatabase::deleteGroup(ForumGroup *grp) {
     checkSanity();
     return true;
 }
-
-bool ForumDatabase::deleteThread(ForumThread *thread) {
-    qDebug() << Q_FUNC_INFO;
-    checkSanity();
-    Q_ASSERT(thread);
-    Q_ASSERT(thread->isSane());
-    if (!thread->isSane()) {
-        qDebug() << Q_FUNC_INFO << "Error: tried to delete invalid thread " << thread->toString();
-    }
-    db->transaction();
-    QSqlQuery query;
-    query.prepare("DELETE FROM messages WHERE (forumid=? AND groupid=? AND threadid=?)");
-    query.addBindValue(thread->group()->subscription()->parser());
-    query.addBindValue(thread->group()->id());
-    query.addBindValue(thread->id());
-    if (!query.exec()) {
-        qDebug() << Q_FUNC_INFO << "Deleting messages from thread " << thread->toString()
-                 << " failed: " << query.lastError().text();
-        db->rollback();
-        return false;
-    }
-    db->commit();
-    changedThreads.remove(thread);
-    threadsNotInDatabase.remove(thread);
-
-    QList<ForumMessage*> messages = thread->values();
-    qSort(messages);
-    while(!messages.isEmpty()) {
-        ForumMessage *lastMessage = messages.takeLast();
-        Q_ASSERT(lastMessage);
-        thread->removeMessage(lastMessage);
-    }
-    db->transaction();
-    query.prepare("DELETE FROM threads WHERE (forumid=? AND groupid=? AND threadid=?)");
-    query.addBindValue(thread->group()->subscription()->parser());
-    query.addBindValue(thread->group()->id());
-    query.addBindValue(thread->id());
-    if (!query.exec()) {
-        qDebug() << "Deleting thread failed: " << query.lastError().text();
-        Q_ASSERT(false);
-        db->rollback();
-        return false;
-    }
-    db->commit();
-    thread->group()->setHasChanged(true);
-    thread->group()->threads().remove(thread->id());
-    qDebug() << Q_FUNC_INFO << "Thread " << thread->toString() << " deleted";
-    thread->deleteLater();
-    checkSanity();
-    return true;
-}
-
 void ForumDatabase::groupChanged(ForumGroup *grp) {
     checkSanity();
     Q_ASSERT(grp->isSane());
@@ -647,6 +646,7 @@ void ForumDatabase::groupChanged(ForumGroup *grp) {
 }
 
 void ForumDatabase::messageMarkedRead(ForumMessage *message, bool read) {
+    Q_UNUSED(read);
     checkSanity();
     Q_ASSERT(message);
     qDebug() << Q_FUNC_INFO << message->toString();
@@ -674,7 +674,7 @@ void ForumDatabase::markForumRead(ForumSubscription *fs, bool read) {
 bool ForumDatabase::markGroupRead(ForumGroup *group, bool read) {
     Q_ASSERT(group);
 //    qDebug() << Q_FUNC_INFO << " " << group->toString() << ", " << read;
-    foreach(ForumThread *ft, group->threads()) {
+    foreach(ForumThread *ft, group->values()) {
         foreach(ForumMessage *msg, ft->values()) {
             msg->setRead(read);
         }

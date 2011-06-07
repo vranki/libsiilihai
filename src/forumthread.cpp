@@ -25,7 +25,6 @@ ForumThread::ForumThread(ForumGroup *grp, bool temp) : ForumDataItem(grp) {
     _ordernum = -1;
     _hasMoreMessages = false;
     _getMessagesCount = -1;
-//    _hasChanged = false;
     _temp = temp;
     _lastPage = 0;
 }

@@ -21,14 +21,20 @@
 #include <QMap>
 #include <QTimer>
 #include <QSqlDatabase>
-#include "forummessage.h"
-#include "forumthread.h"
-#include "forumgroup.h"
-#include "forumsubscription.h"
+
+class ForumSubscription;
+class ForumGroup;
+class ForumThread;
+class ForumMessage;
 
 // #define FDB_TEST 1
 // #define SANITY_CHECKS 1
-
+/**
+  * Handles storing the subscriptions, groups, threads and messages to
+  * local sqlite database.
+  *
+  * @todo too large & complex
+  */
 class ForumDatabase : public QObject {
     Q_OBJECT
 
@@ -51,8 +57,7 @@ public:
     bool deleteGroup(ForumGroup *grp);
     // Thread related
     ForumThread* getThread(const int forum, QString groupid, QString threadid);
-    void addThread(ForumThread *thread);
-    bool deleteThread(ForumThread *thread);
+
     // Message related
     ForumMessage* getMessage(const int forum, QString groupid, QString threadid, QString messageid);
     void markForumRead(ForumSubscription *fs, bool read);
@@ -77,6 +82,8 @@ signals:
     void messageAdded(ForumMessage *msg);
     void databaseStored();
 private slots:
+    void addThread(ForumThread *thread);
+    bool deleteThread(ForumThread *thread);
     void deleteMessage(ForumMessage *message);
     void addMessage(ForumMessage *message);
 private:
