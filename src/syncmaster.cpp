@@ -192,7 +192,6 @@ void SyncMaster::sendThreadDataFinished(bool success, QString message) {
 }
 
 void SyncMaster::serverThreadData(ForumThread *tempThread) { // Thread is temporary object!
-    // qDebug() << Q_FUNC_INFO << thread->toString();
     if(canceled) return;
     if (tempThread->isSane()) {
         ForumThread *dbThread = fdb.getThread(tempThread->group()->subscription()->parser(), tempThread->group()->id(),
@@ -205,6 +204,7 @@ void SyncMaster::serverThreadData(ForumThread *tempThread) { // Thread is tempor
             Q_ASSERT(!dbGroup->isTemp());
             ForumThread *newThread = new ForumThread(dbGroup, false);
             newThread->copyFrom(tempThread);
+            newThread->markToBeUpdated();
             dbGroup->addThread(newThread);
             dbThread = newThread;
             // Make sure group will be updated
@@ -235,8 +235,12 @@ void SyncMaster::serverMessageData(ForumMessage *tempMessage) { // Temporary obj
             ForumMessage *newMessage = new ForumMessage(dbThread, false);
             newMessage->copyFrom(tempMessage);
             newMessage->setRead(true, false);
+            dbThread->markToBeUpdated();
+            dbThread->group()->markToBeUpdated();
             dbThread->addMessage(newMessage);
             dbThread->setLastPage(0); // Mark as 0 to force update of full thread
+            dbThread->commitChanges();
+            dbThread->group()->commitChanges();
         }
     } else {
         qDebug() << Q_FUNC_INFO << "Got invalid message!" << tempMessage->toString();

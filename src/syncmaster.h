@@ -29,45 +29,45 @@
   * @see SiilihaiProtocol
   */
 class SyncMaster : public QObject {
-	Q_OBJECT
+    Q_OBJECT
 
 public:
-	SyncMaster(QObject *parent, ForumDatabase &fd, SiilihaiProtocol &prot);
-	virtual ~SyncMaster();
-        /**
+    SyncMaster(QObject *parent, ForumDatabase &fd, SiilihaiProtocol &prot);
+    virtual ~SyncMaster();
+    /**
           * Downloads state from server (done in startup)
           */
-	void startSync();
-        /**
+    void startSync();
+    /**
           * Uploads state to server (done in end)
           */
-	void endSync();
-        void cancel();
+    void endSync();
+    void cancel();
 public slots:
-        void serverGroupStatus(QList<ForumSubscription*> &subs);
-	void threadChanged(ForumThread *thread);
-        void sendThreadDataFinished(bool success, QString message);
-	void serverThreadData(ForumThread *thread);
-	void serverMessageData(ForumMessage *message);
-        void getThreadDataFinished(bool success, QString message);
+    void serverGroupStatus(QList<ForumSubscription*> &subs);
+    void threadChanged(ForumThread *thread);
+    void sendThreadDataFinished(bool success, QString message);
+    void serverThreadData(ForumThread *thread);
+    void serverMessageData(ForumMessage *message);
+    void getThreadDataFinished(bool success, QString message);
 signals:
-        void syncFinished(bool success, QString message);
-        void syncProgress(float progress);
+    void syncFinished(bool success, QString message);
+    void syncProgress(float progress);
 private:
-	void processGroups();
-        bool canceled;
-	ForumDatabase &fdb;
-	SiilihaiProtocol &protocol;
-	QList<ForumGroup*> serversGroups;
-	QList<ForumThread*> serversThreads;
-	QQueue<ForumGroup*> groupsToUpload;
-	QQueue<ForumGroup*> groupsToDownload;
-	QSet<ForumThread*> changedThreads;
-	QSet<ForumSubscription*> forumsToUpload;
-	QQueue<ForumMessage*> messagesToUpload;
-        ForumGroup *groupBeingDownloaded;
-        unsigned int errorCount;
-        int maxGroupCount;
+    void processGroups();
+    bool canceled;
+    ForumDatabase &fdb;
+    SiilihaiProtocol &protocol;
+    QList<ForumGroup*> serversGroups;
+    QList<ForumThread*> serversThreads;
+    QQueue<ForumGroup*> groupsToUpload;
+    QQueue<ForumGroup*> groupsToDownload;
+    QSet<ForumThread*> changedThreads;
+    QSet<ForumSubscription*> forumsToUpload;
+    QQueue<ForumMessage*> messagesToUpload;
+    ForumGroup *groupBeingDownloaded;
+    unsigned int errorCount;
+    int maxGroupCount;
 };
 
 #endif /* SYNCMASTER_H_ */

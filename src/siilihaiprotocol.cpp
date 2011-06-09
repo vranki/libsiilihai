@@ -590,8 +590,7 @@ void SiilihaiProtocol::replyGetThreadData(QNetworkReply *reply) {
                 int forumid = forumElement.attribute("id").toInt();
                 Q_ASSERT(forumid == getThreadDataGroup->subscription()->parser());
                 for (int k = 0; k < forumElement.childNodes().size(); k++) {
-                    QDomElement groupElement =
-                            forumElement.childNodes().at(k).toElement();
+                    QDomElement groupElement = forumElement.childNodes().at(k).toElement();
                     QString groupid = groupElement.attribute("id");
                     Q_ASSERT(groupid == getThreadDataGroup->id());
 
@@ -600,10 +599,8 @@ void SiilihaiProtocol::replyGetThreadData(QNetworkReply *reply) {
                                 groupElement.childNodes().at(l).toElement();
                         QString threadid = threadElement.attribute("id");
                         Q_ASSERT(threadid.length()>0);
-                        int threadChangeset =
-                                threadElement.attribute("changeset").toInt();
-                        int threadGetMessagesCount =
-                                threadElement.attribute("getmessagescount").toInt();
+                        int threadChangeset = threadElement.attribute("changeset").toInt();
+                        int threadGetMessagesCount = threadElement.attribute("getmessagescount").toInt();
                         ForumThread thread(getThreadDataGroup);
                         thread.setId(threadid);
                         thread.setChangeset(threadChangeset);
@@ -611,8 +608,7 @@ void SiilihaiProtocol::replyGetThreadData(QNetworkReply *reply) {
                         thread.setName("?");
                         emit serverThreadData(&thread);
                         for (int m = 0; m < threadElement.childNodes().size(); m++) {
-                            QDomElement messageElement =
-                                    threadElement.childNodes().at(m).toElement();
+                            QDomElement messageElement = threadElement.childNodes().at(m).toElement();
                             QString messageid = messageElement.attribute("id");
                             ForumMessage msg(&thread);
                             msg.setId(messageid);
@@ -627,10 +623,10 @@ void SiilihaiProtocol::replyGetThreadData(QNetworkReply *reply) {
             }
         }
     } else {
-        qDebug() << Q_FUNC_INFO << " network error: "
-                << reply->error() << reply->errorString();
+        qDebug() << Q_FUNC_INFO << " network error: " << reply->error() << reply->errorString();
     }
     reply->deleteLater();
+    getThreadDataGroup->commitChanges();
     getThreadDataGroup = 0;
     emit getThreadDataFinished(reply->error() == QNetworkReply::NoError, reply->errorString());
 }
