@@ -15,6 +15,7 @@
 
 #include "forumgroup.h"
 #include "forumthread.h"
+#include "forumsubscription.h"
 
 ForumGroup::ForumGroup(ForumSubscription *sub, bool temp) : ForumDataItem(sub) {
     _subscription = sub;
@@ -46,7 +47,6 @@ void ForumGroup::addThread(ForumThread* thr, bool affectsSync) {
 
 void ForumGroup::removeThread(ForumThread* thr, bool affectsSync) {
     Q_ASSERT(thr->group() == this);
-    incrementUnreadCount(-thr->unreadCount());
     if(affectsSync) setHasChanged(true);
     remove(thr->id());
     emit threadRemoved(thr);

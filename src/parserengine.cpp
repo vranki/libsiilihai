@@ -143,9 +143,9 @@ void ParserEngine::updateNextChangedThread() {
 void ParserEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups) {
     // qDebug() << Q_FUNC_INFO << " rx groups " << groups.size()
     //         << " in " << parser.toString();
-    bool dbGroupsWasEmpty = fsubscription->groups().isEmpty();
+    bool dbGroupsWasEmpty = fsubscription->isEmpty();
     groupsToUpdateQueue.clear();
-    if (tempGroups.size() == 0 && fsubscription->groups().size() > 0) {
+    if (tempGroups.size() == 0 && fsubscription->size() > 0) {
         emit updateFailure(fsubscription, "Updating group list for " + parser.parser_name
                            + " failed. \nCheck your network connection.");
         cancelOperation();
@@ -156,7 +156,7 @@ void ParserEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups) {
     foreach(ForumGroup *tempGroup, tempGroups) {
         bool foundInDb = false;
 
-        foreach(ForumGroup *dbGroup, fsubscription->groups()) {
+        foreach(ForumGroup *dbGroup, fsubscription->values()) {
             if (dbGroup->id() == tempGroup->id()) {
                 foundInDb = true;
                 if((dbGroup->isSubscribed() &&
@@ -185,12 +185,12 @@ void ParserEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups) {
             if(!updateAll) {
                 newGroup->markToBeUpdated();
             }
-            fdb->addGroup(newGroup);
+            fsubscription->addGroup(newGroup);
         }
     }
 
     // check for DELETED groups
-    foreach(ForumGroup *dbGroup, fsubscription->groups()) {
+    foreach(ForumGroup *dbGroup, fsubscription->values()) {
         bool groupFound = false;
         foreach(ForumGroup *grp, tempGroups) {
             if (dbGroup->id() == grp->id()) {
@@ -200,7 +200,7 @@ void ParserEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups) {
         if (!groupFound) {
             groupsChanged = true;
             qDebug() << "Group " << dbGroup->toString() << " has been deleted!";
-            fdb->deleteGroup(dbGroup);
+            fsubscription->removeGroup(dbGroup);
         }
     }
 

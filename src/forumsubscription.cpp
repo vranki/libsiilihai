@@ -13,6 +13,7 @@
     You should have received a copy of the GNU Lesser General Public License
     along with libSiilihai.  If not, see <http://www.gnu.org/licenses/>. */
 #include "forumsubscription.h"
+#include "forumgroup.h"
 
 ForumSubscription::ForumSubscription(QObject *parent, bool temp) : QObject(parent) {
     _parser = -1;
@@ -37,6 +38,19 @@ void ForumSubscription::copyFrom(ForumSubscription * other) {
 }
 
 ForumSubscription::~ForumSubscription() {
+}
+
+void ForumSubscription::addGroup(ForumGroup* grp) {
+    Q_ASSERT(grp->subscription() == this);
+    incrementUnreadCount(grp->unreadCount());
+    insert(grp->id(), grp);
+    emit groupAdded(grp);
+}
+
+void ForumSubscription::removeGroup(ForumGroup* grp) {
+    Q_ASSERT(grp->subscription() == this);
+    remove(grp->id());
+    emit groupRemoved(grp);
 }
 
 bool ForumSubscription::isSane() const {
@@ -115,17 +129,16 @@ void ForumSubscription::incrementUnreadCount(int urc) {
     Q_ASSERT(_unreadCount >= 0);
     emit unreadCountChanged(this);
 }
-QMap<QString, ForumGroup*>& ForumSubscription::groups() {
-    return _groups;
-}
-bool ForumSubscription::isTemp() {
+
+bool ForumSubscription::isTemp() const {
     return _temp;
 }
 
 void ForumSubscription::setParserEngine(ParserEngine *eng) {
     _engine = eng;
+    emit changed(this);
 }
 
-ParserEngine *ForumSubscription::parserEngine() {
+ParserEngine *ForumSubscription::parserEngine() const {
     return _engine;
 }

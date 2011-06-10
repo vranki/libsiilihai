@@ -29,7 +29,7 @@ class ParserEngine;
   *
   * @see ForumGroup
   */
-class ForumSubscription : public QObject  {
+class ForumSubscription : public QObject, public QMap<QString, ForumGroup*>  {
     Q_OBJECT
 
 public:
@@ -46,6 +46,9 @@ public:
     void setLatestMessages(unsigned int lm);
     void setAuthenticated(bool na);
     void incrementUnreadCount(int urc);
+    void addGroup(ForumGroup* grp);
+    void removeGroup(ForumGroup* grp);
+
     int parser() const;
     QString alias() const;
     QString username() const;
@@ -54,13 +57,14 @@ public:
     int latestMessages() const;
     bool authenticated() const; // True if username & password should be set
     int unreadCount() const;
-    QMap<QString, ForumGroup*> &groups();
-    bool isTemp();
+    bool isTemp() const;
     void setParserEngine(ParserEngine *eng);
-    ParserEngine *parserEngine();
+    ParserEngine *parserEngine() const;
 signals:
     void changed(ForumSubscription *s);
     void unreadCountChanged(ForumSubscription *s);
+    void groupRemoved(ForumGroup *grp);
+    void groupAdded(ForumGroup *grp);
 
 private:
     Q_DISABLE_COPY(ForumSubscription)
@@ -73,7 +77,6 @@ private:
     unsigned int _latestMessages;
     bool _authenticated;
     int _unreadCount;
-    QMap<QString, ForumGroup*> _groups;
     bool _temp;
     ParserEngine *_engine;
 };

@@ -421,8 +421,7 @@ void SiilihaiProtocol::updateGroupSubscriptions(ForumSubscription *fs) {
     QDomText t = doc.createTextNode(QString().number(fs->parser()));
     forumTag.appendChild(t);
 
-    foreach(ForumGroup *g, fs->groups().values())
-    {
+    foreach(ForumGroup *g, fs->values()) {
         QDomElement subTag;
         if (g->isSubscribed()) {
             subTag = doc.createElement("subscribe");
@@ -537,7 +536,7 @@ void SiilihaiProtocol::replyGetSyncSummary(QNetworkReply *reply) {
                     g->setChangeset(changeset);
                     g->setSubscribed(true);
                     grps.append(g);
-                    sub->groups().insert(g->id(), g);
+                    sub->addGroup(g);
                 }
                 subs.append(sub);
             }

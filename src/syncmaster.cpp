@@ -13,9 +13,9 @@
     You should have received a copy of the GNU Lesser General Public License
     along with libSiilihai.  If not, see <http://www.gnu.org/licenses/>. */
 #include "syncmaster.h"
+#include "forumsubscription.h"
 
-SyncMaster::SyncMaster(QObject *parent, ForumDatabase &fd,
-                       SiilihaiProtocol &prot) :
+SyncMaster::SyncMaster(QObject *parent, ForumDatabase &fd, SiilihaiProtocol &prot) :
     QObject(parent), fdb(fd), protocol(prot) {
 
     connect(&protocol, SIGNAL(serverGroupStatus(QList<ForumSubscription*> &)), this,
@@ -49,11 +49,10 @@ void SyncMaster::endSync() {
     canceled = false;
     errorCount = 0;
 
-    QList<ForumSubscription*> fsubs = fdb.listSubscriptions();
     int totalGroups = 0;
-    foreach(ForumSubscription *fsub, fsubs) {
+    foreach(ForumSubscription *fsub, fdb.values()) {
         qDebug() << Q_FUNC_INFO << fsub;
-        foreach(ForumGroup *grp, fsub->groups()) {
+        foreach(ForumGroup *grp, fsub->values()) {
             qDebug() << Q_FUNC_INFO << grp;
             if(grp->isSubscribed()) totalGroups++;
             if(grp->isSubscribed() && grp->hasChanged()) {
@@ -79,7 +78,7 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
 */
     // Update local subs
     foreach(ForumSubscription *serverSub, subs) {
-        ForumSubscription *dbSub = fdb.getSubscription(serverSub->parser());
+        ForumSubscription *dbSub = fdb.value(serverSub->parser());
         if(!dbSub) { // Whole forum not found in db - add it
             qDebug() << Q_FUNC_INFO << "Forum not in db -  must add it!";
             ForumSubscription *newSub = new ForumSubscription(&fdb, false);
@@ -89,9 +88,9 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
         } else { // Sub already in db, just update it
             dbSub->copyFrom(serverSub);
             // Check for unsubscribed groups
-            foreach(ForumGroup *dbGrp, dbSub->groups()) {
+            foreach(ForumGroup *dbGrp, dbSub->values()) {
                 bool groupIsSubscribed = false;
-                foreach(ForumGroup *serverGrp, serverSub->groups()) {
+                foreach(ForumGroup *serverGrp, serverSub->values()) {
                     if(dbGrp->id() == serverGrp->id())
                         groupIsSubscribed = true;
                 }
@@ -104,12 +103,12 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
     }
     // Update group lists
     foreach(ForumSubscription *serverSub, subs) {
-        foreach(ForumGroup *serverGrp, serverSub->groups()) {
+        foreach(ForumGroup *serverGrp, serverSub->values()) {
             Q_ASSERT(serverGrp->subscription()->parser() >= 0 || serverGrp->id().length() > 0);
-            ForumSubscription *dbSub = fdb.getSubscription(serverGrp->subscription()->parser());
+            ForumSubscription *dbSub = fdb.value(serverGrp->subscription()->parser());
             Q_ASSERT(dbSub);
 
-            ForumGroup *dbGroup = fdb.getGroup(dbSub, serverGrp->id());
+            ForumGroup *dbGroup = dbSub->value(serverGrp->id());
             if(!dbGroup) { // Group doesn't exist yet
                 qDebug() << Q_FUNC_INFO << "Group " << serverGrp->toString() << " not in db -  must add it!";
                 ForumGroup *newGroup = new ForumGroup(dbSub, false);
@@ -119,7 +118,7 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
                 serverGrp->setSubscribed(true);
                 newGroup->copyFrom(serverGrp);
                 newGroup->setChangeset(-2); // .. by setting changesets different
-                fdb.addGroup(newGroup);
+                dbSub->addGroup(newGroup);
                 dbGroup = newGroup;
             }
 
@@ -199,7 +198,8 @@ void SyncMaster::serverThreadData(ForumThread *tempThread) { // Thread is tempor
         if (dbThread) { // Thread already found, merge it
             dbThread->setChangeset(tempThread->changeset());
         } else { // thread hasn't been found yet!
-            ForumGroup *dbGroup = fdb.getGroup(fdb.getSubscription(tempThread->group()->subscription()->parser()), tempThread->group()->id());
+            ForumGroup *dbGroup = fdb.value(tempThread->group()->subscription()->parser())->value(
+                        tempThread->group()->id());
             Q_ASSERT(dbGroup);
             Q_ASSERT(!dbGroup->isTemp());
             ForumThread *newThread = new ForumThread(dbGroup, false);

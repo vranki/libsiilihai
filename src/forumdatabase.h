@@ -35,7 +35,7 @@ class ForumMessage;
   *
   * @todo too large & complex
   */
-class ForumDatabase : public QObject {
+class ForumDatabase : public QObject, public QMap<int, ForumSubscription*> {
     Q_OBJECT
 
 public:
@@ -48,18 +48,14 @@ public:
 
     // Subscription related
     bool addSubscription(ForumSubscription *fs); // Ownership changes!!!
-    QList <ForumSubscription*> listSubscriptions();
-    ForumSubscription* getSubscription(int id);
     void deleteSubscription(ForumSubscription *sub);
-    // Group related
-    ForumGroup* getGroup(ForumSubscription *fs, QString id);
-    void addGroup(ForumGroup *grp);
-    bool deleteGroup(ForumGroup *grp);
+
     // Thread related
     ForumThread* getThread(const int forum, QString groupid, QString threadid);
 
     // Message related
     ForumMessage* getMessage(const int forum, QString groupid, QString threadid, QString messageid);
+
     void markForumRead(ForumSubscription *fs, bool read);
     bool markGroupRead(ForumGroup *group, bool read);
 
@@ -70,28 +66,27 @@ public slots:
     void groupChanged(ForumGroup *group);
     void subscriptionChanged(ForumSubscription *sub);
     void storeDatabase();
+    void storeSomethingSmall();
     void checkSanity();
 signals:
     void subscriptionAdded(ForumSubscription *sub);
     void subscriptionFound(ForumSubscription *sub);
-    void groupAdded(ForumGroup *grp);
-    void groupFound(ForumGroup *grp);
-    void threadFound(ForumThread *thr);
-    void threadAdded(ForumThread *thr);
-    void messageFound(ForumMessage *msg);
-    void messageAdded(ForumMessage *msg);
+
     void databaseStored();
 private slots:
     void addThread(ForumThread *thread);
     bool deleteThread(ForumThread *thread);
+
     void deleteMessage(ForumMessage *message);
     void addMessage(ForumMessage *message);
+    // Group related
+    void addGroup(ForumGroup *grp);
+    bool deleteGroup(ForumGroup *grp);
 private:
     void bindMessageValues(QSqlQuery &query, const ForumMessage *message);
     void updateMessage(ForumMessage *message);
     void updateThread(ForumThread *thread);
 
-    QMap<int, ForumSubscription*> subscriptions;
     QSet<ForumMessage*> messagesNotInDatabase;
     QSet<ForumMessage*> changedMessages;
     QSet<ForumThread*> threadsNotInDatabase;

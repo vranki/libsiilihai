@@ -21,6 +21,8 @@
 #include "forumgroup.h"
 #include "forumthread.h"
 #include "siilihaiprotocol.h"
+//#include "forumsubscription.h"
+class ForumSubscription;
 
 /**
   * Handles synchronization of reader state with siilihai.com server.

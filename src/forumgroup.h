@@ -17,10 +17,10 @@
 #define FORUMGROUP_H_
 #include <QString>
 #include <QObject>
-#include <QList>
-#include "forumsubscription.h"
+#include <QMap>
 #include "forumdataitem.h"
 
+class ForumSubscription;
 class ForumThread;
 /**
   * Represents a single thread in a forum. Contains threads.

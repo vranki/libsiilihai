@@ -15,6 +15,7 @@
 #include "forumthread.h"
 #include "forumgroup.h"
 #include "forummessage.h"
+#include "forumsubscription.h"
 
 ForumThread::~ForumThread() {
 }
@@ -140,7 +141,7 @@ void ForumThread::addMessage(ForumMessage* msg, bool affectsSync) {
 
 void ForumThread::removeMessage(ForumMessage* msg, bool affectsSync) {
     Q_ASSERT(msg->thread() == this);
-    if(!msg->isRead()) {
+    if(!msg->isRead() && group()->isSubscribed()) {
         incrementUnreadCount(-1);
         group()->incrementUnreadCount(-1);
         group()->subscription()->incrementUnreadCount(-1);
