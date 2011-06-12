@@ -17,12 +17,13 @@
 #include <QObject>
 #include <QList>
 #include <QMap>
+#include <QQueue>
 #include "forumdatabase.h"
-#include "forumgroup.h"
-#include "forumthread.h"
 #include "siilihaiprotocol.h"
-//#include "forumsubscription.h"
+
 class ForumSubscription;
+class ForumGroup;
+class ForumThread;
 
 /**
   * Handles synchronization of reader state with siilihai.com server.

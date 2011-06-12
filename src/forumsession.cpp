@@ -315,9 +315,7 @@ void ForumSession::listMessages(ForumThread *thread) {
 void ForumSession::listMessagesReply(QNetworkReply *reply) {
     if(operationInProgress == FSONoOp) return;
 
-    qDebug() << Q_FUNC_INFO;
-    disconnect(nam, SIGNAL(finished(QNetworkReply*)), this,
-               SLOT(listMessagesReply(QNetworkReply*)));
+    disconnect(nam, SIGNAL(finished(QNetworkReply*)), this, SLOT(listMessagesReply(QNetworkReply*)));
     if (reply->error() != QNetworkReply::NoError) {
         emit(networkFailure(reply->errorString()));
         cancelOperation();
@@ -610,7 +608,6 @@ void ForumSession::clearAuthentications() {
 }
 
 bool ForumSession::prepareForUse() {
-    qDebug() << Q_FUNC_INFO;
     if (!cookieFetched) {
         fetchCookie();
         return true;

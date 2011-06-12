@@ -542,8 +542,7 @@ void SiilihaiProtocol::replyGetSyncSummary(QNetworkReply *reply) {
             }
         }
     } else {
-        qDebug() << Q_FUNC_INFO << " network error: "
-                << reply->errorString();
+        qDebug() << Q_FUNC_INFO << " network error: " << reply->errorString();
     }
     reply->deleteLater();
     // @todo errors?

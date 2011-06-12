@@ -179,8 +179,7 @@ void SyncMaster::processGroups() {
 
 void SyncMaster::sendThreadDataFinished(bool success, QString message) {
     qDebug() << Q_FUNC_INFO << success;
-    disconnect(&protocol, SIGNAL(sendThreadDataFinished(bool, QString)),
-               this, SLOT(sendThreadDataFinished(bool, QString)));
+    disconnect(&protocol, SIGNAL(sendThreadDataFinished(bool, QString)), this, SLOT(sendThreadDataFinished(bool, QString)));
     if(canceled) return;
     if (success) {
         processGroups();

@@ -13,6 +13,11 @@
     You should have received a copy of the GNU Lesser General Public License
     along with libSiilihai.  If not, see <http://www.gnu.org/licenses/>. */
 #include "parserengine.h"
+#include "forumgroup.h"
+#include "forumthread.h"
+#include "forummessage.h"
+#include "forumdatabase.h"
+#include "forumsubscription.h"
 
 ParserEngine::ParserEngine(ForumDatabase *fd, QObject *parent) :
     QObject(parent), nam(this), session(this, &nam) {
@@ -36,8 +41,8 @@ ParserEngine::ParserEngine(ForumDatabase *fd, QObject *parent) :
     updateAll = false;
     forceUpdate = false;
     sessionInitialized = false;
-    forumBusy = false;
     fsubscription = 0;
+    setState(PES_MISSING_PARSER);
 }
 
 ParserEngine::~ParserEngine() {
@@ -47,6 +52,7 @@ ParserEngine::~ParserEngine() {
 
 void ParserEngine::setParser(ForumParser &fp) {
     parser = fp;
+    if(fsubscription) setState(PES_IDLE);
 }
 
 void ParserEngine::setSubscription(ForumSubscription *fs) {
@@ -54,6 +60,9 @@ void ParserEngine::setSubscription(ForumSubscription *fs) {
     fsubscription = fs;
     connect(fsubscription, SIGNAL(destroyed()), this, SLOT(subscriptionDeleted()));
     fsubscription->setParserEngine(this);
+
+    if(parser.isSane())
+        setState(PES_IDLE);
 }
 
 void ParserEngine::updateForum(bool force) {
@@ -67,7 +76,7 @@ void ParserEngine::updateForum(bool force) {
         sessionInitialized = true;
     }
     session.listGroups();
-    setBusy(true);
+    setState(PES_UPDATING);
 }
 
 void ParserEngine::updateGroupList() {
@@ -79,7 +88,7 @@ void ParserEngine::updateGroupList() {
     }
 
     session.listGroups();
-    setBusy(true);
+    setState(PES_UPDATING);
 }
 
 void ParserEngine::updateThread(ForumThread *thread, bool force) {
@@ -99,12 +108,12 @@ void ParserEngine::updateThread(ForumThread *thread, bool force) {
         thread->markToBeUpdated();
     }
     session.listMessages(thread);
-    setBusy(true);
+    setState(PES_UPDATING);
 }
 
 void ParserEngine::networkFailure(QString message) {
     emit updateFailure(fsubscription, "Updating " + fsubscription->alias() + " failed due to network error:\n\n" + message);
-    cancelOperation();
+    setState(PES_ERROR);
 }
 
 
@@ -119,9 +128,8 @@ void ParserEngine::updateNextChangedGroup() {
     } else {
         //  qDebug() << Q_FUNC_INFO << "No more changed groups - end of update.";
         updateAll = false;
-        Q_ASSERT(groupsToUpdateQueue.size()==0 &&
-                 threadsToUpdateQueue.size()==0);
-        setBusy(false);
+        Q_ASSERT(groupsToUpdateQueue.isEmpty() &&threadsToUpdateQueue.isEmpty());
+        setState(PES_IDLE);
         emit forumUpdated(fsubscription);
     }
     updateCurrentProgress();
@@ -148,7 +156,7 @@ void ParserEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups) {
     if (tempGroups.size() == 0 && fsubscription->size() > 0) {
         emit updateFailure(fsubscription, "Updating group list for " + parser.parser_name
                            + " failed. \nCheck your network connection.");
-        cancelOperation();
+        setState(PES_ERROR);
         return;
     }
     // Diff the group list
@@ -160,10 +168,10 @@ void ParserEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups) {
             if (dbGroup->id() == tempGroup->id()) {
                 foundInDb = true;
                 if((dbGroup->isSubscribed() &&
-                    ((dbGroup->lastchange() != tempGroup->lastchange()) || forceUpdate))) {
+                    ((dbGroup->lastchange() != tempGroup->lastchange()) || forceUpdate ||
+                     dbGroup->isEmpty()))) {
                     groupsToUpdateQueue.enqueue(dbGroup);
-                    qDebug() << Q_FUNC_INFO << "Group " << dbGroup->toString()
-                             << " has been changed, adding to list";
+                    qDebug() << Q_FUNC_INFO << "Group " << dbGroup->toString() << " shall be updated";
                     // Store the updated version to database
                     tempGroup->setSubscribed(true);
                     Q_ASSERT(tempGroup->subscription() == dbGroup->subscription());
@@ -207,15 +215,14 @@ void ParserEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups) {
     if (updateAll) {
         updateNextChangedGroup();
     } else {
-        setBusy(false);
+        setState(PES_IDLE);
     }
     if (groupsChanged && dbGroupsWasEmpty) {
         emit(groupListChanged(fsubscription));
     }
 }
 
-void ParserEngine::listThreadsFinished(QList<ForumThread*> &tempThreads,
-                                       ForumGroup *group) {
+void ParserEngine::listThreadsFinished(QList<ForumThread*> &tempThreads, ForumGroup *group) {
     // qDebug() << Q_FUNC_INFO << "rx threads " << threads.size() << " in group "
     //      << group->toString();
     Q_ASSERT(group);
@@ -223,10 +230,10 @@ void ParserEngine::listThreadsFinished(QList<ForumThread*> &tempThreads,
     Q_ASSERT(!group->isTemp());
     Q_ASSERT(group->isSane());
     threadsToUpdateQueue.clear();
-    fdb->checkSanity();
+
     if (tempThreads.isEmpty() && !group->isEmpty()) {
         emit updateFailure(fsubscription, "Updating thread list failed. \nCheck your network connection.");
-        cancelOperation();
+        setState(PES_ERROR);
         return;
     }
 
@@ -235,7 +242,8 @@ void ParserEngine::listThreadsFinished(QList<ForumThread*> &tempThreads,
         ForumThread *dbThread = fdb->getThread(group->subscription()->parser(), group->id(), serverThread->id());
         if (dbThread) {
             dbThread->setName(serverThread->name());
-            if ((dbThread->lastchange() != serverThread->lastchange()) || forceUpdate) {
+            if ((dbThread->lastchange() != serverThread->lastchange()) || forceUpdate ||
+                    dbThread->isEmpty()) {
                 Q_ASSERT(dbThread->group() == serverThread->group());
 
                 // Don't update some fields to new values
@@ -247,8 +255,7 @@ void ParserEngine::listThreadsFinished(QList<ForumThread*> &tempThreads,
                 dbThread->setGetMessagesCount(oldGetMessagesCount);
                 dbThread->setHasMoreMessages(oldHasMoreMessages);
                 dbThread->commitChanges();
-                qDebug() << Q_FUNC_INFO << "Thread " << dbThread->toString()
-                         << " has been changed, updating and adding to update queue";
+                qDebug() << Q_FUNC_INFO << "Thread " << dbThread->toString() << " shall be updated";
                 threadsToUpdateQueue.enqueue(dbThread);
             }
         } else {
@@ -328,40 +335,31 @@ void ParserEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages, Foru
     if(updateAll) {
         updateNextChangedThread();
     } else {
-        setBusy(false);
+        setState(PES_IDLE);
         emit forumUpdated(fsubscription);
     }
 }
 
-bool ParserEngine::isBusy() {
-    return forumBusy;
-}
-
-void ParserEngine::setBusy(bool busy) {
-    if (busy != forumBusy) {
-        forumBusy = busy;
-        updateCurrentProgress();
-    }
-    forumBusy = busy;
-}
-
 void ParserEngine::updateCurrentProgress() {
     float progress = -1;
-    emit statusChanged(fsubscription, forumBusy, progress);
+    emit statusChanged(fsubscription, progress);
 }
 
 void ParserEngine::cancelOperation() {
+    if(currentState==PES_IDLE) return;
     updateAll = false;
     session.cancelOperation();
     groupsToUpdateQueue.clear();
     threadsToUpdateQueue.clear();
-    setBusy(false);
+    if(currentState==PES_UPDATING)
+        setState(PES_IDLE);
 }
 
 void ParserEngine::loginFinishedSlot(ForumSubscription *sub, bool success) {
-    if(!success)
+    if(!success) {
+        setState(PES_ERROR);
         cancelOperation();
-
+    }
     emit loginFinished(sub, success);
 }
 
@@ -372,7 +370,27 @@ ForumSubscription* ParserEngine::subscription() {
 void ParserEngine::subscriptionDeleted() {
     cancelOperation();
     fsubscription = 0;
+    setState(PES_MISSING_PARSER);
 }
+
 QNetworkAccessManager * ParserEngine::networkAccessManager() {
     return &nam;
+}
+
+void ParserEngine::setState(ParserEngineState newState) {
+    if(newState == currentState) return;
+    ParserEngineState oldState = currentState;
+    currentState = newState;
+    if(newState==PES_UPDATING) {
+        Q_ASSERT(oldState==PES_IDLE || oldState==PES_ERROR);
+    }
+
+    if(newState==PES_ERROR) {
+        cancelOperation();
+    }
+    emit stateChanged(currentState);
+}
+
+ParserEngine::ParserEngineState ParserEngine::state() {
+    return currentState;
 }

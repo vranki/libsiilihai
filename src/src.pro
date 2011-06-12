@@ -36,6 +36,7 @@ HEADERS += syncmaster.h \
     forumsession.h \
     forumsubscription.h \
     forumdatabase.h \
+    forumdatabasesql.h \
     parserdatabase.h \
     siilihaiprotocol.h \
     parserengine.h \
@@ -54,6 +55,7 @@ SOURCES += syncmaster.cpp \
     forumsession.cpp \
     forumsubscription.cpp \
     forumdatabase.cpp \
+    forumdatabasesql.cpp \
     parserdatabase.cpp \
     siilihaiprotocol.cpp \
     parserengine.cpp \

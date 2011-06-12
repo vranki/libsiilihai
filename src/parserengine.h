@@ -15,19 +15,24 @@
 #ifndef PARSERENGINE_H_
 #define PARSERENGINE_H_
 #include <QObject>
+#include <QQueue>
 #include <QNetworkAccessManager>
-#include "forumparser.h"
-#include "forumsubscription.h"
 #include "forumsession.h"
-#include "forumgroup.h"
-#include "forumthread.h"
-#include "forummessage.h"
-#include "forumdatabase.h"
+#include "forumparser.h"
+
+class ForumSubscription;
+class ForumGroup;
+class ForumThread;
+class ForumMessage;
+class ForumDatabase;
+
 /**
   * Handles updating a forum's data (threads, messages, etc) using a
   * ForumParser. Uses ForumSession to do low-level things. Stores
   * changes directly to a ForumDatabase.
   *
+  * NOT_INITIALIZED -> IDLE <-> UPDATING
+  *                      -> ERROR -^
   * @see ForumDatabase
   * @see ForumSession
   * @see ForumParser
@@ -36,6 +41,14 @@ class ParserEngine : public QObject {
     Q_OBJECT
 
 public:
+    enum ParserEngineState {
+        PES_UNKNOWN=0,
+        PES_MISSING_PARSER,
+        PES_IDLE,
+        PES_UPDATING,
+        PES_ERROR
+    };
+
     ParserEngine(ForumDatabase *fd, QObject *parent=0);
     virtual ~ParserEngine();
     void setParser(ForumParser &fp);
@@ -43,7 +56,7 @@ public:
     void updateGroupList();
     void updateForum(bool force=false);
     void updateThread(ForumThread *thread, bool force=false);
-    bool isBusy();
+    ParserEngine::ParserEngineState state();
     ForumSubscription* subscription();
     QNetworkAccessManager *networkAccessManager();
 public slots:
@@ -54,10 +67,11 @@ signals:
     // were found.
     void groupListChanged(ForumSubscription *forum);
     void forumUpdated(ForumSubscription *forum);
-    void statusChanged(ForumSubscription *forum, bool reloading, float progress);
+    void statusChanged(ForumSubscription *forum, float progress);
     void updateFailure(ForumSubscription *forum, QString message);
     void getAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator);
     void loginFinished(ForumSubscription *sub, bool success);
+    void stateChanged(ParserEngine::ParserEngineState newState);
 
 private slots:
     void listMessagesFinished(QList<ForumMessage*> &messages, ForumThread *thread, bool moreAvailable);
@@ -72,17 +86,18 @@ private:
     void updateNextChangedThread();
     void setBusy(bool busy);
     void updateCurrentProgress();
+    void setState(ParserEngineState newState);
     ForumParser parser;
     ForumSubscription *fsubscription;
     QNetworkAccessManager nam;
     ForumSession session;
     bool sessionInitialized;
     bool updateAll;
-    bool forumBusy;
     bool forceUpdate; // Update even if no changes
     ForumDatabase *fdb;
     QQueue<ForumGroup*> groupsToUpdateQueue;
     QQueue<ForumThread*> threadsToUpdateQueue;
+    ParserEngineState currentState;
 };
 
 #endif /* PARSERENGINE_H_ */
