@@ -51,7 +51,6 @@ void ForumSession::listGroups() {
     qDebug() << Q_FUNC_INFO << fpar.forum_url;
     if (operationInProgress != FSONoOp && operationInProgress != FSOListGroups) {
         qDebug() << Q_FUNC_INFO << "Operation in progress!! Don't command me yet! ";
-        Q_ASSERT(false);
         return;
     }
     operationInProgress = FSOListGroups;
