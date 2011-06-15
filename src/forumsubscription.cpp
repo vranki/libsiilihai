@@ -50,6 +50,7 @@ void ForumSubscription::addGroup(ForumGroup* grp) {
 void ForumSubscription::removeGroup(ForumGroup* grp) {
     Q_ASSERT(grp->subscription() == this);
     remove(grp->id());
+    // @todo mark changed somehow to sync!
     emit groupRemoved(grp);
 }
 
