@@ -232,7 +232,9 @@ void ParserEngine::listThreadsFinished(QList<ForumThread*> &tempThreads, ForumGr
     threadsToUpdateQueue.clear();
 
     if (tempThreads.isEmpty() && !group->isEmpty()) {
-        emit updateFailure(fsubscription, "Updating thread list failed. \nCheck your network connection.");
+        QString errorMsg = "Found no threads in group " + group->toString() + ".\n Broken parser?";
+        emit updateFailure(fsubscription, errorMsg);
+        group->markToBeUpdated();
         setState(PES_ERROR);
         return;
     }

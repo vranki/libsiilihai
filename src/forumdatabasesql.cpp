@@ -434,8 +434,7 @@ void ForumDatabaseSql::addThread(ForumThread *thread) {
     connect(thread, SIGNAL(changed(ForumThread*)), this, SLOT(threadChanged(ForumThread*)));
     connect(thread, SIGNAL(messageRemoved(ForumMessage*)), this, SLOT(deleteMessage(ForumMessage*)));
     connect(thread, SIGNAL(messageAdded(ForumMessage*)), this, SLOT(addMessage(ForumMessage*)));
-    //emit threadAdded(thread);
-    //emit threadFound(thread);
+
     qDebug() << Q_FUNC_INFO << thread->toString();
     checkSanity();
 }

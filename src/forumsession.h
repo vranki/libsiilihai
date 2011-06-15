@@ -47,7 +47,7 @@
 class ForumSession : public QObject {
     Q_OBJECT
 public:
-    enum ForumSessionOperation { FSONoOp, FSOListGroups, FSOUpdateThreads, FSOUpdateMessages };
+    enum ForumSessionOperation { FSONoOp=1, FSOLogin, FSOFetchCookie, FSOListGroups, FSOListThreads, FSOListMessages };
 
     ForumSession(QObject *parent, QNetworkAccessManager *n);
     virtual ~ForumSession();
@@ -69,11 +69,7 @@ public:
     void performLogin(QString &html);
 
 public slots:
-    void listGroupsReply(QNetworkReply *reply);
-    void listThreadsReply(QNetworkReply *reply);
-    void listMessagesReply(QNetworkReply *reply);
-    void fetchCookieReply(QNetworkReply *reply);
-    void loginReply(QNetworkReply *reply);
+    void networkReply(QNetworkReply *reply);
     void cancelOperation();
     void authenticationRequired ( QNetworkReply * reply, QAuthenticator * authenticator );
 
@@ -88,11 +84,17 @@ signals:
 private slots:
     void cookieExpired(); // Called when cookie needs to be fetched again
 private:
+    void listGroupsReply(QNetworkReply *reply);
+    void listThreadsReply(QNetworkReply *reply);
+    void listMessagesReply(QNetworkReply *reply);
+    void fetchCookieReply(QNetworkReply *reply);
+    void loginReply(QNetworkReply *reply);
+
     bool prepareForUse(); // get cookie & login if needed
     void nextOperation();
     void fetchCookie();
-    void updateGroupPage();
-    void updateThreadPage();
+    void listThreadsOnNextPage();
+    void listMessagesOnNextPage();
     QString convertCharset(const QByteArray &src);
     QString statusReport();
     PatternMatcher *pm;

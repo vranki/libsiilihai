@@ -28,7 +28,42 @@ ForumSession::ForumSession(QObject *parent, QNetworkAccessManager *n) : QObject(
     connect(&cookieExpiredTimer, SIGNAL(timeout()), this, SLOT(cookieExpired()));
 }
 
+void ForumSession::initialize(ForumParser &fop, ForumSubscription *fos, PatternMatcher *matcher) {
+    Q_ASSERT(fos);
+    fsub = fos;
+    fpar = fop;
+
+    cookieFetched = false;
+    operationInProgress = FSONoOp;
+    pm = matcher;
+    if (!pm)
+        pm = new PatternMatcher(this);
+    nam->setProxy(QNetworkProxy::applicationProxy());
+    connect(nam, SIGNAL(finished(QNetworkReply*)), this, SLOT(networkReply(QNetworkReply*)), Qt::UniqueConnection);
+}
+
 ForumSession::~ForumSession() {
+}
+
+void ForumSession::networkReply(QNetworkReply *reply) {
+    int operationAttribute = reply->request().attribute(QNetworkRequest::User).toInt();
+    if(!operationAttribute) {
+        qDebug( ) << Q_FUNC_INFO << "Reply " << operationAttribute << " not for me";
+        return;
+    }
+    if(operationAttribute==FSONoOp) {
+        Q_ASSERT(false);
+    } else if(operationAttribute==FSOLogin) {
+        loginReply(reply);
+    } else if(operationAttribute==FSOFetchCookie) {
+        fetchCookieReply(reply);
+    } else if(operationAttribute==FSOListGroups) {
+        listGroupsReply(reply);
+    } else if(operationAttribute==FSOListThreads) {
+        listThreadsReply(reply);
+    } else if(operationAttribute==FSOListMessages) {
+        listMessagesReply(reply);
+    }
 }
 
 QString ForumSession::convertCharset(const QByteArray &src) {
@@ -57,15 +92,17 @@ void ForumSession::listGroups() {
     if(prepareForUse()) return;
 
     QNetworkRequest req(QUrl(fpar.forum_url));
-    connect(nam, SIGNAL(finished(QNetworkReply*)), this, SLOT(listGroupsReply(QNetworkReply*)), Qt::UniqueConnection);
+    req.setAttribute(QNetworkRequest::User, FSOListGroups);
     nam->post(req, emptyData);
 }
 
 void ForumSession::listGroupsReply(QNetworkReply *reply) {
     if(operationInProgress == FSONoOp) return;
+    Q_ASSERT(operationInProgress==FSOListGroups);
+    Q_ASSERT(reply->request().attribute(QNetworkRequest::User).toInt() ==FSOListGroups);
+
     qDebug() << Q_FUNC_INFO;
 
-    disconnect(nam, SIGNAL(finished(QNetworkReply*)), this, SLOT(listGroupsReply(QNetworkReply*)));
     QString data = convertCharset(reply->readAll());
     if (reply->error() != QNetworkReply::NoError) {
         emit(networkFailure(reply->errorString()));
@@ -101,7 +138,6 @@ void ForumSession::fetchCookieReply(QNetworkReply *reply) {
     qDebug() << Q_FUNC_INFO;
     //  qDebug() << statusReport();
 
-    disconnect(nam, SIGNAL(finished(QNetworkReply*)), this, SLOT(fetchCookieReply(QNetworkReply*)));
     if (reply->error() != QNetworkReply::NoError) {
         qDebug() << Q_FUNC_INFO << reply->errorString();
         emit(networkFailure(reply->errorString()));
@@ -139,6 +175,7 @@ void ForumSession::loginToForum() {
     if (fpar.login_type == ForumParser::LoginTypeHttpPost) {
         QNetworkRequest req;
         req.setUrl(loginUrl);
+        req.setAttribute(QNetworkRequest::User, FSOFetchCookie);
         QHash<QString, QString> params;
         QStringList loginParamPairs = fpar.login_parameters.split(",",
                                                                   QString::SkipEmptyParts);
@@ -158,8 +195,6 @@ void ForumSession::loginToForum() {
         }
         loginData = HttpPost::setPostParameters(&req, params);
 
-        connect(nam, SIGNAL(finished(QNetworkReply*)), this,
-                SLOT(loginReply(QNetworkReply*)), Qt::UniqueConnection);
         nam->post(req, loginData);
     } else {
         qDebug("Sorry, http auth not yet implemented.");
@@ -170,8 +205,6 @@ void ForumSession::loginReply(QNetworkReply *reply) {
     qDebug() << Q_FUNC_INFO;
     // qDebug() << statusReport();
 
-    disconnect(nam, SIGNAL(finished(QNetworkReply*)), this,
-               SLOT(loginReply(QNetworkReply*)));
     QString data = convertCharset(reply->readAll());
 
     if (reply->error() != QNetworkReply::NoError) {
@@ -206,39 +239,26 @@ void ForumSession::fetchCookie() {
     if (operationInProgress == FSONoOp)
         return;
     QNetworkRequest req(QUrl(fpar.forum_url));
-    connect(nam, SIGNAL(finished(QNetworkReply*)), this, SLOT(fetchCookieReply(QNetworkReply*)), Qt::UniqueConnection);
+    req.setAttribute(QNetworkRequest::User, QVariant(FSOFetchCookie));
     nam->post(req, emptyData);
 }
 
-void ForumSession::initialize(ForumParser &fop, ForumSubscription *fos, PatternMatcher *matcher) {
-    Q_ASSERT(fos);
-    fsub = fos;
-    fpar = fop;
-
-    cookieFetched = false;
-    operationInProgress = FSONoOp;
-    pm = matcher;
-    if (!pm)
-        pm = new PatternMatcher(this);
-    nam->setProxy(QNetworkProxy::applicationProxy());
-}
-
-void ForumSession::updateGroupPage() {
-    Q_ASSERT(operationInProgress==FSOUpdateThreads);
-    if (operationInProgress != FSOUpdateThreads)
+void ForumSession::listThreadsOnNextPage() {
+    Q_ASSERT(operationInProgress==FSOListThreads);
+    if (operationInProgress != FSOListThreads)
         return;
 
     QString urlString = getThreadListUrl(currentGroup, currentListPage);
     QNetworkRequest req;
     req.setUrl(QUrl(urlString));
-
-    connect(nam, SIGNAL(finished(QNetworkReply*)), this, SLOT(listThreadsReply(QNetworkReply*)), Qt::UniqueConnection);
+    req.setAttribute(QNetworkRequest::User, FSOListThreads);
+    qDebug() << Q_FUNC_INFO << "Fetching URL" << urlString;
     nam->post(req, emptyData);
 }
 
-void ForumSession::updateThreadPage() {
-    Q_ASSERT(operationInProgress==FSOUpdateMessages);
-    if (operationInProgress != FSOUpdateMessages) {
+void ForumSession::listMessagesOnNextPage() {
+    Q_ASSERT(operationInProgress==FSOListMessages);
+    if (operationInProgress != FSOListMessages) {
         Q_ASSERT(false);
         return;
     }
@@ -247,8 +267,8 @@ void ForumSession::updateThreadPage() {
 
     QNetworkRequest req;
     req.setUrl(QUrl(urlString));
-
-    connect(nam, SIGNAL(finished(QNetworkReply*)), this, SLOT(listMessagesReply(QNetworkReply*)), Qt::UniqueConnection);
+    req.setAttribute(QNetworkRequest::User, FSOListMessages);
+    qDebug() << Q_FUNC_INFO << "Fetching URL" << urlString;
 
     nam->post(req, emptyData);
 }
@@ -256,26 +276,26 @@ void ForumSession::updateThreadPage() {
 void ForumSession::listThreads(ForumGroup *group) {
     qDebug() << Q_FUNC_INFO << group->toString();
 
-    if (operationInProgress != FSONoOp && operationInProgress != FSOUpdateThreads) {
+    if (operationInProgress != FSONoOp && operationInProgress != FSOListThreads) {
         //statusReport();
         qDebug() << Q_FUNC_INFO << "Operation in progress!! Don't command me yet!";
         Q_ASSERT(false);
         return;
     }
-    operationInProgress = FSOUpdateThreads;
+    operationInProgress = FSOListThreads;
     currentGroup = group;
+    currentMessagesUrl = QString::null;
     if(prepareForUse()) return;
     currentListPage = fpar.thread_list_page_start;
-    updateGroupPage();
+    listThreadsOnNextPage();
 }
 
 void ForumSession::listThreadsReply(QNetworkReply *reply) {
     if(operationInProgress == FSONoOp) return;
     Q_ASSERT(currentGroup);
-
+    Q_ASSERT(operationInProgress == FSOListThreads);
+    Q_ASSERT(reply->request().attribute(QNetworkRequest::User).toInt() ==FSOListThreads);
     qDebug() << Q_FUNC_INFO << currentGroup->toString();
-    disconnect(nam, SIGNAL(finished(QNetworkReply*)), this,
-               SLOT(listThreadsReply(QNetworkReply*)));
     if (reply->error() != QNetworkReply::NoError) {
         emit(networkFailure(reply->errorString()));
         cancelOperation();
@@ -286,12 +306,12 @@ void ForumSession::listThreadsReply(QNetworkReply *reply) {
 }
 void ForumSession::listMessages(ForumThread *thread) {
     Q_ASSERT(thread->isSane());
-    if (operationInProgress != FSONoOp && operationInProgress != FSOUpdateMessages) {
+    if (operationInProgress != FSONoOp && operationInProgress != FSOListMessages) {
         qDebug() << Q_FUNC_INFO << "Operation in progress!! Don't command me yet!";
         Q_ASSERT(false);
         return;
     }
-    operationInProgress = FSOUpdateMessages;
+    operationInProgress = FSOListMessages;
     currentThread = thread;
     currentGroup = thread->group();
 
@@ -307,14 +327,14 @@ void ForumSession::listMessages(ForumThread *thread) {
     currentListPage = fpar.view_thread_page_start;
   //  }
 
-
-    updateThreadPage();
+    listMessagesOnNextPage();
 }
 
 void ForumSession::listMessagesReply(QNetworkReply *reply) {
     if(operationInProgress == FSONoOp) return;
-
-    disconnect(nam, SIGNAL(finished(QNetworkReply*)), this, SLOT(listMessagesReply(QNetworkReply*)));
+    qDebug() << Q_FUNC_INFO << currentMessagesUrl;
+    Q_ASSERT(operationInProgress == FSOListMessages);
+    Q_ASSERT(reply->request().attribute(QNetworkRequest::User).toInt() ==FSOListMessages);
     if (reply->error() != QNetworkReply::NoError) {
         emit(networkFailure(reply->errorString()));
         cancelOperation();
@@ -328,7 +348,7 @@ void ForumSession::performListMessages(QString &html) {
     QList<ForumMessage*> newMessages;
     Q_ASSERT(currentThread->isSane());
     emit receivedHtml(html);
-    operationInProgress = FSOUpdateMessages;
+    operationInProgress = FSOListMessages;
     pm->setPattern(fpar.message_list_pattern);
     QList<QHash<QString, QString> > matches = pm->findMatches(html);
     QHash<QString, QString> match;
@@ -391,7 +411,7 @@ void ForumSession::performListMessages(QString &html) {
             // Continue to next page
             currentThread->setLastPage(currentListPage); // To be updated to db in listMessagesFinished
             currentListPage += fpar.view_thread_page_increment;
-            updateThreadPage();
+            listMessagesOnNextPage();
         } else {
             // qDebug() << "Forum doesn't support multipage - NOT continuing to next page.";
             finished = true;
@@ -418,9 +438,9 @@ QString ForumSession::statusReport() {
         op = "NoOp";
     if (operationInProgress == FSOListGroups)
         op = "ListGroups";
-    if (operationInProgress == FSOUpdateThreads)
+    if (operationInProgress == FSOListThreads)
         op = "UpdateThreads";
-    if (operationInProgress == FSOUpdateMessages)
+    if (operationInProgress == FSOListMessages)
         op = "UpdateMessages";
 
     return "Operation: " + op + " in " + fpar.toString() + "\n" + "Threads: "
@@ -434,7 +454,6 @@ QString ForumSession::statusReport() {
 void ForumSession::performListThreads(QString &html) {
     QList<ForumThread*> newThreads;
     emit receivedHtml(html);
-    operationInProgress = FSOUpdateThreads;
     pm->setPattern(fpar.thread_list_pattern);
     QList<QHash<QString, QString> > matches = pm->findMatches(html);
     qDebug() << Q_FUNC_INFO << "found " << matches.size() << " matches";
@@ -491,7 +510,7 @@ void ForumSession::performListThreads(QString &html) {
             currentListPage += fpar.thread_list_page_increment;
             qDebug() << "New threads were found - continuing to next page "
                      << currentListPage;
-            updateGroupPage();
+            listThreadsOnNextPage();
         } else {
             qDebug() << "Forum doesn't support multipage - NOT continuing to next page.";
             finished = true;
@@ -510,8 +529,6 @@ void ForumSession::performListThreads(QString &html) {
 
 void ForumSession::cancelOperation() {
     qDebug() << Q_FUNC_INFO;
-    if (nam)
-        disconnect(nam, SIGNAL(finished(QNetworkReply*)));
 
     operationInProgress = FSONoOp;
     cookieFetched = false;
@@ -600,7 +617,6 @@ void ForumSession::clearAuthentications() {
     loggedIn = false;
 
     cookieJar = new QNetworkCookieJar();
-    nam->disconnect(this);
     nam->setCookieJar(cookieJar);
     connect(nam, SIGNAL(authenticationRequired(QNetworkReply *, QAuthenticator *)),
             this, SLOT(authenticationRequired(QNetworkReply *, QAuthenticator *)), Qt::UniqueConnection);
@@ -623,10 +639,10 @@ void ForumSession::nextOperation() {
     case FSOListGroups:
         listGroups();
         break;
-    case FSOUpdateThreads:
+    case FSOListThreads:
         listThreads(currentGroup);
         break;
-    case FSOUpdateMessages:
+    case FSOListMessages:
         listMessages(currentThread);
         break;
     case FSONoOp:

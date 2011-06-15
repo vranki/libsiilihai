@@ -39,6 +39,7 @@ ForumGroup::~ForumGroup() {
 
 void ForumGroup::addThread(ForumThread* thr, bool affectsSync) {
     Q_ASSERT(thr->group() == this);
+    Q_ASSERT(!value(thr->id()));
     incrementUnreadCount(thr->unreadCount());
     if(affectsSync) setHasChanged(true);
     insert(thr->id(), thr);
