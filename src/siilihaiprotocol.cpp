@@ -603,6 +603,7 @@ void SiilihaiProtocol::replyGetThreadData(QNetworkReply *reply) {
                         thread.setChangeset(threadChangeset);
                         thread.setGetMessagesCount(threadGetMessagesCount);
                         thread.setName(UNKNOWN_SUBJECT);
+                        thread.setOrdernum(999);
                         emit serverThreadData(&thread);
                         for (int m = 0; m < threadElement.childNodes().size(); m++) {
                             QDomElement messageElement = threadElement.childNodes().at(m).toElement();
@@ -612,6 +613,7 @@ void SiilihaiProtocol::replyGetThreadData(QNetworkReply *reply) {
                             msg.setName(UNKNOWN_SUBJECT);
                             msg.setBody("Please update forum to get message content.");
                             msg.setRead(true, false);
+                            msg.setOrdernum(999);
                             emit serverMessageData(&msg);
                             QCoreApplication::processEvents();
                         }

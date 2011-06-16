@@ -50,13 +50,7 @@ public:
     // Subscription related
     virtual bool addSubscription(ForumSubscription *fs); // Ownership changes!!!
     virtual void deleteSubscription(ForumSubscription *sub);
-/*
-    // Thread related
-    virtual ForumThread* getThread(const int forum, QString groupid, QString threadid);
 
-    // Message related
-    virtual ForumMessage* getMessage(const int forum, QString groupid, QString threadid, QString messageid);
-*/
     virtual void markForumRead(ForumSubscription *fs, bool read);
     virtual bool markGroupRead(ForumGroup *group, bool read);
 

@@ -27,6 +27,13 @@ ForumDatabaseSql::~ForumDatabaseSql() {
 }
 
 void ForumDatabaseSql::resetDatabase() {
+    while(!isEmpty())
+        deleteSubscription(values().first());
+    messagesNotInDatabase.clear();
+    changedMessages.clear();
+    threadsNotInDatabase.clear();
+    changedThreads.clear();
+
     QSqlQuery query;
     query.exec("DROP TABLE forums");
     query.exec("DROP TABLE groups");
@@ -312,9 +319,9 @@ void ForumDatabaseSql::subscriptionChanged(ForumSubscription *sub) {
 void ForumDatabaseSql::deleteSubscription(ForumSubscription *sub) {
     Q_ASSERT(sub);
     Q_ASSERT(value(sub->parser()));
-
+    disconnect(sub, 0, this, 0);
     while(!sub->isEmpty())
-        deleteGroup(sub->values().last());
+        sub->removeGroup(sub->values().last());
 
     QSqlQuery query;
     query.prepare("DELETE FROM forums WHERE (parser=?)");
@@ -387,9 +394,13 @@ bool ForumDatabaseSql::deleteGroup(ForumGroup *grp) {
     Q_ASSERT(grp);
     Q_ASSERT(grp->isSane());
     qDebug() << Q_FUNC_INFO << grp->toString();
-    while(!grp->isEmpty()) {
-        deleteThread(grp->begin().value());
-        QCoreApplication::processEvents();
+    disconnect(grp, 0, this, 0);
+    QList<ForumThread*> threads = grp->values();
+    qSort(threads);
+    while(!threads.isEmpty()) {
+        ForumThread *lastThread = threads.takeLast();
+        Q_ASSERT(lastThread);
+        grp->removeThread(lastThread);
     }
 
     QSqlQuery query;
@@ -451,6 +462,7 @@ bool ForumDatabaseSql::deleteThread(ForumThread *thread) {
     if (!thread->isSane()) {
         qDebug() << Q_FUNC_INFO << "Error: tried to delete invalid thread " << thread->toString();
     }
+    disconnect(thread, 0, this, 0);
     db->transaction();
     QSqlQuery query;
     query.prepare("DELETE FROM messages WHERE (forumid=? AND groupid=? AND threadid=?)");
@@ -473,6 +485,7 @@ bool ForumDatabaseSql::deleteThread(ForumThread *thread) {
         ForumMessage *lastMessage = messages.takeLast();
         Q_ASSERT(lastMessage);
         thread->removeMessage(lastMessage);
+        QCoreApplication::processEvents();
     }
     db->transaction();
     query.prepare("DELETE FROM threads WHERE (forumid=? AND groupid=? AND threadid=?)");
@@ -548,14 +561,12 @@ void ForumDatabaseSql::addMessage(ForumMessage *message) {
     messagesNotInDatabase.insert(message);
     connect(message, SIGNAL(changed(ForumMessage*)), this, SLOT(messageChanged(ForumMessage*)));
     connect(message, SIGNAL(markedRead(ForumMessage*, bool)), this, SLOT(messageMarkedRead(ForumMessage*, bool)));
-    //emit messageAdded(message);
-    //emit messageFound(message);
     checkSanity();
 }
 
 void ForumDatabaseSql::deleteMessage(ForumMessage *message) {
     if(!databaseOpened) return;
-
+    disconnect(message, 0, this, 0);
     checkSanity();
     Q_ASSERT(message);
     Q_ASSERT(message->isSane());
@@ -671,8 +682,11 @@ void ForumDatabaseSql::storeSomethingSmall() {
         query.addBindValue(thread->group()->subscription()->parser());
         query.addBindValue(thread->group()->id());
         query.addBindValue(thread->id());
-        query.exec();
-
+        if (!query.exec()) {
+            qDebug() << Q_FUNC_INFO << "Clearing messages from thread " << thread->toString() << " failed: "
+                     << query.lastError().text();
+            Q_ASSERT(false);
+        }
         thread->commitChanges();
 
         // Delete all messages in this thread (if they exist for some reason)!
