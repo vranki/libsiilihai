@@ -38,12 +38,12 @@ public:
     SyncMaster(QObject *parent, ForumDatabase &fd, SiilihaiProtocol &prot);
     virtual ~SyncMaster();
     /**
-          * Downloads state from server (done in startup)
-          */
+     * Downloads state from server (done in startup)
+     */
     void startSync();
     /**
-          * Uploads state to server (done in end)
-          */
+     * Uploads state to server (done in end)
+     */
     void endSync();
     void cancel();
 public slots:
@@ -53,10 +53,12 @@ public slots:
     void serverThreadData(ForumThread *thread);
     void serverMessageData(ForumMessage *message);
     void getThreadDataFinished(bool success, QString message);
+    void subscribeGroupsFinished(bool success);
 signals:
     void syncFinished(bool success, QString message);
     void syncProgress(float progress);
 private:
+    void processSubscriptions();
     void processGroups();
     bool canceled;
     ForumDatabase &fdb;
@@ -66,7 +68,7 @@ private:
     QQueue<ForumGroup*> groupsToUpload;
     QQueue<ForumGroup*> groupsToDownload;
     QSet<ForumThread*> changedThreads;
-    QSet<ForumSubscription*> forumsToUpload;
+    QQueue<ForumSubscription*> forumsToUpload;
     QQueue<ForumMessage*> messagesToUpload;
     ForumGroup *groupBeingDownloaded;
     unsigned int errorCount;

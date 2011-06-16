@@ -135,8 +135,8 @@ bool ForumDatabaseSql::openDatabase(QSqlDatabase *database) {
                 g->setLastchange(query.value(2).toString());
                 g->setSubscribed(query.value(3).toBool());
                 g->setChangeset(query.value(4).toInt());
-                sub->addGroup(g);
-                //emit groupFound(g);
+                sub->addGroup(g, false);
+                if(g->name()==UNKNOWN_SUBJECT) g->markToBeUpdated();
                 Q_ASSERT(sub->contains(g->id()));
             }
         } else {
@@ -146,7 +146,7 @@ bool ForumDatabaseSql::openDatabase(QSqlDatabase *database) {
         // Connect signals for subscription
         connect(sub, SIGNAL(changed(ForumSubscription*)), this, SLOT(subscriptionChanged(ForumSubscription*)));
         connect(sub, SIGNAL(groupAdded(ForumGroup*)), this, SLOT(addGroup(ForumGroup*)));
-        connect(sub, SIGNAL(groupRemoved(ForumGroup*)), this, SLOT(addGroup(ForumGroup*)));
+        connect(sub, SIGNAL(groupRemoved(ForumGroup*)), this, SLOT(deleteGroup(ForumGroup*)));
     }
     checkSanity();
 
@@ -169,7 +169,10 @@ bool ForumDatabaseSql::openDatabase(QSqlDatabase *database) {
                     thread->setGetMessagesCount(query.value(6).toInt());
                     thread->setLastPage(query.value(7).toInt());
                     grp->addThread(thread, false);
-                    //emit threadFound(thread);
+                    if(thread->name()==UNKNOWN_SUBJECT) thread->markToBeUpdated();
+                    if(thread->needsToBeUpdated())
+                        grp->markToBeUpdated();
+
                     Q_ASSERT(thread->unreadCount()==0);
                 }
             } else {
@@ -206,6 +209,7 @@ bool ForumDatabaseSql::openDatabase(QSqlDatabase *database) {
                         bool msgRead = query.value(7).toBool();
                         m->setRead(msgRead, false);
                         thread->addMessage(m, false);
+                        if(m->name()==UNKNOWN_SUBJECT) m->markToBeUpdated();
                         connect(m, SIGNAL(changed(ForumMessage*)), this, SLOT(messageChanged(ForumMessage*)));
                         connect(m, SIGNAL(markedRead(ForumMessage*, bool)), this, SLOT(messageMarkedRead(ForumMessage*, bool)));
                         qDebug() << Q_FUNC_INFO << "Loaded message " << m->toString();
@@ -215,7 +219,6 @@ bool ForumDatabaseSql::openDatabase(QSqlDatabase *database) {
                     qDebug() << "Unable to list messages: " << query.lastError().text();
                     return false;
                 }
-                //Q_ASSERT(thread->unreadCount() == recalcUnreads(thread));
                 connect(thread, SIGNAL(changed(ForumThread*)), this, SLOT(threadChanged(ForumThread*)));
                 connect(thread, SIGNAL(messageRemoved(ForumMessage*)), this, SLOT(deleteMessage(ForumMessage*)));
                 connect(thread, SIGNAL(messageAdded(ForumMessage*)), this, SLOT(addMessage(ForumMessage*)));
@@ -338,7 +341,7 @@ void ForumDatabaseSql::addGroup(ForumGroup *grp) {
     ForumSubscription *sub = value(grp->subscription()->parser());
     Q_ASSERT(sub);
     Q_ASSERT(sub == grp->subscription());
-
+    // Q_ASSERT(!grp->toString().contains("sid"));
     QSqlQuery query;
     query.prepare("DELETE FROM groups WHERE forumid=? AND groupid=?");
     query.addBindValue(sub->parser());
@@ -394,7 +397,7 @@ bool ForumDatabaseSql::deleteGroup(ForumGroup *grp) {
     query.addBindValue(grp->subscription()->parser());
     query.addBindValue(grp->id());
     if (!query.exec()) {
-        qDebug() << "Deleting group failed: " << query.lastError().text();
+        qDebug() << Q_FUNC_INFO << "Deleting group failed: " << query.lastError().text();
         Q_ASSERT(false);
         return false;
     }

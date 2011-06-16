@@ -25,6 +25,7 @@ ForumSubscription::ForumSubscription(QObject *parent, bool temp) : QObject(paren
     _username = _password = QString::null;
     _temp = temp;
     _engine = 0;
+    _groupListChanged = false;
 }
 
 void ForumSubscription::copyFrom(ForumSubscription * other) {
@@ -40,17 +41,21 @@ void ForumSubscription::copyFrom(ForumSubscription * other) {
 ForumSubscription::~ForumSubscription() {
 }
 
-void ForumSubscription::addGroup(ForumGroup* grp) {
+void ForumSubscription::addGroup(ForumGroup* grp, bool affectsSync) {
     Q_ASSERT(grp->subscription() == this);
     incrementUnreadCount(grp->unreadCount());
     insert(grp->id(), grp);
+    if(affectsSync)
+        setGroupListChanged();
     emit groupAdded(grp);
 }
 
-void ForumSubscription::removeGroup(ForumGroup* grp) {
+void ForumSubscription::removeGroup(ForumGroup* grp, bool affectsSync) {
     Q_ASSERT(grp->subscription() == this);
     remove(grp->id());
-    // @todo mark changed somehow to sync!
+
+    if(affectsSync)
+        setGroupListChanged();
     emit groupRemoved(grp);
 }
 
@@ -142,4 +147,12 @@ void ForumSubscription::setParserEngine(ParserEngine *eng) {
 
 ParserEngine *ForumSubscription::parserEngine() const {
     return _engine;
+}
+
+bool ForumSubscription::hasGroupListChanged() const {
+    return _groupListChanged;
+}
+
+void ForumSubscription::setGroupListChanged(bool changed) {
+    _groupListChanged = changed;
 }

@@ -1,6 +1,6 @@
 #include "forumdataitem.h"
 
-ForumDataItem::ForumDataItem(QObject * parent) : QObject(parent)
+ForumDataItem::ForumDataItem(QObject * parent) : QObject(parent), UpdateableItem()
 {
     _name = _id = QString::null;
     _unreadCount = 0;

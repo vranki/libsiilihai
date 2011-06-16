@@ -19,6 +19,7 @@
 #include <QMap>
 #include <QList>
 #include <QDebug>
+#include "updateableitem.h"
 
 class ForumGroup;
 class ParserEngine;
@@ -29,7 +30,7 @@ class ParserEngine;
   *
   * @see ForumGroup
   */
-class ForumSubscription : public QObject, public QMap<QString, ForumGroup*>  {
+class ForumSubscription : public QObject, public QMap<QString, ForumGroup*>, public UpdateableItem  {
     Q_OBJECT
 
 public:
@@ -46,8 +47,9 @@ public:
     void setLatestMessages(unsigned int lm);
     void setAuthenticated(bool na);
     void incrementUnreadCount(int urc);
-    void addGroup(ForumGroup* grp);
-    void removeGroup(ForumGroup* grp);
+    void addGroup(ForumGroup* grp, bool affectsSync=true);
+    void removeGroup(ForumGroup* grp, bool affectsSync=true);
+    void setGroupListChanged(bool changed=true); // To trigger sending group list update
 
     int parser() const;
     QString alias() const;
@@ -60,7 +62,8 @@ public:
     bool isTemp() const;
     void setParserEngine(ParserEngine *eng);
     ParserEngine *parserEngine() const;
-signals:
+    bool hasGroupListChanged() const;
+ signals:
     void changed(ForumSubscription *s);
     void unreadCountChanged(ForumSubscription *s);
     void groupRemoved(ForumGroup *grp);
@@ -77,7 +80,7 @@ private:
     unsigned int _latestMessages;
     bool _authenticated;
     int _unreadCount;
-    bool _temp;
+    bool _temp, _groupListChanged;
     ParserEngine *_engine;
 };
 

@@ -41,10 +41,9 @@ public:
     void setChangeset(int cs);
     void setHasChanged(bool hc);
     bool isTemp();
-    void markToBeUpdated();
     void addThread(ForumThread* thr, bool affectsSync = true);
     void removeThread(ForumThread* thr, bool affectsSync = true);
-
+    virtual void markToBeUpdated(bool toBe=true);
 signals:
     void changed(ForumGroup *grp);
     void unreadCountChanged(ForumGroup *grp);

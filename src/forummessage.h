@@ -17,6 +17,7 @@
 #include <QString>
 #include <QObject>
 #include "forumdataitem.h"
+
 class ForumThread;
 
 /**
@@ -43,6 +44,7 @@ public:
     void setBody(QString nb);
     void setRead(bool nr, bool affectsParents=true);
     bool isTemp();
+    virtual void markToBeUpdated(bool toBe=true);
 signals:
     void changed(ForumMessage * fm);
     void markedRead(ForumMessage * fm, bool read);

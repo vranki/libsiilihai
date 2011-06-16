@@ -2,12 +2,16 @@
 #define FORUMDATAITEM_H
 
 #include <QObject>
+#include "updateableitem.h"
+
+#define NEEDS_UPDATE "ITEM_NEEDS_UPDATE"
+#define UNKNOWN_SUBJECT "?"
 
 /**
   * Pure virtual class containing common functionality for
   * groups, threads and messages.
   */
-class ForumDataItem : public QObject {
+class ForumDataItem : public QObject, public UpdateableItem {
     Q_OBJECT
 public:
     ForumDataItem(QObject * parent);

@@ -75,9 +75,6 @@ ForumSubscription* ForumGroup::subscription() const {
     return _subscription;
 }
 
-bool ForumGroup::hasChanged() const {
-    return _hasChanged;
-}
 void ForumGroup::setSubscribed(bool s) {
     if(s==_subscribed) return;
     _subscribed = s;
@@ -95,6 +92,9 @@ void ForumGroup::setHasChanged(bool hc) {
     _hasChanged = hc;
     _propertiesChanged = true; // @todo should we? this bool goes nowhere
 }
+bool ForumGroup::hasChanged() const {
+    return _hasChanged;
+}
 
 bool ForumGroup::isTemp() {
     return _temp;
@@ -108,6 +108,8 @@ void ForumGroup::emitUnreadCountChanged() {
     emit unreadCountChanged(this);
 }
 
-void ForumGroup::markToBeUpdated() {
-    setLastchange("GROUP_UPDATE_NEEDED");
+void ForumGroup::markToBeUpdated(bool toBe) {
+    UpdateableItem::markToBeUpdated(toBe);
+    if(toBe)
+        subscription()->markToBeUpdated();
 }

@@ -152,7 +152,13 @@ void ForumThread::removeMessage(ForumMessage* msg, bool affectsSync) {
     emit messageRemoved(msg);
 }
 
-void ForumThread::markToBeUpdated() {
-    setLastchange("THREAD_UPDATE_NEEDED");
-    group()->markToBeUpdated();
+bool ForumThread::needsToBeUpdated() const {
+    return _lastchange == NEEDS_UPDATE || UpdateableItem::needsToBeUpdated();
+}
+
+void ForumThread::markToBeUpdated(bool toBe) {
+    UpdateableItem::markToBeUpdated(toBe);
+    if(toBe) {
+        group()->markToBeUpdated();
+    }
 }

@@ -26,6 +26,8 @@ SyncMaster::SyncMaster(QObject *parent, ForumDatabase &fd, SiilihaiProtocol &pro
             SLOT(serverMessageData(ForumMessage*)));
     connect(&protocol, SIGNAL(getThreadDataFinished(bool, QString)), this,
             SLOT(getThreadDataFinished(bool, QString)));
+    connect(&protocol, SIGNAL(subscribeGroupsFinished(bool)), this, SLOT(subscribeGroupsFinished(bool)));
+
     canceled = true;
     groupBeingDownloaded = 0;
     errorCount = 0;
@@ -51,9 +53,11 @@ void SyncMaster::endSync() {
 
     int totalGroups = 0;
     foreach(ForumSubscription *fsub, fdb.values()) {
-        qDebug() << Q_FUNC_INFO << fsub;
+        if(fsub->hasGroupListChanged()) {
+            forumsToUpload.append(fsub);
+            fsub->setGroupListChanged(false);
+        }
         foreach(ForumGroup *grp, fsub->values()) {
-            qDebug() << Q_FUNC_INFO << grp;
             if(grp->isSubscribed()) totalGroups++;
             if(grp->isSubscribed() && grp->hasChanged()) {
                 groupsToUpload.append(grp);
@@ -62,7 +66,7 @@ void SyncMaster::endSync() {
     }
     maxGroupCount = groupsToUpload.size();
     qDebug() << Q_FUNC_INFO << "Uploading " << maxGroupCount << " of " << totalGroups << " groups.";
-    processGroups();
+    processSubscriptions();
 }
 
 void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp objects!
@@ -99,7 +103,6 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
             }
         }
         Q_ASSERT(dbSub);
-        QCoreApplication::processEvents();
     }
     // Update group lists
     foreach(ForumSubscription *serverSub, subs) {
@@ -112,7 +115,7 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
             if(!dbGroup) { // Group doesn't exist yet
                 qDebug() << Q_FUNC_INFO << "Group " << serverGrp->toString() << " not in db -  must add it!";
                 ForumGroup *newGroup = new ForumGroup(dbSub, false);
-                serverGrp->setName("?");
+                serverGrp->setName(UNKNOWN_SUBJECT);
                 serverGrp->setChangeset(-1); // Force update of group contents
                 serverGrp->markToBeUpdated();
                 serverGrp->setSubscribed(true);
@@ -131,7 +134,7 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
                 groupsToDownload.append(dbGroup);
             }
             dbGroup->commitChanges();
-            QCoreApplication::processEvents();
+
         }
     }
 
@@ -226,6 +229,7 @@ void SyncMaster::serverMessageData(ForumMessage *tempMessage) { // Temporary obj
         if (dbMessage) { // Message already found, merge it
             dbMessage->setRead(tempMessage->isRead());
         } else { // message hasn't been found yet!
+            qDebug() << Q_FUNC_INFO << "message" << tempMessage->toString() << " NOT in DB - adding as new";
             ForumThread *dbThread = fdb.getThread(tempMessage->thread()->group()->subscription()->parser(),
                                                   tempMessage->thread()->group()->id(),
                                                   tempMessage->thread()->id());
@@ -234,10 +238,9 @@ void SyncMaster::serverMessageData(ForumMessage *tempMessage) { // Temporary obj
             ForumMessage *newMessage = new ForumMessage(dbThread, false);
             newMessage->copyFrom(tempMessage);
             newMessage->setRead(true, false);
-            dbThread->markToBeUpdated();
-            dbThread->group()->markToBeUpdated();
             dbThread->addMessage(newMessage);
             dbThread->setLastPage(0); // Mark as 0 to force update of full thread
+            newMessage->markToBeUpdated();
             dbThread->commitChanges();
             dbThread->group()->commitChanges();
         }
@@ -282,4 +285,25 @@ void SyncMaster::cancel() {
     forumsToUpload.clear();
     messagesToUpload.clear();
     emit syncFinished(false, "Canceled");
+}
+
+void SyncMaster::processSubscriptions() {
+    qDebug() << Q_FUNC_INFO << "need to update " << forumsToUpload.size() << "forums";
+    if(forumsToUpload.isEmpty()) {
+        processGroups();
+    } else {
+        ForumSubscription *sub = forumsToUpload.takeFirst();
+        protocol.updateGroupSubscriptions(sub);
+    }
+}
+
+void SyncMaster::subscribeGroupsFinished(bool success) {
+    qDebug() << Q_FUNC_INFO << success;
+    if(canceled) return;
+    if (success) {
+        processSubscriptions();
+    } else {
+        qDebug() << Q_FUNC_INFO << "Failed! Error count: " << errorCount;
+        emit syncFinished(false, "Updating group subscriptions to server failed");
+    }
 }

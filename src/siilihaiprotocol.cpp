@@ -445,8 +445,7 @@ void SiilihaiProtocol::updateGroupSubscriptions(ForumSubscription *fs) {
 void SiilihaiProtocol::replySubscribeGroups(QNetworkReply *reply) {
     bool success = reply->error() == QNetworkReply::NoError;
     nam.disconnect(SIGNAL(finished(QNetworkReply*)));
-    emit
-            (subscribeGroupsFinished(success));
+    emit (subscribeGroupsFinished(success));
     reply->deleteLater();
 }
 
@@ -603,14 +602,14 @@ void SiilihaiProtocol::replyGetThreadData(QNetworkReply *reply) {
                         thread.setId(threadid);
                         thread.setChangeset(threadChangeset);
                         thread.setGetMessagesCount(threadGetMessagesCount);
-                        thread.setName("?");
+                        thread.setName(UNKNOWN_SUBJECT);
                         emit serverThreadData(&thread);
                         for (int m = 0; m < threadElement.childNodes().size(); m++) {
                             QDomElement messageElement = threadElement.childNodes().at(m).toElement();
                             QString messageid = messageElement.attribute("id");
                             ForumMessage msg(&thread);
                             msg.setId(messageid);
-                            msg.setName("?");
+                            msg.setName(UNKNOWN_SUBJECT);
                             msg.setBody("Please update forum to get message content.");
                             msg.setRead(true, false);
                             emit serverMessageData(&msg);

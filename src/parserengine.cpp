@@ -153,6 +153,7 @@ void ParserEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups) {
     //         << " in " << parser.toString();
     bool dbGroupsWasEmpty = fsubscription->isEmpty();
     groupsToUpdateQueue.clear();
+    fsubscription->markToBeUpdated(false);
     if (tempGroups.size() == 0 && fsubscription->size() > 0) {
         emit updateFailure(fsubscription, "Updating group list for " + parser.parser_name
                            + " failed. \nCheck your network connection.");
@@ -169,7 +170,8 @@ void ParserEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups) {
                 foundInDb = true;
                 if((dbGroup->isSubscribed() &&
                     ((dbGroup->lastchange() != tempGroup->lastchange()) || forceUpdate ||
-                     dbGroup->isEmpty()))) {
+                     dbGroup->isEmpty() || dbGroup->needsToBeUpdated()))) {
+                    dbGroup->markToBeUpdated();
                     groupsToUpdateQueue.enqueue(dbGroup);
                     qDebug() << Q_FUNC_INFO << "Group " << dbGroup->toString() << " shall be updated";
                     // Store the updated version to database
@@ -230,7 +232,7 @@ void ParserEngine::listThreadsFinished(QList<ForumThread*> &tempThreads, ForumGr
     Q_ASSERT(!group->isTemp());
     Q_ASSERT(group->isSane());
     threadsToUpdateQueue.clear();
-
+    group->markToBeUpdated(false);
     if (tempThreads.isEmpty() && !group->isEmpty()) {
         QString errorMsg = "Found no threads in group " + group->toString() + ".\n Broken parser?";
         emit updateFailure(fsubscription, errorMsg);
@@ -245,7 +247,7 @@ void ParserEngine::listThreadsFinished(QList<ForumThread*> &tempThreads, ForumGr
         if (dbThread) {
             dbThread->setName(serverThread->name());
             if ((dbThread->lastchange() != serverThread->lastchange()) || forceUpdate ||
-                    dbThread->isEmpty()) {
+                    dbThread->isEmpty() || dbThread->needsToBeUpdated()) {
                 Q_ASSERT(dbThread->group() == serverThread->group());
 
                 // Don't update some fields to new values
@@ -258,6 +260,7 @@ void ParserEngine::listThreadsFinished(QList<ForumThread*> &tempThreads, ForumGr
                 dbThread->setHasMoreMessages(oldHasMoreMessages);
                 dbThread->commitChanges();
                 qDebug() << Q_FUNC_INFO << "Thread " << dbThread->toString() << " shall be updated";
+                dbThread->markToBeUpdated();
                 threadsToUpdateQueue.enqueue(dbThread);
             }
         } else {
@@ -273,7 +276,9 @@ void ParserEngine::listThreadsFinished(QList<ForumThread*> &tempThreads, ForumGr
     foreach (ForumThread *dbThread, group->values()) { // Iterate all db threads and find if any is missing
         bool threadFound = false;
         foreach(ForumThread *tempThread, tempThreads) {
-            if (dbThread->id() == tempThread->id()) {
+            if (dbThread->group()->subscription()->parser() == tempThread->group()->subscription()->parser() &&
+                    dbThread->group()->id() == tempThread->group()->id() &&
+                    dbThread->id() == tempThread->id()) {
                 threadFound = true;
             }
         }
@@ -295,7 +300,7 @@ void ParserEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages, Foru
     Q_ASSERT(dbThread->isSane());
     Q_ASSERT(!dbThread->isTemp());
     Q_ASSERT(dbThread->group()->isSubscribed());
-
+    dbThread->markToBeUpdated(false);
     bool messagesChanged = false;
     foreach (ForumMessage *tempMessage, tempMessages) {
         bool foundInDb = false;
@@ -306,6 +311,7 @@ void ParserEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages, Foru
                 bool wasRead = dbMessage->isRead();
                 dbMessage->copyFrom(tempMessage);
                 if(wasRead) dbMessage->setRead(true, false);
+                dbMessage->markToBeUpdated(false);
                 dbMessage->commitChanges();
             }
         }
@@ -313,6 +319,7 @@ void ParserEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages, Foru
             messagesChanged = true;
             ForumMessage *newMessage = new ForumMessage(dbThread, false);
             newMessage->copyFrom(tempMessage);
+            newMessage->markToBeUpdated(false);
             dbThread->addMessage(newMessage);
         }
     }
@@ -321,7 +328,10 @@ void ParserEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages, Foru
     foreach (ForumMessage *dbmessage, dbThread->values()) {
         bool messageFound = false;
         foreach (ForumMessage *msg, tempMessages) {
-            if (dbmessage->id() == msg->id()) {
+            if (dbThread->group()->subscription()->parser() == msg->thread()->group()->subscription()->parser() &&
+                    dbThread->group()->id() == msg->thread()->group()->id() &&
+                    dbThread->id() == msg->thread()->id() &&
+                    dbmessage->id() == msg->id()) {
                 messageFound = true;
             }
         }
