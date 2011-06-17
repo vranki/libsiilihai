@@ -71,15 +71,7 @@ void SyncMaster::endSync() {
 
 void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp objects!
     qDebug() << Q_FUNC_INFO << subs.size();
-    //maxGroupCount = grps.size();
-    // Make a list of updated subscriptions
-    /*
-    QSet<ForumSubscription*> updatedSubs;
-    foreach(ForumGroup grp, grps) {
-        ForumSubscription *fs = grp.subscription();
-        updatedSubs.insert(fs);
-    }
-*/
+
     // Update local subs
     foreach(ForumSubscription *serverSub, subs) {
         ForumSubscription *dbSub = fdb.value(serverSub->parser());
@@ -104,6 +96,20 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
         }
         Q_ASSERT(dbSub);
     }
+    // Check for deleted subs
+    QQueue<ForumSubscription*> deletedSubs;
+    foreach(ForumSubscription *dbSub, fdb.values()) {
+        bool found = false;
+        foreach(ForumSubscription *serverSub, subs) {
+            if(serverSub->parser()==dbSub->parser())
+                found = true;
+        }
+        // Sub in db not found in sync message - delete it
+        if(!found) deletedSubs.append(dbSub);
+    }
+    while(!deletedSubs.isEmpty())
+        fdb.deleteSubscription(deletedSubs.takeFirst());
+
     // Update group lists
     foreach(ForumSubscription *serverSub, subs) {
         foreach(ForumGroup *serverGrp, serverSub->values()) {

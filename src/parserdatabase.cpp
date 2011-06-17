@@ -28,7 +28,7 @@ bool ParserDatabase::openDatabase( ) {
     if (!query.exec("SELECT id FROM parsers")) {
         qDebug("DB doesn't exist, creating..");
         if (!query.exec("CREATE TABLE parsers (id INTEGER PRIMARY KEY, "
-			"parser_name VARCHAR UNIQUE, "
+                        "parser_name VARCHAR, "
 			"forum_url VARCHAR, "
 			"thread_list_path VARCHAR, "
 			"view_thread_path VARCHAR, "
@@ -79,7 +79,7 @@ bool ParserDatabase::storeParser(const ForumParser &p) {
     }
 
     QSqlQuery query;
-    query.prepare("SELECT id FROM parsers WHERE id=?");
+    query.prepare("SELECT id FROM parsers WHERE (id=?)");
     query.addBindValue(p.id);
     if (query.exec()) {
         deleteParser(p.id);

@@ -727,6 +727,7 @@ void ForumDatabaseSql::storeSomethingSmall() {
     } else if(!messagesNotInDatabase.isEmpty()) {
         db->transaction();
         ForumMessage *message = *messagesNotInDatabase.begin();
+        // WTF, may crash here on quit. Why?
         qDebug() << Q_FUNC_INFO << "Storing message " << message->toString();
         QSqlQuery query;
 
