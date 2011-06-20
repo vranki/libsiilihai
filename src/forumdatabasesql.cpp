@@ -462,23 +462,6 @@ bool ForumDatabaseSql::deleteThread(ForumThread *thread) {
     if (!thread->isSane()) {
         qDebug() << Q_FUNC_INFO << "Error: tried to delete invalid thread " << thread->toString();
     }
-    disconnect(thread, 0, this, 0);
-    db->transaction();
-    QSqlQuery query;
-    query.prepare("DELETE FROM messages WHERE (forumid=? AND groupid=? AND threadid=?)");
-    query.addBindValue(thread->group()->subscription()->parser());
-    query.addBindValue(thread->group()->id());
-    query.addBindValue(thread->id());
-    if (!query.exec()) {
-        qDebug() << Q_FUNC_INFO << "Deleting messages from thread " << thread->toString()
-                 << " failed: " << query.lastError().text();
-        db->rollback();
-        return false;
-    }
-    db->commit();
-    changedThreads.remove(thread);
-    threadsNotInDatabase.remove(thread);
-
     QList<ForumMessage*> messages = thread->values();
     qSort(messages);
     while(!messages.isEmpty()) {
@@ -487,7 +470,11 @@ bool ForumDatabaseSql::deleteThread(ForumThread *thread) {
         thread->removeMessage(lastMessage);
         QCoreApplication::processEvents();
     }
+
+    disconnect(thread, 0, this, 0);
+
     db->transaction();
+    QSqlQuery query;
     query.prepare("DELETE FROM threads WHERE (forumid=? AND groupid=? AND threadid=?)");
     query.addBindValue(thread->group()->subscription()->parser());
     query.addBindValue(thread->group()->id());
@@ -499,6 +486,8 @@ bool ForumDatabaseSql::deleteThread(ForumThread *thread) {
         return false;
     }
     db->commit();
+    changedThreads.remove(thread);
+    threadsNotInDatabase.remove(thread);
     qDebug() << Q_FUNC_INFO << "Thread " << thread->toString() << " deleted";
     thread->deleteLater();
     checkSanity();
@@ -570,7 +559,9 @@ void ForumDatabaseSql::deleteMessage(ForumMessage *message) {
     checkSanity();
     Q_ASSERT(message);
     Q_ASSERT(message->isSane());
+    qDebug() << Q_FUNC_INFO << message->toString();
     messagesNotInDatabase.remove(message);
+    changedMessages.remove(message);
     db->transaction();
     QSqlQuery query;
     query.prepare("DELETE FROM messages WHERE (forumid=? AND groupid=? AND threadid=? AND messageid=?)");
@@ -584,7 +575,6 @@ void ForumDatabaseSql::deleteMessage(ForumMessage *message) {
     }
     db->commit();
     message->thread()->group()->setHasChanged(true);
-    changedMessages.remove(message);
     qDebug() << Q_FUNC_INFO << "Message " << message->toString() << " deleted";
     message->deleteLater();
     checkSanity();
@@ -788,12 +778,12 @@ bool ForumDatabaseSql::isStored() {
 
 void ForumDatabaseSql::checkSanity() {
 #ifdef SANITY_CHECKS
-    foreach(ForumSubscription * sub, subscriptions) {
+    foreach(ForumSubscription * sub, values()) {
         Q_ASSERT(sub->isSane());
         Q_ASSERT(!sub->isTemp());
         QSet<QString> grp_ids;
         int unreadinforum = 0;
-        foreach(ForumGroup * grp, sub->groups()) {
+        foreach(ForumGroup * grp, sub->values()) {
             Q_ASSERT(grp->isSane());
             Q_ASSERT(grp->subscription() == sub);
             Q_ASSERT(!grp_ids.contains(grp->id()));
@@ -801,7 +791,7 @@ void ForumDatabaseSql::checkSanity() {
             grp_ids.insert(grp->id());
             QSet<QString> thr_ids;
             int unreadingroup = 0;
-            foreach(ForumThread * thr, grp->threads()) {
+            foreach(ForumThread * thr, grp->values()) {
                 Q_ASSERT(thr->isSane());
                 Q_ASSERT(thr->group() == grp);
                 Q_ASSERT(!thr_ids.contains(thr->id()));
@@ -818,7 +808,7 @@ void ForumDatabaseSql::checkSanity() {
 
                     ForumMessage *dbmsg = getMessage(msg->thread()->group()->subscription()->parser(), msg->thread()->group()->id(), msg->thread()->id(), msg->id());
                     Q_ASSERT(dbmsg==msg);
-                    if(!msg->isRead()) unreadinthread++;
+                    if(msg->thread()->group()->isSubscribed() && !msg->isRead()) unreadinthread++;
                 }
                 Q_ASSERT(thr->unreadCount() == unreadinthread);
                 unreadingroup += unreadinthread;
@@ -828,6 +818,17 @@ void ForumDatabaseSql::checkSanity() {
         }
         Q_ASSERT(sub->unreadCount() == unreadinforum);
     }
+    foreach(ForumMessage *msg, changedMessages)
+        Q_ASSERT(msg->isSane());
+
+    foreach(ForumMessage *msg, messagesNotInDatabase)
+        Q_ASSERT(msg->isSane());
+
+    foreach(ForumThread *thr, changedThreads)
+        Q_ASSERT(thr->isSane());
+
+    foreach(ForumThread *thr, threadsNotInDatabase)
+        Q_ASSERT(thr->isSane());
 #endif
 }
 

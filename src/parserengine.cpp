@@ -42,7 +42,7 @@ ParserEngine::ParserEngine(ForumDatabase *fd, QObject *parent) :
     forceUpdate = false;
     sessionInitialized = false;
     fsubscription = 0;
-    setState(PES_MISSING_PARSER);
+    currentState = PES_MISSING_PARSER;
 }
 
 ParserEngine::~ParserEngine() {

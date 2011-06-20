@@ -227,7 +227,7 @@ void SyncMaster::serverThreadData(ForumThread *tempThread) { // Thread is tempor
 }
 
 void SyncMaster::serverMessageData(ForumMessage *tempMessage) { // Temporary object!
-    qDebug() << Q_FUNC_INFO << tempMessage->toString();
+//    qDebug() << Q_FUNC_INFO << tempMessage->toString();
     if(canceled) return;
     if (tempMessage->isSane()) {
         ForumMessage *dbMessage = fdb.getMessage(tempMessage->thread()->group()->subscription()->parser(),
