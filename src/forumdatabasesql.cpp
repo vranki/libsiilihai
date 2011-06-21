@@ -334,6 +334,7 @@ void ForumDatabaseSql::deleteSubscription(ForumSubscription *sub) {
 
     remove(sub->parser());
     qDebug() << Q_FUNC_INFO << "Subscription " << sub->toString() << " deleted";
+    emit subscriptionRemoved(sub);
     sub->deleteLater();
     checkSanity();
 }
@@ -401,6 +402,7 @@ bool ForumDatabaseSql::deleteGroup(ForumGroup *grp) {
         ForumThread *lastThread = threads.takeLast();
         Q_ASSERT(lastThread);
         grp->removeThread(lastThread);
+        QCoreApplication::processEvents();
     }
 
     QSqlQuery query;
@@ -468,7 +470,6 @@ bool ForumDatabaseSql::deleteThread(ForumThread *thread) {
         ForumMessage *lastMessage = messages.takeLast();
         Q_ASSERT(lastMessage);
         thread->removeMessage(lastMessage);
-        QCoreApplication::processEvents();
     }
 
     disconnect(thread, 0, this, 0);
@@ -576,6 +577,7 @@ void ForumDatabaseSql::deleteMessage(ForumMessage *message) {
     db->commit();
     message->thread()->group()->setHasChanged(true);
     qDebug() << Q_FUNC_INFO << "Message " << message->toString() << " deleted";
+    message->setId(QString::null); // To fail checksanity
     message->deleteLater();
     checkSanity();
 }

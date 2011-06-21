@@ -33,8 +33,6 @@ class ForumMessage;
 /**
   * Handles storing the subscriptions, groups, threads and messages to
   * local sqlite database.
-  *
-  * @todo too large & complex
   */
 class ForumDatabaseSql : public ForumDatabase {
     Q_OBJECT
