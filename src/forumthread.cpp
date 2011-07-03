@@ -129,7 +129,8 @@ void ForumThread::addMessage(ForumMessage* msg, bool affectsSync) {
     if(!msg->isRead()) {
         incrementUnreadCount(1);
         group()->incrementUnreadCount(1);
-        group()->subscription()->incrementUnreadCount(1);
+        if(group()->isSubscribed())
+            group()->subscription()->incrementUnreadCount(1);
     } else {
         if(affectsSync) group()->setHasChanged(true);
     }
@@ -144,7 +145,8 @@ void ForumThread::removeMessage(ForumMessage* msg, bool affectsSync) {
     if(!msg->isRead() && group()->isSubscribed()) {
         incrementUnreadCount(-1);
         group()->incrementUnreadCount(-1);
-        group()->subscription()->incrementUnreadCount(-1);
+        if(group()->isSubscribed())
+            group()->subscription()->incrementUnreadCount(-1);
     }
     if(affectsSync) group()->setHasChanged(true);
     Q_ASSERT(contains(msg->id()));
