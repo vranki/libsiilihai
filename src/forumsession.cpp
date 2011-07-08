@@ -175,17 +175,15 @@ void ForumSession::loginToForum() {
     if (fpar.login_type == ForumParser::LoginTypeHttpPost) {
         QNetworkRequest req;
         req.setUrl(loginUrl);
-        req.setAttribute(QNetworkRequest::User, FSOFetchCookie);
+        req.setAttribute(QNetworkRequest::User, FSOLogin);
         QHash<QString, QString> params;
-        QStringList loginParamPairs = fpar.login_parameters.split(",",
-                                                                  QString::SkipEmptyParts);
+        QStringList loginParamPairs = fpar.login_parameters.split(",", QString::SkipEmptyParts);
         foreach(QString paramPair, loginParamPairs) {
             paramPair = paramPair.replace("%u", fsub->username());
             paramPair = paramPair.replace("%p", fsub->password());
 
             if (paramPair.contains('=')) {
-                QStringList singleParam = paramPair.split('=',
-                                                          QString::KeepEmptyParts);
+                QStringList singleParam = paramPair.split('=', QString::KeepEmptyParts);
                 if (singleParam.size() == 2) {
                     params.insert(singleParam.at(0), singleParam.at(1));
                 } else {
