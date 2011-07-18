@@ -13,9 +13,12 @@
     You should have received a copy of the GNU Lesser General Public License
     along with libSiilihai.  If not, see <http://www.gnu.org/licenses/>. */
 
+#include <QCoreApplication>
+
 #include "forumgroup.h"
 #include "forumthread.h"
 #include "forumsubscription.h"
+#include "forummessage.h"
 
 ForumGroup::ForumGroup(ForumSubscription *sub, bool temp) : ForumDataItem(sub) {
     _subscription = sub;
@@ -112,4 +115,14 @@ void ForumGroup::markToBeUpdated(bool toBe) {
     UpdateableItem::markToBeUpdated(toBe);
     if(toBe)
         subscription()->markToBeUpdated();
+}
+
+
+void ForumGroup::markRead(bool read) {
+    foreach(ForumThread *ft, values()) {
+        foreach(ForumMessage *msg, ft->values()) {
+            msg->setRead(read);
+        }
+        QCoreApplication::processEvents();
+    }
 }

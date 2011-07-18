@@ -513,7 +513,7 @@ void ForumDatabaseSql::updateThread(ForumThread *thread) {
     query.addBindValue(thread->changeset());
     query.addBindValue(thread->hasMoreMessages());
     query.addBindValue(thread->getMessagesCount());
-    query.addBindValue(thread->getLastPage());
+    query.addBindValue(thread->lastPage());
     // Where
     query.addBindValue(thread->group()->subscription()->parser());
     query.addBindValue(thread->group()->id());
@@ -638,28 +638,6 @@ void ForumDatabaseSql::messageMarkedRead(ForumMessage *message, bool read) {
     changedMessages.insert(message);
 }
 
-void ForumDatabaseSql::markForumRead(ForumSubscription *fs, bool read) {
-    Q_ASSERT(fs);
-    checkSanity();
-    foreach(ForumGroup *group, fs->values()) {
-        markGroupRead(group, read);
-    }
-    checkSanity();
-}
-
-bool ForumDatabaseSql::markGroupRead(ForumGroup *group, bool read) {
-    Q_ASSERT(group);
-    //    qDebug() << Q_FUNC_INFO << " " << group->toString() << ", " << read;
-    foreach(ForumThread *ft, group->values()) {
-        foreach(ForumMessage *msg, ft->values()) {
-            msg->setRead(read);
-        }
-        QCoreApplication::processEvents();
-    }
-    checkSanity();
-    return true;
-}
-
 int ForumDatabaseSql::schemaVersion() {
     return 6;
 }
@@ -706,7 +684,7 @@ void ForumDatabaseSql::storeSomethingSmall() {
         query.addBindValue(thread->changeset());
         query.addBindValue(thread->hasMoreMessages());
         query.addBindValue(thread->getMessagesCount());
-        query.addBindValue(thread->getLastPage());
+        query.addBindValue(thread->lastPage());
         if (!query.exec()) {
             qDebug() << Q_FUNC_INFO << "Adding thread " << thread->toString() << " failed: "
                      << query.lastError().text();
@@ -760,7 +738,7 @@ void ForumDatabaseSql::storeSomethingSmall() {
     }
 }
 
-void ForumDatabaseSql::storeDatabase() {
+bool ForumDatabaseSql::storeDatabase() {
     qDebug() << Q_FUNC_INFO;
     while(!isStored()) {
         storeSomethingSmall();
@@ -770,6 +748,7 @@ void ForumDatabaseSql::storeDatabase() {
     Q_ASSERT(changedThreads.isEmpty());
     Q_ASSERT(isStored());
     emit databaseStored();
+    return isStored();
 }
 
 bool ForumDatabaseSql::isStored() {

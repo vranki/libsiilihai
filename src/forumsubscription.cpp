@@ -156,3 +156,10 @@ bool ForumSubscription::hasGroupListChanged() const {
 void ForumSubscription::setGroupListChanged(bool changed) {
     _groupListChanged = changed;
 }
+
+
+void ForumSubscription::markRead(bool read) {
+    foreach(ForumGroup *group, values()) {
+        group->markRead(read);
+    }
+}

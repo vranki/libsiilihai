@@ -63,6 +63,7 @@ public:
     void setParserEngine(ParserEngine *eng);
     ParserEngine *parserEngine() const;
     bool hasGroupListChanged() const;
+    void markRead(bool read=true);
  signals:
     void changed(ForumSubscription *s);
     void unreadCountChanged(ForumSubscription *s);

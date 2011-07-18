@@ -1,5 +1,5 @@
 TEMPLATE = lib
-VERSION = 0.9.24
+VERSION = 0.9.25
 TARGET = siilihai
 
 DESTDIR = .
@@ -44,7 +44,9 @@ HEADERS += syncmaster.h \
     patternmatcher.h \
     usersettings.h \
     forumdataitem.h \
-    updateableitem.h
+    updateableitem.h \
+    forumdatabasexml.h \
+    xmlserialization.h
 
 SOURCES += syncmaster.cpp \
     parserreport.cpp \
@@ -64,7 +66,9 @@ SOURCES += syncmaster.cpp \
     patternmatcher.cpp \
     usersettings.cpp \
     forumdataitem.cpp \
-    updateableitem.cpp
+    updateableitem.cpp \
+    forumdatabasexml.cpp \
+    xmlserialization.cpp
 
 target.path = $$LIBDIR
 INSTALLS += target

@@ -17,8 +17,9 @@
 #include <QString>
 #include <QObject>
 #include <QMap>
-#include "forumdataitem.h"
 #include <QMultiMap>
+
+#include "forumdataitem.h"
 
 class ForumMessage;
 class ForumGroup;
@@ -45,7 +46,7 @@ public:
     void setHasMoreMessages(bool hmm);
     void setGetMessagesCount(int gmc);
     void setLastPage(int lp);
-    int getLastPage();
+    int lastPage();
     virtual QString toString() const;
     bool isSane() const;
     bool isTemp();

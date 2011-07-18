@@ -23,3 +23,5 @@ ForumMessage* ForumDatabase::getMessage(const int forum, QString groupid,
     if(!thread) return 0;
     return thread->value(messageid);
 }
+
+void ForumDatabase::checkSanity() { }

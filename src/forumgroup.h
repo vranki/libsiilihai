@@ -44,6 +44,7 @@ public:
     void addThread(ForumThread* thr, bool affectsSync = true);
     void removeThread(ForumThread* thr, bool affectsSync = true);
     virtual void markToBeUpdated(bool toBe=true);
+    void markRead(bool read=true);
 signals:
     void changed(ForumGroup *grp);
     void unreadCountChanged(ForumGroup *grp);

@@ -48,20 +48,18 @@ public:
     // Subscription related
     virtual bool addSubscription(ForumSubscription *fs); // Ownership changes!!!
     virtual void deleteSubscription(ForumSubscription *sub);
-
-    virtual void markForumRead(ForumSubscription *fs, bool read);
-    virtual bool markGroupRead(ForumGroup *group, bool read);
+    virtual void checkSanity();
 
 public slots:
-    virtual void messageChanged(ForumMessage *message);
-    virtual void messageMarkedRead(ForumMessage *message, bool read=true);
-    virtual void threadChanged(ForumThread *thread);
-    virtual void groupChanged(ForumGroup *group);
-    virtual void subscriptionChanged(ForumSubscription *sub);
-    virtual void storeDatabase();
-    virtual void storeSomethingSmall();
-    virtual void checkSanity();
+    virtual bool storeDatabase();
+
 private slots:
+    void messageChanged(ForumMessage *message);
+    void messageMarkedRead(ForumMessage *message, bool read=true);
+    void threadChanged(ForumThread *thread);
+    void groupChanged(ForumGroup *group);
+    void subscriptionChanged(ForumSubscription *sub);
+
     void addThread(ForumThread *thread);
     bool deleteThread(ForumThread *thread);
 
@@ -74,6 +72,7 @@ private:
     void bindMessageValues(QSqlQuery &query, const ForumMessage *message);
     void updateMessage(ForumMessage *message);
     void updateThread(ForumThread *thread);
+    void storeSomethingSmall();
 
     QSet<ForumMessage*> messagesNotInDatabase;
     QSet<ForumMessage*> changedMessages;

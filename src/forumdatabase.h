@@ -22,23 +22,14 @@ public:
     virtual void deleteSubscription(ForumSubscription *sub)=0;
 
     // Thread related
-    virtual ForumThread* getThread(const int forum, QString groupid, QString threadid);
+    ForumThread* getThread(const int forum, QString groupid, QString threadid);
 
     // Message related
-    virtual ForumMessage* getMessage(const int forum, QString groupid, QString threadid, QString messageid);
-
-    virtual void markForumRead(ForumSubscription *fs, bool read)=0;
-    virtual bool markGroupRead(ForumGroup *group, bool read)=0;
-
+    ForumMessage* getMessage(const int forum, QString groupid, QString threadid, QString messageid);
+    virtual void checkSanity();
 public slots:
-    virtual void messageChanged(ForumMessage *message)=0;
-    virtual void messageMarkedRead(ForumMessage *message, bool read=true)=0;
-    virtual void threadChanged(ForumThread *thread)=0;
-    virtual void groupChanged(ForumGroup *group)=0;
-    virtual void subscriptionChanged(ForumSubscription *sub)=0;
-    virtual void storeDatabase()=0;
-    virtual void storeSomethingSmall()=0;
-    virtual void checkSanity()=0;
+    virtual bool storeDatabase()=0;
+
 signals:
     void subscriptionAdded(ForumSubscription *sub);
     void subscriptionFound(ForumSubscription *sub);

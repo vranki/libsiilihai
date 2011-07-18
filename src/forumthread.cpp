@@ -38,7 +38,7 @@ void ForumThread::copyFrom(ForumThread * o) {
     setOrdernum(o->ordernum());
     setHasMoreMessages(o->hasMoreMessages());
     setGetMessagesCount(o->getMessagesCount());
-    setLastPage(o->getLastPage());
+    setLastPage(o->lastPage());
 }
 
 bool ForumThread::operator<(const ForumThread &o) {
@@ -120,7 +120,7 @@ void ForumThread::setLastPage(int lp) {
     _propertiesChanged = true;
 }
 
-int ForumThread::getLastPage() {
+int ForumThread::lastPage() {
     return _lastPage;
 }
 
