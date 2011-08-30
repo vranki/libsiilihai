@@ -16,18 +16,21 @@
 #ifndef FORUMPARSER_H_
 #define FORUMPARSER_H_
 #include <QString>
-
+#include <QObject>
 /**
   * Represents a single forum parser. Parser is used to parse
   * html into groups, threads and messages.
   *
   * @todo make a proper class instead of struct-like thing it is now.
   */
-class ForumParser {
+class ForumParser : public QObject {
+    Q_OBJECT
 public:
     enum ForumLoginType { LoginTypeNotSupported=0, LoginTypeHttpPost=1, LoginTypeHttpAuth=2 };
 
-    ForumParser();
+    ForumParser(QObject *parent=0);
+    ForumParser &operator=(const ForumParser& o);
+
     virtual ~ForumParser();
     QString toString();
     bool isSane() const;

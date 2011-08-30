@@ -3,6 +3,7 @@
 #include "forumgroup.h"
 #include "forumthread.h"
 #include "forummessage.h"
+#include "forumparser.h"
 
 XmlSerialization::XmlSerialization()
 {
@@ -79,4 +80,181 @@ void XmlSerialization::appendValue(QString name, QString value, QDomElement &par
     QDomText textElement = doc.createTextNode(value);
     valueElement.appendChild(textElement);
     parent.appendChild(valueElement);
+}
+
+
+ForumSubscription* XmlSerialization::readSubscription(QDomElement &element, QObject *parent) {
+    if(element.tagName() != SUB_SUBSCRIPTION) return 0;
+    bool ok = false;
+    int parser = QString(element.firstChildElement(SUB_PARSER).text()).toInt(&ok);
+    if(!ok || parser <=0) return 0;
+
+    ForumSubscription *sub = new ForumSubscription(parent, false);
+    sub->setParser(parser);
+    sub->setAlias(element.firstChildElement(SUB_ALIAS).text());
+    sub->setUsername(element.firstChildElement(SUB_USERNAME).text());
+    sub->setPassword(element.firstChildElement(SUB_PASSWORD).text());
+    sub->setLatestThreads(QString(element.firstChildElement(SUB_LATEST_THREADS).text()).toInt());
+    sub->setLatestMessages(QString(element.firstChildElement(SUB_LATEST_MESSAGES).text()).toInt());
+    sub->setAuthenticated(sub->username().length() > 0);
+
+    QDomElement groupElement = element.firstChildElement(GRP_GROUP);
+    while(!groupElement.isNull()) {
+        ForumGroup *grp = readGroup(groupElement, sub);
+        if(grp) sub->addGroup(grp, false);
+        groupElement = groupElement.nextSiblingElement(GRP_GROUP);
+    }
+
+    return sub;
+}
+
+ForumGroup* XmlSerialization::readGroup(QDomElement &element, ForumSubscription *parent) {
+    if(element.tagName() != GRP_GROUP) return 0;
+
+    ForumGroup *grp = new ForumGroup(parent, false);
+    readForumDataItemValues(grp, element);
+    grp->setSubscribed(!element.attribute(GRP_SUBSCRIBED).isNull());
+    grp->setChangeset(QString(element.firstChildElement(COMMON_CHANGESET).text()).toInt());
+    if(grp->name()==UNKNOWN_SUBJECT) grp->markToBeUpdated();
+
+    QDomElement threadElement = element.firstChildElement(THR_THREAD);
+    while(!threadElement.isNull()) {
+        ForumThread *thr = readThread(threadElement, grp);
+        if(thr) grp->addThread(thr, false);
+        threadElement = threadElement.nextSiblingElement(THR_THREAD);
+    }
+
+    if(grp->isEmpty()) // Force update if contains no threads
+        grp->markToBeUpdated();
+
+    return grp;
+}
+
+ForumThread* XmlSerialization::readThread(QDomElement &element, ForumGroup *parent) {
+    if(element.tagName() != THR_THREAD) return 0;
+
+    ForumThread *thr = new ForumThread(parent, false);
+    readForumDataItemValues(thr, element);
+    thr->setHasMoreMessages(!element.attribute(THR_HASMOREMESSAGES).isNull());
+    thr->setChangeset(element.firstChildElement(COMMON_CHANGESET).text().toInt());
+    thr->setOrdernum(element.firstChildElement(COMMON_ORDERNUM).text().toInt());
+    thr->setGetMessagesCount(element.firstChildElement(THR_GETMESSAGESCOUNT).text().toInt());
+    thr->setLastPage(element.firstChildElement(THR_LASTPAGE).text().toInt());
+
+    if(thr->name()==UNKNOWN_SUBJECT) thr->markToBeUpdated();
+    if(thr->needsToBeUpdated()) parent->markToBeUpdated();
+
+    QDomElement messageElement = element.firstChildElement(MSG_MESSAGE);
+    while(!messageElement.isNull()) {
+        ForumMessage *msg = readMessage(messageElement, thr);
+        if(msg) thr->addMessage(msg, false);
+        messageElement = messageElement.nextSiblingElement(MSG_MESSAGE);
+    }
+    if(thr->isEmpty()) // Force update if contains no messages
+        thr->markToBeUpdated();
+
+    return thr;
+}
+
+ForumMessage* XmlSerialization::readMessage(QDomElement &element, ForumThread *parent) {
+    if(element.tagName() != MSG_MESSAGE) return 0;
+
+    ForumMessage *msg = new ForumMessage(parent, false);
+    readForumDataItemValues(msg, element);
+    msg->setRead(!element.attribute(MSG_READ).isNull(), false);
+    msg->setOrdernum(element.firstChildElement(COMMON_ORDERNUM).text().toInt());
+    msg->setUrl(element.firstChildElement(MSG_URL).text());
+    msg->setAuthor(element.firstChildElement(MSG_AUTHOR).text());
+    msg->setBody(element.firstChildElement(MSG_BODY).text());
+    if(msg->name()==UNKNOWN_SUBJECT) msg->markToBeUpdated();
+
+    return msg;
+}
+
+void XmlSerialization::readForumDataItemValues(ForumDataItem *item, QDomElement &element) {
+    item->setId(element.attribute(COMMON_ID));
+    item->setName(element.firstChildElement(COMMON_NAME).text());
+    item->setLastchange(element.firstChildElement(COMMON_LASTCHANGE).text());
+}
+
+ForumParser *XmlSerialization::readParser(QDomElement &element, QObject *parent) {
+    if(element.tagName() != "parser") return 0;
+    ForumParser *parser = new ForumParser(parent);
+    parser->id = element.firstChildElement("id").text().toInt();
+    parser->parser_name = element.firstChildElement("parser_name").text();
+    parser->forum_url = element.firstChildElement("forum_url").text();
+    parser->parser_status = element.firstChildElement("status").text().toInt();
+    parser->thread_list_path
+            = element.firstChildElement("thread_list_path").text();
+    parser->view_thread_path
+            = element.firstChildElement("view_thread_path").text();
+    parser->login_path = element.firstChildElement("login_path").text();
+    parser->date_format = element.firstChildElement("date_format").text().toInt();
+    parser->group_list_pattern
+            = element.firstChildElement("group_list_pattern").text();
+    parser->thread_list_pattern
+            = element.firstChildElement("thread_list_pattern").text();
+    parser->message_list_pattern = element.firstChildElement(
+                "message_list_pattern").text();
+    parser->verify_login_pattern = element.firstChildElement(
+                "verify_login_pattern").text();
+    parser->login_parameters
+            = element.firstChildElement("login_parameters").text();
+    parser->login_type = (ForumParser::ForumLoginType) element.firstChildElement(
+                "login_type").text().toInt();
+    parser->charset = element.firstChildElement("charset").text().toLower();
+    parser->thread_list_page_start = element.firstChildElement(
+                "thread_list_page_start").text().toInt();
+    parser->thread_list_page_increment = element.firstChildElement(
+                "thread_list_page_increment").text().toInt();
+    parser->view_thread_page_start = element.firstChildElement(
+                "view_thread_page_start").text().toInt();
+    parser->view_thread_page_increment = element.firstChildElement(
+                "view_thread_page_increment").text().toInt();
+
+    parser->forum_software = element.firstChildElement("forum_software").text();
+    parser->view_message_path
+            = element.firstChildElement("view_message_path").text();
+    parser->parser_type = element.firstChildElement("parser_type").text().toInt();
+    parser->posting_path = element.firstChildElement("posting_path").text();
+    parser->posting_subject = element.firstChildElement("posting_subject").text();
+    parser->posting_message = element.firstChildElement("posting_message").text();
+    parser->posting_parameters
+            = element.firstChildElement("posting_parameters").text();
+    parser->posting_hints = element.firstChildElement("posting_hints").text();
+
+    return parser;
+}
+
+
+void XmlSerialization::serialize(ForumParser *p, QDomElement &parent, QDomDocument &doc) {
+    QDomElement newElement = doc.createElement("parser");
+    appendValue("id", QString::number(p->id), newElement, doc);
+    appendValue("parser_name", p->parser_name, newElement, doc);
+    appendValue("forum_url", p->forum_url, newElement, doc);
+    appendValue("status", QString::number(p->parser_status), newElement, doc);
+    appendValue("thread_list_path", p->thread_list_path, newElement, doc);
+    appendValue("view_thread_path", p->view_thread_path, newElement, doc);
+    appendValue("login_path", p->login_path, newElement, doc);
+    appendValue("date_format", QString::number(p->date_format), newElement, doc);
+    appendValue("group_list_pattern", p->group_list_pattern, newElement, doc);
+    appendValue("thread_list_pattern", p->thread_list_pattern, newElement, doc);
+    appendValue("message_list_pattern", p->message_list_pattern, newElement, doc);
+    appendValue("verify_login_pattern", p->verify_login_pattern, newElement, doc);
+    appendValue("login_parameters", p->login_parameters, newElement, doc);
+    appendValue("login_type", QString::number(p->login_type), newElement, doc);
+    appendValue("charset", p->charset, newElement, doc);
+    appendValue("thread_list_page_start", QString::number(p->thread_list_page_start), newElement, doc);
+    appendValue("thread_list_page_increment", QString::number(p->thread_list_page_increment), newElement, doc);
+    appendValue("view_thread_page_start", QString::number(p->view_thread_page_start), newElement, doc);
+    appendValue("view_thread_page_increment", QString::number(p->view_thread_page_increment), newElement, doc);
+    appendValue("forum_software", p->forum_software, newElement, doc);
+    appendValue("view_message_path", p->view_message_path, newElement, doc);
+    appendValue("parser_type", QString::number(p->parser_type), newElement, doc);
+    appendValue("posting_path", p->posting_path, newElement, doc);
+    appendValue("posting_subject", p->posting_subject, newElement, doc);
+    appendValue("posting_message", p->posting_message, newElement, doc);
+    appendValue("posting_parameters", p->posting_parameters, newElement, doc);
+    appendValue("posting_hints", p->posting_hints, newElement, doc);
+    parent.appendChild(newElement);
 }

@@ -28,7 +28,7 @@ ForumSession::ForumSession(QObject *parent, QNetworkAccessManager *n) : QObject(
     connect(&cookieExpiredTimer, SIGNAL(timeout()), this, SLOT(cookieExpired()));
 }
 
-void ForumSession::initialize(ForumParser &fop, ForumSubscription *fos, PatternMatcher *matcher) {
+void ForumSession::initialize(ForumParser *fop, ForumSubscription *fos, PatternMatcher *matcher) {
     Q_ASSERT(fos);
     fsub = fos;
     fpar = fop;
@@ -69,12 +69,12 @@ void ForumSession::networkReply(QNetworkReply *reply) {
 QString ForumSession::convertCharset(const QByteArray &src) {
     QString converted;
     // I don't like this.. Support needed for more!
-    if (fpar.charset == "" || fpar.charset == "utf-8") {
+    if (fpar->charset == "" || fpar->charset == "utf-8") {
         converted = QString::fromUtf8(src.data());
-    } else if (fpar.charset == "iso-8859-1" || fpar.charset == "iso-8859-15") {
+    } else if (fpar->charset == "iso-8859-1" || fpar->charset == "iso-8859-15") {
         converted = QString::fromLatin1(src.data());
     } else {
-        qDebug() << "Unknown charset " << fpar.charset << " - assuming ASCII";
+        qDebug() << "Unknown charset " << fpar->charset << " - assuming ASCII";
         converted = QString().fromAscii(src.data());
     }
     // Remove silly newlines
@@ -83,7 +83,7 @@ QString ForumSession::convertCharset(const QByteArray &src) {
 }
 
 void ForumSession::listGroups() {
-    qDebug() << Q_FUNC_INFO << fpar.forum_url;
+    qDebug() << Q_FUNC_INFO << fpar->forum_url;
     if (operationInProgress != FSONoOp && operationInProgress != FSOListGroups) {
         qDebug() << Q_FUNC_INFO << "Operation in progress!! Don't command me yet! ";
         return;
@@ -91,7 +91,7 @@ void ForumSession::listGroups() {
     operationInProgress = FSOListGroups;
     if(prepareForUse()) return;
 
-    QNetworkRequest req(QUrl(fpar.forum_url));
+    QNetworkRequest req(QUrl(fpar->forum_url));
     req.setAttribute(QNetworkRequest::User, FSOListGroups);
     nam->post(req, emptyData);
 }
@@ -116,7 +116,7 @@ void ForumSession::performListGroups(QString &html) {
     Q_ASSERT(pm);
     emit receivedHtml(html);
     QList<ForumGroup*> groups;
-    pm->setPattern(fpar.group_list_pattern);
+    pm->setPattern(fpar->group_list_pattern);
     QList<QHash<QString, QString> > matches = pm->findMatches(html);
     QHash<QString, QString> match;
     foreach (match, matches) {
@@ -148,7 +148,7 @@ void ForumSession::fetchCookieReply(QNetworkReply *reply) {
         return;
     /*
  QList<QNetworkCookie> cookies = cookieJar->cookiesForUrl(QUrl(
-   fpar.forum_url));
+   fpar->forum_url));
  for (int i = 0; i < cookies.size(); i++) {
   qDebug() << "\t" << cookies[i].name();
  }
@@ -161,7 +161,7 @@ void ForumSession::fetchCookieReply(QNetworkReply *reply) {
 void ForumSession::loginToForum() {
     qDebug() << Q_FUNC_INFO;
 
-    if (fpar.login_type == ForumParser::LoginTypeNotSupported) {
+    if (fpar->login_type == ForumParser::LoginTypeNotSupported) {
         qDebug() << "Login not supproted!";
         emit loginFinished(fsub, false);
         return;
@@ -172,12 +172,12 @@ void ForumSession::loginToForum() {
     }
 
     QUrl loginUrl(getLoginUrl());
-    if (fpar.login_type == ForumParser::LoginTypeHttpPost) {
+    if (fpar->login_type == ForumParser::LoginTypeHttpPost) {
         QNetworkRequest req;
         req.setUrl(loginUrl);
         req.setAttribute(QNetworkRequest::User, FSOLogin);
         QHash<QString, QString> params;
-        QStringList loginParamPairs = fpar.login_parameters.split(",", QString::SkipEmptyParts);
+        QStringList loginParamPairs = fpar->login_parameters.split(",", QString::SkipEmptyParts);
         foreach(QString paramPair, loginParamPairs) {
             paramPair = paramPair.replace("%u", fsub->username());
             paramPair = paramPair.replace("%p", fsub->password());
@@ -216,11 +216,11 @@ void ForumSession::loginReply(QNetworkReply *reply) {
 }
 
 void ForumSession::performLogin(QString &html) {
-    qDebug() << Q_FUNC_INFO << " looking for " << fpar.verify_login_pattern;
+    qDebug() << Q_FUNC_INFO << " looking for " << fpar->verify_login_pattern;
     emit receivedHtml(html);
-    bool success = html.contains(fpar.verify_login_pattern);
+    bool success = html.contains(fpar->verify_login_pattern);
     if(success)
-        qDebug() << "found in html at " << html.indexOf(fpar.verify_login_pattern);
+        qDebug() << "found in html at " << html.indexOf(fpar->verify_login_pattern);
     emit loginFinished(fsub, success);
     loggedIn = success;
     if(loggedIn) {
@@ -232,11 +232,11 @@ void ForumSession::performLogin(QString &html) {
 }
 
 void ForumSession::fetchCookie() {
-    qDebug() << Q_FUNC_INFO << fpar.forum_url;
-    Q_ASSERT(fpar.forum_url.length() > 0);
+    qDebug() << Q_FUNC_INFO << fpar->forum_url;
+    Q_ASSERT(fpar->forum_url.length() > 0);
     if (operationInProgress == FSONoOp)
         return;
-    QNetworkRequest req(QUrl(fpar.forum_url));
+    QNetworkRequest req(QUrl(fpar->forum_url));
     req.setAttribute(QNetworkRequest::User, QVariant(FSOFetchCookie));
     nam->post(req, emptyData);
 }
@@ -284,7 +284,7 @@ void ForumSession::listThreads(ForumGroup *group) {
     currentGroup = group;
     currentMessagesUrl = QString::null;
     if(prepareForUse()) return;
-    currentListPage = fpar.thread_list_page_start;
+    currentListPage = fpar->thread_list_page_start;
     listThreadsOnNextPage();
 }
 
@@ -322,7 +322,7 @@ void ForumSession::listMessages(ForumThread *thread) {
     if(thread->getLastPage()) { // Start from last known page if possible
         currentListPage = thread->getLastPage();
     } else {*/
-    currentListPage = fpar.view_thread_page_start;
+    currentListPage = fpar->view_thread_page_start;
   //  }
 
     listMessagesOnNextPage();
@@ -347,7 +347,7 @@ void ForumSession::performListMessages(QString &html) {
     Q_ASSERT(currentThread->isSane());
     emit receivedHtml(html);
     operationInProgress = FSOListMessages;
-    pm->setPattern(fpar.message_list_pattern);
+    pm->setPattern(fpar->message_list_pattern);
     QList<QHash<QString, QString> > matches = pm->findMatches(html);
     QHash<QString, QString> match;
     foreach(match, matches){
@@ -359,7 +359,7 @@ void ForumSession::performListMessages(QString &html) {
         fm->setBody(match["%c"]);
         fm->setAuthor(match["%d"]);
         fm->setLastchange(match["%e"]);
-        if (fpar.supportsMessageUrl()) {
+        if (fpar->supportsMessageUrl()) {
             fm->setUrl(getMessageUrl(fm));
         } else {
             fm->setUrl(currentMessagesUrl);
@@ -405,10 +405,10 @@ void ForumSession::performListMessages(QString &html) {
     }
     bool finished = false;
     if (newMessagesFound) {
-        if (fpar.view_thread_page_increment > 0) {
+        if (fpar->view_thread_page_increment > 0) {
             // Continue to next page
             currentThread->setLastPage(currentListPage); // To be updated to db in listMessagesFinished
-            currentListPage += fpar.view_thread_page_increment;
+            currentListPage += fpar->view_thread_page_increment;
             listMessagesOnNextPage();
         } else {
             // qDebug() << "Forum doesn't support multipage - NOT continuing to next page.";
@@ -441,7 +441,7 @@ QString ForumSession::statusReport() {
     if (operationInProgress == FSOListMessages)
         op = "UpdateMessages";
 
-    return "Operation: " + op + " in " + fpar.toString() + "\n" + "Threads: "
+    return "Operation: " + op + " in " + fpar->toString() + "\n" + "Threads: "
             + QString().number(threads.size()) + "\n" + "Messages: "
             + QString().number(messages.size()) + "\n" + "Page: "
             + QString().number(currentListPage)/* + "\n" + "Group: "
@@ -452,7 +452,7 @@ QString ForumSession::statusReport() {
 void ForumSession::performListThreads(QString &html) {
     QList<ForumThread*> newThreads;
     emit receivedHtml(html);
-    pm->setPattern(fpar.thread_list_pattern);
+    pm->setPattern(fpar->thread_list_pattern);
     QList<QHash<QString, QString> > matches = pm->findMatches(html);
     qDebug() << Q_FUNC_INFO << "found " << matches.size() << " matches";
     // Iterate through matches on page
@@ -503,9 +503,9 @@ void ForumSession::performListThreads(QString &html) {
     }
     bool finished = false;
     if (newThreadsFound) {
-        if (fpar.thread_list_page_increment > 0) {
+        if (fpar->thread_list_page_increment > 0) {
             // Continue to next page
-            currentListPage += fpar.thread_list_page_increment;
+            currentListPage += fpar->thread_list_page_increment;
             qDebug() << "New threads were found - continuing to next page "
                      << currentListPage;
             listThreadsOnNextPage();
@@ -542,45 +542,45 @@ void ForumSession::cancelOperation() {
 QString ForumSession::getMessageUrl(const ForumMessage *msg) {
     QUrl url = QUrl();
 
-    QString urlString = fpar.view_message_path;
+    QString urlString = fpar->view_message_path;
     urlString = urlString.replace("%g", currentGroup->id());
     urlString = urlString.replace("%t", currentThread->id());
     urlString = urlString.replace("%m", msg->id());
-    urlString = fpar.forumUrlWithoutEnd() + urlString;
+    urlString = fpar->forumUrlWithoutEnd() + urlString;
     return urlString;
 }
 
 QString ForumSession::getLoginUrl() {
-    return fpar.forumUrlWithoutEnd() + fpar.login_path;
+    return fpar->forumUrlWithoutEnd() + fpar->login_path;
 }
 
-void ForumSession::setParser(ForumParser &fop) {
+void ForumSession::setParser(ForumParser *fop) {
     // Sanity check can't be done here as it would break parser maker
     fpar = fop;
 }
 
 QString ForumSession::getThreadListUrl(const ForumGroup *grp, int page) {
-    QString urlString = fpar.thread_list_path;
+    QString urlString = fpar->thread_list_path;
     urlString = urlString.replace("%g", grp->id());
-    if (fpar.supportsThreadPages()) {
+    if (fpar->supportsThreadPages()) {
         if (page < 0)
-            page = fpar.thread_list_page_start;
+            page = fpar->thread_list_page_start;
         urlString = urlString.replace("%p", QString().number(page));
     }
-    urlString = fpar.forumUrlWithoutEnd() + urlString;
+    urlString = fpar->forumUrlWithoutEnd() + urlString;
     return urlString;
 }
 
 QString ForumSession::getMessageListUrl(const ForumThread *thread, int page) {
-    QString urlString = fpar.view_thread_path;
+    QString urlString = fpar->view_thread_path;
     urlString = urlString.replace("%g", thread->group()->id());
     urlString = urlString.replace("%t", thread->id());
-    if (fpar.supportsMessagePages()) {
+    if (fpar->supportsMessagePages()) {
         if (page < 0)
-            page = fpar.view_thread_page_start;
+            page = fpar->view_thread_page_start;
         urlString = urlString.replace("%p", QString().number(page));
     }
-    urlString = fpar.forumUrlWithoutEnd() + urlString;
+    urlString = fpar->forumUrlWithoutEnd() + urlString;
     return urlString;
 }
 
@@ -590,7 +590,7 @@ void ForumSession::authenticationRequired(QNetworkReply * reply, QAuthenticator 
 
     qDebug() << Q_FUNC_INFO;
 
-    if(fpar.login_type == ForumParser::LoginTypeHttpAuth) {
+    if(fpar->login_type == ForumParser::LoginTypeHttpAuth) {
         if (fsub->username().length() <= 0 || fsub->password().length() <= 0) {
             qDebug() << Q_FUNC_INFO << "FAIL: no credentials given for subscription "
                      << fsub->toString();
@@ -625,7 +625,7 @@ bool ForumSession::prepareForUse() {
         fetchCookie();
         return true;
     }
-    if (!loggedIn && fpar.supportsLogin() && fsub->username().length() > 0 && fsub->password().length() > 0) {
+    if (!loggedIn && fpar->supportsLogin() && fsub->username().length() > 0 && fsub->password().length() > 0) {
         loginToForum();
         return true;
     }

@@ -7,12 +7,12 @@
 ForumDatabaseXml::ForumDatabaseXml(QObject *parent) :
     ForumDatabase(parent) {
     resetDatabase();
+    databaseFileName = QString::null;
 }
 
 void ForumDatabaseXml::resetDatabase(){
     unsaved = false;
     loaded = false;
-    databaseFileName = QString::null;
     clear();
 }
 
@@ -35,14 +35,15 @@ bool ForumDatabaseXml::openDatabase(QIODevice *source) {
     if(!doc.setContent(source)) return false;
     QDomElement docElem = doc.documentElement();
     if(docElem.tagName() != "forumdatabase") return false;
-//    if(docElem.attribute("schema_version"))
-    QDomNode n = docElem.firstChild();
-    while(!n.isNull()) {
-        QDomElement e = n.toElement(); // try to convert the node to an element.
-        if(!e.isNull()) {
-            qDebug() << qPrintable(e.tagName()); // the node really is an element.
+    QDomElement subscriptionElement = docElem.firstChildElement(SUB_SUBSCRIPTION);
+    while(!subscriptionElement.isNull()) {
+        qDebug() << qPrintable(subscriptionElement.tagName()); // the node really is an element.
+        ForumSubscription *sub = XmlSerialization::readSubscription(subscriptionElement, this);
+        if(sub) {
+            insert(sub->parser(), sub);
+            emit subscriptionFound(sub);
         }
-        n = n.nextSibling();
+        subscriptionElement = subscriptionElement.nextSiblingElement(SUB_SUBSCRIPTION);
     }
     loaded = true;
     return true;

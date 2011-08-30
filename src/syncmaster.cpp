@@ -299,7 +299,7 @@ void SyncMaster::processSubscriptions() {
         processGroups();
     } else {
         ForumSubscription *sub = forumsToUpload.takeFirst();
-        protocol.updateGroupSubscriptions(sub);
+        protocol.subscribeGroups(sub);
     }
 }
 

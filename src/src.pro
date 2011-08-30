@@ -20,7 +20,6 @@ INCLUDEDIR = $$PREFIX/include/siilihai
 CONFIG += qt create_prl
 
 QT += core \
-    sql \
     xml \
     network
 
@@ -36,7 +35,7 @@ HEADERS += syncmaster.h \
     forumsession.h \
     forumsubscription.h \
     forumdatabase.h \
-    forumdatabasesql.h \
+#    forumdatabasesql.h \
     parserdatabase.h \
     siilihaiprotocol.h \
     parserengine.h \
@@ -46,7 +45,8 @@ HEADERS += syncmaster.h \
     forumdataitem.h \
     updateableitem.h \
     forumdatabasexml.h \
-    xmlserialization.h
+    xmlserialization.h \
+    parsermanager.h
 
 SOURCES += syncmaster.cpp \
     parserreport.cpp \
@@ -58,7 +58,7 @@ SOURCES += syncmaster.cpp \
     forumsession.cpp \
     forumsubscription.cpp \
     forumdatabase.cpp \
-    forumdatabasesql.cpp \
+#    forumdatabasesql.cpp \
     parserdatabase.cpp \
     siilihaiprotocol.cpp \
     parserengine.cpp \
@@ -68,7 +68,8 @@ SOURCES += syncmaster.cpp \
     forumdataitem.cpp \
     updateableitem.cpp \
     forumdatabasexml.cpp \
-    xmlserialization.cpp
+    xmlserialization.cpp \
+    parsermanager.cpp
 
 target.path = $$LIBDIR
 INSTALLS += target

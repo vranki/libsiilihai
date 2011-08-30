@@ -6,9 +6,11 @@ class ForumSubscription;
 class ForumGroup;
 class ForumThread;
 class ForumMessage;
+class ForumParser;
 
 #include <QDomElement>
 #include <QDomDocument>
+#include <QObject>
 
 #define COMMON_ID "id"
 #define COMMON_NAME "name"
@@ -46,9 +48,17 @@ public:
     static void serialize(ForumGroup *grp, QDomElement &parent, QDomDocument &doc);
     static void serialize(ForumThread *thr, QDomElement &parent, QDomDocument &doc);
     static void serialize(ForumMessage *msg, QDomElement &parent, QDomDocument &doc);
+    static ForumSubscription* readSubscription(QDomElement &element, QObject *parent);
+    static ForumGroup* readGroup(QDomElement &element, ForumSubscription *parent);
+    static ForumThread* readThread(QDomElement &element, ForumGroup *parent);
+    static ForumMessage* readMessage(QDomElement &element, ForumThread *parent);
+
+    static void serialize(ForumParser *p, QDomElement &parent, QDomDocument &doc);
+    static ForumParser *readParser(QDomElement &element, QObject *parent);
 private:
     static void appendValue(QString name, QString value, QDomElement &parent, QDomDocument &doc);
     static void appendForumDataItemValues(ForumDataItem *item, QDomElement &parent, QDomDocument &doc);
+    static void readForumDataItemValues(ForumDataItem *item, QDomElement &element);
 };
 
 #endif // XMLSERIALIZATION_H

@@ -18,25 +18,21 @@
 #include "forummessage.h"
 #include "forumdatabase.h"
 #include "forumsubscription.h"
+#include "parsermanager.h"
 
-ParserEngine::ParserEngine(ForumDatabase *fd, QObject *parent) :
-    QObject(parent), nam(this), session(this, &nam) {
+ParserEngine::ParserEngine(ForumDatabase *fd, QObject *parent, ParserManager *pm) :
+    QObject(parent), nam(this), session(this, &nam), parserManager(pm) {
     connect(&session, SIGNAL(listGroupsFinished(QList<ForumGroup*>&)), this,
             SLOT(listGroupsFinished(QList<ForumGroup*>&)));
-    connect(&session,
-            SIGNAL(listThreadsFinished(QList<ForumThread*>&, ForumGroup*)), this,
+    connect(&session, SIGNAL(listThreadsFinished(QList<ForumThread*>&, ForumGroup*)), this,
             SLOT(listThreadsFinished(QList<ForumThread*>&, ForumGroup*)));
-    connect(&session,
-            SIGNAL(listMessagesFinished(QList<ForumMessage*>&, ForumThread*, bool)),
+    connect(&session, SIGNAL(listMessagesFinished(QList<ForumMessage*>&, ForumThread*, bool)),
             this, SLOT(listMessagesFinished(QList<ForumMessage*>&, ForumThread*, bool)));
-    connect(&session,
-            SIGNAL(networkFailure(QString)),
-            this, SLOT(networkFailure(QString)));
-    connect(&session,
-            SIGNAL(getAuthentication(ForumSubscription*,QAuthenticator*)),
+    connect(&session, SIGNAL(networkFailure(QString)), this, SLOT(networkFailure(QString)));
+    connect(&session, SIGNAL(getAuthentication(ForumSubscription*,QAuthenticator*)),
             this, SIGNAL(getAuthentication(ForumSubscription*,QAuthenticator*)));
-
     connect(&session, SIGNAL(loginFinished(ForumSubscription *,bool)), this, SLOT(loginFinishedSlot(ForumSubscription *,bool)));
+    connect(parserManager, SIGNAL(parserAvailable(ForumParser*)), this, SLOT(parserUpdated(ForumParser*)));
     fdb = fd;
     updateAll = false;
     forceUpdate = false;
@@ -50,8 +46,8 @@ ParserEngine::~ParserEngine() {
         fsubscription->setParserEngine(0);
 }
 
-void ParserEngine::setParser(ForumParser &fp) {
-    parser = fp;
+void ParserEngine::setParser(ForumParser *fp) {
+    currentParser = fp;
     if(fsubscription) setState(PES_IDLE);
 }
 
@@ -61,18 +57,18 @@ void ParserEngine::setSubscription(ForumSubscription *fs) {
     connect(fsubscription, SIGNAL(destroyed()), this, SLOT(subscriptionDeleted()));
     fsubscription->setParserEngine(this);
 
-    if(parser.isSane())
-        setState(PES_IDLE);
+    parserManager->updateParser(fsubscription->parser());
+    setState(PES_UPDATING_PARSER);
 }
 
 void ParserEngine::updateForum(bool force) {
-    if(!parser.isSane()) qDebug() << Q_FUNC_INFO << "Warning: Parser not sane!";
+    if(!currentParser->isSane()) qDebug() << Q_FUNC_INFO << "Warning: Parser not sane!";
     Q_ASSERT(fsubscription);
 
     forceUpdate = force;
     updateAll = true;
     if (!sessionInitialized) {
-        session.initialize(parser, fsubscription);
+        session.initialize(currentParser, fsubscription);
         sessionInitialized = true;
     }
     session.listGroups();
@@ -80,10 +76,10 @@ void ParserEngine::updateForum(bool force) {
 }
 
 void ParserEngine::updateGroupList() {
-    if(!parser.isSane()) qDebug() << Q_FUNC_INFO << "Warning: Parser not sane!";
+    if(!currentParser->isSane()) qDebug() << Q_FUNC_INFO << "Warning: Parser not sane!";
     updateAll = false;
     if (!sessionInitialized) {
-        session.initialize(parser, fsubscription);
+        session.initialize(currentParser, fsubscription);
         sessionInitialized = true;
     }
 
@@ -94,13 +90,13 @@ void ParserEngine::updateGroupList() {
 void ParserEngine::updateThread(ForumThread *thread, bool force) {
     Q_ASSERT(fsubscription);
     Q_ASSERT(thread);
-    if(!parser.isSane()) qDebug() << Q_FUNC_INFO << "Warning: Parser not sane!";
+    if(!currentParser->isSane()) qDebug() << Q_FUNC_INFO << "Warning: Parser not sane!";
 
     forceUpdate = false;
     updateAll = false;
 
     if (!sessionInitialized) {
-        session.initialize(parser, fsubscription);
+        session.initialize(currentParser, fsubscription);
         sessionInitialized = true;
     }
     if(force) {
@@ -142,20 +138,17 @@ void ParserEngine::updateNextChangedThread() {
             thread->setLastPage(0);
         session.listMessages(thread);
     } else {
-        //  qDebug() << "PE: no more threads to update - updating next group.";
         updateNextChangedGroup();
     }
     updateCurrentProgress();
 }
 
 void ParserEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups) {
-    // qDebug() << Q_FUNC_INFO << " rx groups " << groups.size()
-    //         << " in " << parser.toString();
     bool dbGroupsWasEmpty = fsubscription->isEmpty();
     groupsToUpdateQueue.clear();
     fsubscription->markToBeUpdated(false);
     if (tempGroups.size() == 0 && fsubscription->size() > 0) {
-        emit updateFailure(fsubscription, "Updating group list for " + parser.parser_name
+        emit updateFailure(fsubscription, "Updating group list for " + currentParser->parser_name
                            + " failed. \nCheck your network connection.");
         setState(PES_ERROR);
         return;
@@ -225,8 +218,6 @@ void ParserEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups) {
 }
 
 void ParserEngine::listThreadsFinished(QList<ForumThread*> &tempThreads, ForumGroup *group) {
-    // qDebug() << Q_FUNC_INFO << "rx threads " << threads.size() << " in group "
-    //      << group->toString();
     Q_ASSERT(group);
     Q_ASSERT(group->isSubscribed());
     Q_ASSERT(!group->isTemp());
@@ -294,8 +285,7 @@ void ParserEngine::listThreadsFinished(QList<ForumThread*> &tempThreads, ForumGr
         updateNextChangedThread();
 }
 
-void ParserEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages, ForumThread *dbThread,
-                                        bool moreAvailable) {
+void ParserEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages, ForumThread *dbThread, bool moreAvailable) {
     Q_ASSERT(dbThread);
     Q_ASSERT(dbThread->isSane());
     Q_ASSERT(!dbThread->isTemp());
@@ -396,6 +386,9 @@ void ParserEngine::setState(ParserEngineState newState) {
     if(newState==PES_UPDATING) {
         Q_ASSERT(oldState==PES_IDLE || oldState==PES_ERROR);
     }
+    if(newState==PES_UPDATING_PARSER) {
+        Q_ASSERT(oldState==PES_IDLE || oldState==PES_MISSING_PARSER);
+    }
 
     if(newState==PES_ERROR) {
         cancelOperation();
@@ -405,4 +398,15 @@ void ParserEngine::setState(ParserEngineState newState) {
 
 ParserEngine::ParserEngineState ParserEngine::state() {
     return currentState;
+}
+
+ForumParser *ParserEngine::parser() {
+    return currentParser;
+}
+
+void ParserEngine::parserUpdated(ForumParser *p) {
+    Q_ASSERT(currentState==PES_UPDATING_PARSER);
+    if(subscription()->parser() == parser()->id) {
+        setParser(p);
+    }
 }

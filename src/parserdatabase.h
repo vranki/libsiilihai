@@ -15,8 +15,10 @@
 #ifndef PARSERDATABASE_H_
 #define PARSERDATABASE_H_
 #include <QObject>
-#include <QtSql>
 #include <QList>
+#include <QMap>
+#include <QIODevice>
+#include <QFile>
 #include "forumparser.h"
 
 /**
@@ -24,18 +26,19 @@
   *
   * @see ForumParser
   */
-class ParserDatabase : public QObject {
+class ParserDatabase : public QObject, public QMap<int, ForumParser*>  {
     Q_OBJECT
 
 public:
     ParserDatabase(QObject *parent);
     virtual ~ParserDatabase();
-    bool openDatabase( );
+    bool storeDatabase();
+    bool openDatabase(QIODevice *source);
+    bool openDatabase(QString filename);
     bool storeParser(const ForumParser &p );
     void deleteParser(const int id);
-    ForumParser getParser(const int id);
-    QList <ForumParser> listParsers();
 private:
+    QString databaseFileName;
 };
 
 #endif /* PARSERDATABASE_H_ */

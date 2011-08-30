@@ -25,14 +25,15 @@ class ForumGroup;
 class ForumThread;
 class ForumMessage;
 class ForumDatabase;
+class ParserManager;
 
 /**
   * Handles updating a forum's data (threads, messages, etc) using a
   * ForumParser. Uses ForumSession to do low-level things. Stores
   * changes directly to a ForumDatabase.
   *
-  * NOT_INITIALIZED -> IDLE <-> UPDATING
-  *                      -> ERROR -^
+  * PES_MISSING_PARSER -> UPDATING_PARSER <-> IDLE <-> UPDATING
+  *                                          -> ERROR -^
   * @see ForumDatabase
   * @see ForumSession
   * @see ForumParser
@@ -46,16 +47,18 @@ public:
         PES_MISSING_PARSER,
         PES_IDLE,
         PES_UPDATING,
-        PES_ERROR
+        PES_ERROR,
+        PES_UPDATING_PARSER
     };
 
-    ParserEngine(ForumDatabase *fd, QObject *parent=0);
+    ParserEngine(ForumDatabase *fd, QObject *parent, ParserManager *pm);
     virtual ~ParserEngine();
-    void setParser(ForumParser &fp);
+    void setParser(ForumParser *fp);
     void setSubscription(ForumSubscription *fs);
     void updateGroupList();
     void updateForum(bool force=false);
     void updateThread(ForumThread *thread, bool force=false);
+    ForumParser *parser();
     ParserEngine::ParserEngineState state();
     ForumSubscription* subscription();
     QNetworkAccessManager *networkAccessManager();
@@ -80,14 +83,14 @@ private slots:
     void networkFailure(QString message);
     void loginFinishedSlot(ForumSubscription *sub, bool success);
     void subscriptionDeleted();
-
+    void parserUpdated(ForumParser *p);
 private:
     void updateNextChangedGroup();
     void updateNextChangedThread();
     void setBusy(bool busy);
     void updateCurrentProgress();
     void setState(ParserEngineState newState);
-    ForumParser parser;
+    ForumParser *currentParser;
     ForumSubscription *fsubscription;
     QNetworkAccessManager nam;
     ForumSession session;
@@ -98,6 +101,7 @@ private:
     QQueue<ForumGroup*> groupsToUpdateQueue;
     QQueue<ForumThread*> threadsToUpdateQueue;
     ParserEngineState currentState;
+    ParserManager *parserManager;
 };
 
 #endif /* PARSERENGINE_H_ */

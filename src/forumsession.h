@@ -51,9 +51,9 @@ public:
 
     ForumSession(QObject *parent, QNetworkAccessManager *n);
     virtual ~ForumSession();
-    void initialize(ForumParser &fop, ForumSubscription *fos, PatternMatcher *matcher=0);
+    void initialize(ForumParser *fop, ForumSubscription *fos, PatternMatcher *matcher=0);
     void clearAuthentications();
-    void setParser(ForumParser &fop);
+    void setParser(ForumParser *fop);
     void listGroups();
     void listThreads(ForumGroup *group);
     void listMessages(ForumThread *thread);
@@ -98,7 +98,7 @@ private:
     QString convertCharset(const QByteArray &src);
     QString statusReport();
     PatternMatcher *pm;
-    ForumParser fpar;
+    ForumParser *fpar;
     ForumSubscription *fsub;
     QNetworkAccessManager *nam;
     QByteArray emptyData, loginData;

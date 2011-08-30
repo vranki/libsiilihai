@@ -45,6 +45,10 @@
 class SiilihaiProtocol: public QObject {
     Q_OBJECT
 public:
+    enum SiilihaiProtocolOperation { SPONoOp=1, SPOLogin, SPORegisterUser, SPOListParsers, SPOListRequests, SPOListSubscriptions,
+                                   SPOGetParser, SPOSubscribeForum, SPOSubscribeGroups, SPOSaveParser, SPOSetUserSettings,
+                                   SPOGetUserSettings, SPOSendParserReport, SPOSendThreadData, SPOGetThreadData, SPOGetSyncSummary };
+
     SiilihaiProtocol(QObject *parent = 0);
     virtual ~SiilihaiProtocol();
     void login(QString user, QString pass);
@@ -56,8 +60,8 @@ public:
     void listSubscriptions();
     void getParser(const int id);
     void subscribeForum(ForumSubscription *fs, bool unsubscribe = false);
-    void updateGroupSubscriptions(ForumSubscription *fs); // Sends groups in forum to server
-    void saveParser(const ForumParser &parser);
+    void subscribeGroups(ForumSubscription *fs); // Sends groups in forum to server
+    void saveParser(const ForumParser *parser);
 
     void setUserSettings(UserSettings *us);
     void getUserSettings();
@@ -69,6 +73,10 @@ public:
 
 public slots:
     void sendParserReport(ParserReport pr);
+
+private slots:
+    void networkReply(QNetworkReply *reply);
+private:
     void replyLogin(QNetworkReply *reply);
     void replyListParsers(QNetworkReply *reply);
     void replyListRequests(QNetworkReply *reply);
@@ -78,19 +86,18 @@ public slots:
     void replyListSubscriptions(QNetworkReply *reply);
     void replySendParserReport(QNetworkReply *reply);
     void replySubscribeGroups(QNetworkReply *reply);
-
     void replySendThreadData(QNetworkReply *reply);
     void replyGetSyncSummary(QNetworkReply *reply);
     void replyGetThreadData(QNetworkReply *reply);
+    void replyGetUserSettings(QNetworkReply *reply);
 
-    void replyUserSettings(QNetworkReply *reply);
 
 signals:
     void loginFinished(bool success, QString motd, bool syncEnabled);
-    void listParsersFinished(QList<ForumParser> parsers);
+    void listParsersFinished(QList<ForumParser*> parsers);
     void listRequestsFinished(QList<ForumRequest> requests);
     void subscribeForumFinished(ForumSubscription *fs, bool success);
-    void getParserFinished(ForumParser parser);
+    void getParserFinished(ForumParser *parser);
     void saveParserFinished(int newId, QString message);
     void listSubscriptionsFinished(QList<int> subscriptions);
     void sendParserReportFinished(bool success);
@@ -119,6 +126,7 @@ private:
     userSettingsUrl;
     ForumGroup *getThreadDataGroup;
     ForumSubscription *forumBeingSubscribed;
+    SiilihaiProtocolOperation operationInProgress;
 };
 
 #endif /* SIILIHAIPROTOCOL_H_ */
