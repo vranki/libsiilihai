@@ -74,7 +74,7 @@ signals:
     void updateFailure(ForumSubscription *forum, QString message);
     void getAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator);
     void loginFinished(ForumSubscription *sub, bool success);
-    void stateChanged(ParserEngine::ParserEngineState newState);
+    void stateChanged(ParserEngine *engine, ParserEngine::ParserEngineState newState);
 
 private slots:
     void listMessagesFinished(QList<ForumMessage*> &messages, ForumThread *thread, bool moreAvailable);

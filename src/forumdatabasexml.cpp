@@ -55,7 +55,6 @@ bool ForumDatabaseXml::isStored(){
 
 bool ForumDatabaseXml::addSubscription(ForumSubscription *fs){
     insert(fs->parser(), fs);
-    emit subscriptionAdded(fs);
     emit subscriptionFound(fs);
     return true;
 }

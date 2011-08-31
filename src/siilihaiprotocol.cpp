@@ -27,6 +27,7 @@ SiilihaiProtocol::~SiilihaiProtocol() {
 }
 
 void SiilihaiProtocol::networkReply(QNetworkReply *reply) {
+    qDebug() << Q_FUNC_INFO << " RX bytes " << reply->size();
     int operationAttribute = reply->request().attribute(QNetworkRequest::User).toInt();
     if(!operationAttribute) {
         qDebug( ) << Q_FUNC_INFO << "Reply " << operationAttribute << " not for me";
@@ -37,7 +38,7 @@ void SiilihaiProtocol::networkReply(QNetworkReply *reply) {
     } else if(operationAttribute==SPOLogin) {
         replyLogin(reply);
     } else if(operationAttribute==SPORegisterUser) {
-        // NO-OP!
+        replyLogin(reply);
     } else if(operationAttribute==SPOListParsers) {
         replyListParsers(reply);
     } else if(operationAttribute==SPOListRequests) {
@@ -62,6 +63,8 @@ void SiilihaiProtocol::networkReply(QNetworkReply *reply) {
         replySendThreadData(reply);
     } else if(operationAttribute==SPOGetThreadData) {
         replyGetThreadData(reply);
+    } else {
+        Q_ASSERT(false);
     }
 }
 
@@ -155,9 +158,10 @@ void SiilihaiProtocol::replyListParsers(QNetworkReply *reply) {
     if (reply->error() == QNetworkReply::NoError) {
         QDomDocument doc;
         doc.setContent(docs);
-        qDebug() << docs;
+        qDebug() << Q_FUNC_INFO << docs;
         QDomNode n = doc.firstChild().firstChild();
         while (!n.isNull()) {
+            // @todo move to xmlserialization
             ForumParser *parser = new ForumParser(this);
             parser->id = QString(n.firstChildElement("id").text()).toInt();
             parser->forum_url = n.firstChildElement("forum_url").text();
@@ -264,7 +268,6 @@ void SiilihaiProtocol::replyGetParser(QNetworkReply *reply) {
         qDebug() << Q_FUNC_INFO << " network error: " << reply->errorString();
     }
     emit getParserFinished(parser);
-    parser->deleteLater();
     reply->deleteLater();
 }
 

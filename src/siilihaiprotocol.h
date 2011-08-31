@@ -94,10 +94,10 @@ private:
 
 signals:
     void loginFinished(bool success, QString motd, bool syncEnabled);
-    void listParsersFinished(QList<ForumParser*> parsers);
+    void listParsersFinished(QList<ForumParser*> parsers); // Receiver MUST free the parsers!
     void listRequestsFinished(QList<ForumRequest> requests);
     void subscribeForumFinished(ForumSubscription *fs, bool success);
-    void getParserFinished(ForumParser *parser);
+    void getParserFinished(ForumParser *parser); // Receiver MUST deleteLater() the parser!
     void saveParserFinished(int newId, QString message);
     void listSubscriptionsFinished(QList<int> subscriptions);
     void sendParserReportFinished(bool success);

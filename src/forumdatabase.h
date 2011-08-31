@@ -31,7 +31,6 @@ public slots:
     virtual bool storeDatabase()=0;
 
 signals:
-    void subscriptionAdded(ForumSubscription *sub);
     void subscriptionFound(ForumSubscription *sub);
     void subscriptionRemoved(ForumSubscription *sub);
     void databaseStored();

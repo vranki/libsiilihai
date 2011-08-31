@@ -38,6 +38,7 @@ ParserEngine::ParserEngine(ForumDatabase *fd, QObject *parent, ParserManager *pm
     forceUpdate = false;
     sessionInitialized = false;
     fsubscription = 0;
+    currentParser = 0;
     currentState = PES_MISSING_PARSER;
 }
 
@@ -393,7 +394,7 @@ void ParserEngine::setState(ParserEngineState newState) {
     if(newState==PES_ERROR) {
         cancelOperation();
     }
-    emit stateChanged(currentState);
+    emit stateChanged(this, currentState);
 }
 
 ParserEngine::ParserEngineState ParserEngine::state() {
