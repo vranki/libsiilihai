@@ -121,7 +121,7 @@ void SiilihaiProtocol::replyLogin(QNetworkReply *reply) {
     }
     if (ck.length() > 0)
         clientKey = ck;
-    emit loginFinished(!clientKey.isNull(), motd, syncEnabled);
+    emit loginFinished(isLoggedIn(), motd, syncEnabled);
     reply->deleteLater();
 }
 
@@ -153,12 +153,12 @@ void SiilihaiProtocol::listParsers() {
 }
 
 void SiilihaiProtocol::replyListParsers(QNetworkReply *reply) {
+    qDebug() << Q_FUNC_INFO;
     QString docs = QString().fromUtf8(reply->readAll());
     QList<ForumParser*> parsers;
     if (reply->error() == QNetworkReply::NoError) {
         QDomDocument doc;
         doc.setContent(docs);
-        qDebug() << Q_FUNC_INFO << docs;
         QDomNode n = doc.firstChild().firstChild();
         while (!n.isNull()) {
             // @todo move to xmlserialization
@@ -244,6 +244,7 @@ void SiilihaiProtocol::replyListSubscriptions(QNetworkReply *reply) {
 }
 
 void SiilihaiProtocol::getParser(const int id) {
+    qDebug() << Q_FUNC_INFO << id;
     QNetworkRequest req(getParserUrl);
     QHash<QString, QString> params;
     params.insert("id", QString().number(id));
@@ -264,6 +265,7 @@ void SiilihaiProtocol::replyGetParser(QNetworkReply *reply) {
         doc.setContent(docs);
         QDomElement re = doc.firstChild().toElement();
         parser = XmlSerialization::readParser(re, this);
+        if(parser) qDebug() << Q_FUNC_INFO << parser->id;
     } else {
         qDebug() << Q_FUNC_INFO << " network error: " << reply->errorString();
     }
@@ -677,4 +679,8 @@ void SiilihaiProtocol::replyGetSyncSummary(QNetworkReply *reply) {
     foreach(ForumSubscription *sub, subs)
         sub->deleteLater();
     subs.clear();
+}
+
+bool SiilihaiProtocol::isLoggedIn() {
+    return !clientKey.isNull();
 }

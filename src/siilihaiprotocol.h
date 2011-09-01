@@ -71,6 +71,7 @@ public:
     void getSyncSummary();
     void getThreadData(ForumGroup *grp);
 
+    bool isLoggedIn();
 public slots:
     void sendParserReport(ParserReport pr);
 

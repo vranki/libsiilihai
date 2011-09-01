@@ -32,7 +32,7 @@ ParserEngine::ParserEngine(ForumDatabase *fd, QObject *parent, ParserManager *pm
     connect(&session, SIGNAL(getAuthentication(ForumSubscription*,QAuthenticator*)),
             this, SIGNAL(getAuthentication(ForumSubscription*,QAuthenticator*)));
     connect(&session, SIGNAL(loginFinished(ForumSubscription *,bool)), this, SLOT(loginFinishedSlot(ForumSubscription *,bool)));
-    connect(parserManager, SIGNAL(parserAvailable(ForumParser*)), this, SLOT(parserUpdated(ForumParser*)));
+    connect(parserManager, SIGNAL(parserUpdated(ForumParser*)), this, SLOT(parserUpdated(ForumParser*)));
     fdb = fd;
     updateAll = false;
     forceUpdate = false;
@@ -49,17 +49,21 @@ ParserEngine::~ParserEngine() {
 
 void ParserEngine::setParser(ForumParser *fp) {
     currentParser = fp;
-    if(fsubscription) setState(PES_IDLE);
+    if(fsubscription && currentState==PES_MISSING_PARSER) setState(PES_IDLE);
 }
 
 void ParserEngine::setSubscription(ForumSubscription *fs) {
     Q_ASSERT(!fsubscription); // Don't reuse this class, plz!
+    Q_ASSERT(fs);
     fsubscription = fs;
     connect(fsubscription, SIGNAL(destroyed()), this, SLOT(subscriptionDeleted()));
     fsubscription->setParserEngine(this);
-
-    parserManager->updateParser(fsubscription->parser());
-    setState(PES_UPDATING_PARSER);
+    if(!currentParser) {
+        parserManager->updateParser(fsubscription->parser());
+        setState(PES_UPDATING_PARSER);
+    } else {
+        setState(PES_IDLE);
+    }
 }
 
 void ParserEngine::updateForum(bool force) {
@@ -384,6 +388,7 @@ void ParserEngine::setState(ParserEngineState newState) {
     if(newState == currentState) return;
     ParserEngineState oldState = currentState;
     currentState = newState;
+    qDebug() << Q_FUNC_INFO << oldState << " -> " << newState;
     if(newState==PES_UPDATING) {
         Q_ASSERT(oldState==PES_IDLE || oldState==PES_ERROR);
     }
@@ -406,8 +411,8 @@ ForumParser *ParserEngine::parser() {
 }
 
 void ParserEngine::parserUpdated(ForumParser *p) {
-    Q_ASSERT(currentState==PES_UPDATING_PARSER);
     if(subscription()->parser() == parser()->id) {
+        qDebug() << Q_FUNC_INFO;
         setParser(p);
     }
 }
