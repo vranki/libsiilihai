@@ -47,7 +47,7 @@ class SiilihaiProtocol: public QObject {
 public:
     enum SiilihaiProtocolOperation { SPONoOp=1, SPOLogin, SPORegisterUser, SPOListParsers, SPOListRequests, SPOListSubscriptions,
                                    SPOGetParser, SPOSubscribeForum, SPOSubscribeGroups, SPOSaveParser, SPOSetUserSettings,
-                                   SPOGetUserSettings, SPOSendParserReport, SPOSendThreadData, SPOGetThreadData, SPOGetSyncSummary };
+                                   SPOGetUserSettings, SPOSendParserReport, SPOSendThreadData, SPOGetThreadData, SPOGetSyncSummary};
 
     SiilihaiProtocol(QObject *parent = 0);
     virtual ~SiilihaiProtocol();

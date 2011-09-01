@@ -63,6 +63,8 @@ void SiilihaiProtocol::networkReply(QNetworkReply *reply) {
         replySendThreadData(reply);
     } else if(operationAttribute==SPOGetThreadData) {
         replyGetThreadData(reply);
+    } else if(operationAttribute==SPOGetSyncSummary) {
+        replyGetSyncSummary(reply);
     } else {
         Q_ASSERT(false);
     }
@@ -639,7 +641,7 @@ void SiilihaiProtocol::getSyncSummary() {
 
 void SiilihaiProtocol::replyGetSyncSummary(QNetworkReply *reply) {
     QString docs = QString().fromUtf8(reply->readAll());
-
+    qDebug() << Q_FUNC_INFO << docs;
     QList<ForumSubscription*> subs;
     QList<ForumGroup*> grps; // to keep groups in context
     if (reply->error() == QNetworkReply::NoError) {

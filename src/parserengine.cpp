@@ -411,7 +411,8 @@ ForumParser *ParserEngine::parser() {
 }
 
 void ParserEngine::parserUpdated(ForumParser *p) {
-    if(subscription()->parser() == parser()->id) {
+    Q_ASSERT(p);
+    if(subscription()->parser() == p->id) {
         qDebug() << Q_FUNC_INFO;
         setParser(p);
     }
