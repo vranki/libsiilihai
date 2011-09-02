@@ -51,7 +51,7 @@ public:
         PES_UPDATING_PARSER
     };
 
-    ParserEngine(ForumDatabase *fd, QObject *parent, ParserManager *pm);
+    ParserEngine(ForumDatabase *fd, QObject *parent, ParserManager *pm, QNetworkAccessManager &n);
     virtual ~ParserEngine();
     void setParser(ForumParser *fp);
     void setSubscription(ForumSubscription *fs);
@@ -91,7 +91,7 @@ private:
     void setState(ParserEngineState newState);
     ForumParser *currentParser;
     ForumSubscription *fsubscription;
-    QNetworkAccessManager nam;
+    QNetworkAccessManager &nam;
     ForumSession session;
     bool sessionInitialized;
     bool updateAll;

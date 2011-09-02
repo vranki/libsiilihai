@@ -20,8 +20,8 @@
 #include "forumsubscription.h"
 #include "parsermanager.h"
 
-ParserEngine::ParserEngine(ForumDatabase *fd, QObject *parent, ParserManager *pm) :
-    QObject(parent), nam(this), session(this, &nam), parserManager(pm) {
+ParserEngine::ParserEngine(ForumDatabase *fd, QObject *parent, ParserManager *pm, QNetworkAccessManager &n) :
+    QObject(parent), nam(n), session(this, &nam), parserManager(pm) {
     connect(&session, SIGNAL(listGroupsFinished(QList<ForumGroup*>&)), this,
             SLOT(listGroupsFinished(QList<ForumGroup*>&)));
     connect(&session, SIGNAL(listThreadsFinished(QList<ForumThread*>&, ForumGroup*)), this,
@@ -49,7 +49,11 @@ ParserEngine::~ParserEngine() {
 
 void ParserEngine::setParser(ForumParser *fp) {
     currentParser = fp;
-    if(fsubscription && currentState==PES_MISSING_PARSER) setState(PES_IDLE);
+    if(fp) {
+        if(fsubscription && (currentState==PES_MISSING_PARSER || currentState==PES_UPDATING_PARSER)) setState(PES_IDLE);
+    } else {
+        if(currentState != PES_UPDATING_PARSER) setState(PES_MISSING_PARSER);
+    }
 }
 
 void ParserEngine::setSubscription(ForumSubscription *fs) {

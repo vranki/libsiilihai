@@ -14,6 +14,8 @@
     along with libSiilihai.  If not, see <http://www.gnu.org/licenses/>. */
 #include "forumsession.h"
 
+// @todo include forum id in requests, so they can be separated as nam is same for all!!
+
 ForumSession::ForumSession(QObject *parent, QNetworkAccessManager *n) : QObject(parent), nam(n) {
     operationInProgress = FSONoOp;
     cookieJar = 0;
@@ -266,14 +268,10 @@ void ForumSession::listMessagesOnNextPage() {
     QNetworkRequest req;
     req.setUrl(QUrl(urlString));
     req.setAttribute(QNetworkRequest::User, FSOListMessages);
-    qDebug() << Q_FUNC_INFO << "Fetching URL" << urlString;
-
     nam->post(req, emptyData);
 }
 
 void ForumSession::listThreads(ForumGroup *group) {
-    qDebug() << Q_FUNC_INFO << group->toString();
-
     if (operationInProgress != FSONoOp && operationInProgress != FSOListThreads) {
         //statusReport();
         qDebug() << Q_FUNC_INFO << "Operation in progress!! Don't command me yet!";
@@ -293,7 +291,6 @@ void ForumSession::listThreadsReply(QNetworkReply *reply) {
     Q_ASSERT(currentGroup);
     Q_ASSERT(operationInProgress == FSOListThreads);
     Q_ASSERT(reply->request().attribute(QNetworkRequest::User).toInt() ==FSOListThreads);
-    qDebug() << Q_FUNC_INFO << currentGroup->toString();
     if (reply->error() != QNetworkReply::NoError) {
         emit(networkFailure(reply->errorString()));
         cancelOperation();
@@ -330,7 +327,6 @@ void ForumSession::listMessages(ForumThread *thread) {
 
 void ForumSession::listMessagesReply(QNetworkReply *reply) {
     if(operationInProgress == FSONoOp) return;
-    qDebug() << Q_FUNC_INFO << currentMessagesUrl;
     Q_ASSERT(operationInProgress == FSOListMessages);
     Q_ASSERT(reply->request().attribute(QNetworkRequest::User).toInt() ==FSOListMessages);
     if (reply->error() != QNetworkReply::NoError) {
@@ -367,7 +363,7 @@ void ForumSession::performListMessages(QString &html) {
         if (fm->isSane()) {
             newMessages.append(fm);
         } else {
-            qDebug() << "Incomplete message, not adding";
+            qDebug() << Q_FUNC_INFO << "Incomplete message, not adding";
             // Q_ASSERT(false);
         }
     }
@@ -467,7 +463,7 @@ void ForumSession::performListThreads(QString &html) {
         if (ft->isSane()) {
             newThreads.append(ft);
         } else {
-            qDebug() << "Incomplete thread, not adding";
+            qDebug() << Q_FUNC_INFO << "Incomplete thread, not adding";
             // Q_ASSERT(false);
         }
     }
@@ -510,11 +506,10 @@ void ForumSession::performListThreads(QString &html) {
                      << currentListPage;
             listThreadsOnNextPage();
         } else {
-            qDebug() << "Forum doesn't support multipage - NOT continuing to next page.";
+            qDebug() << Q_FUNC_INFO << "Forum doesn't support multipage - NOT continuing to next page.";
             finished = true;
         }
-    } else {
-        qDebug() << "NOT continuing to next page.";
+    } else { // Not continuing to next page
         finished = true;
     }
     if (finished) {
