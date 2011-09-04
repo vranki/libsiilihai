@@ -31,9 +31,7 @@ void ParserManager::deleteParser(int id) {
 void ParserManager::storeOrUpdateParser(ForumParser* parser) {
     // Clear parser queue one at a time
     if(!parsersToUpdate.isEmpty() && protocol->isLoggedIn()) {
-
         updateParser(parsersToUpdate.takeFirst());
-
     }
     if(!parser) return;
     ForumParser *newParser = parserDatabase->value(parser->id);
@@ -43,7 +41,7 @@ void ParserManager::storeOrUpdateParser(ForumParser* parser) {
     Q_ASSERT(newParser->id == parser->id);
     parserDatabase->insert(newParser->id, newParser);
     emit parserUpdated(newParser);
-
+    parser->deleteLater();
 }
 
 void ParserManager::updateParser(int id) {

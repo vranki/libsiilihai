@@ -36,6 +36,8 @@
 #include "forumthread.h"
 #include "forummessage.h"
 
+#define FORUMID_ATTRIBUTE (QNetworkRequest::Attribute(QNetworkRequest::User + 1))
+
 /**
   * ForumSession makes HTTP requests to forum, uses
   * patternmatcher to scrape data from the returned HTML and
@@ -52,7 +54,6 @@ public:
     ForumSession(QObject *parent, QNetworkAccessManager *n);
     virtual ~ForumSession();
     void initialize(ForumParser *fop, ForumSubscription *fos, PatternMatcher *matcher=0);
-    void clearAuthentications();
     void setParser(ForumParser *fop);
     void listGroups();
     void listThreads(ForumGroup *group);
@@ -75,7 +76,7 @@ public slots:
 
 signals:
     void listGroupsFinished(QList<ForumGroup*> &groups);
-    void listThreadsFinished(QList<ForumThread*> &threads, ForumGroup *group);
+    void listThreadsFinished(QList<ForumThread*> &threads, ForumGroup *group); // Will be deleted
     void listMessagesFinished(QList<ForumMessage*> &messages, ForumThread *thread, bool moreAvailable);
     void networkFailure(QString message);
     void loginFinished(ForumSubscription *sub, bool success);
@@ -95,6 +96,8 @@ private:
     void fetchCookie();
     void listThreadsOnNextPage();
     void listMessagesOnNextPage();
+    void setRequesetAttributes(QNetworkRequest &req, ForumSessionOperation op);
+
     QString convertCharset(const QByteArray &src);
     QString statusReport();
     PatternMatcher *pm;

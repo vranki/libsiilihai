@@ -370,14 +370,10 @@ void SiilihaiProtocol::saveParser(const ForumParser *parser) {
     params.insert("login_parameters", parser->login_parameters);
     params.insert("login_type", QString().number(parser->login_type));
     params.insert("charset", parser->charset.toLower());
-    params.insert("thread_list_page_start", QString().number(
-            parser->thread_list_page_start));
-    params.insert("thread_list_page_increment", QString().number(
-            parser->thread_list_page_increment));
-    params.insert("view_thread_page_start", QString().number(
-            parser->view_thread_page_start));
-    params.insert("view_thread_page_increment", QString().number(
-            parser->view_thread_page_increment));
+    params.insert("thread_list_page_start", QString().number(parser->thread_list_page_start));
+    params.insert("thread_list_page_increment", QString().number(parser->thread_list_page_increment));
+    params.insert("view_thread_page_start", QString().number(parser->view_thread_page_start));
+    params.insert("view_thread_page_increment", QString().number(parser->view_thread_page_increment));
     params.insert("forum_software", parser->forum_software);
     params.insert("view_message_path", parser->view_message_path);
     params.insert("parser_type", QString().number(parser->parser_type));

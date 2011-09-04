@@ -1,5 +1,5 @@
 TEMPLATE = lib
-VERSION = 0.9.25
+VERSION = 0.10.0
 TARGET = siilihai
 
 DESTDIR = .
@@ -19,9 +19,7 @@ INCLUDEDIR = $$PREFIX/include/siilihai
 
 CONFIG += qt create_prl
 
-QT += core \
-    xml \
-    network
+QT += core xml network
 
 QT -= gui
 
@@ -35,7 +33,6 @@ HEADERS += syncmaster.h \
     forumsession.h \
     forumsubscription.h \
     forumdatabase.h \
-#    forumdatabasesql.h \
     parserdatabase.h \
     siilihaiprotocol.h \
     parserengine.h \
@@ -58,7 +55,6 @@ SOURCES += syncmaster.cpp \
     forumsession.cpp \
     forumsubscription.cpp \
     forumdatabase.cpp \
-#    forumdatabasesql.cpp \
     parserdatabase.cpp \
     siilihaiprotocol.cpp \
     parserengine.cpp \

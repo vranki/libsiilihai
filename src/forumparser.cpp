@@ -23,6 +23,7 @@ ForumParser::ForumParser(QObject *parent) : QObject(parent){
     login_type = LoginTypeNotSupported;
     parser_type = 0;
     parser_status = 0;
+    date_format = 0;
 }
 
 ForumParser &ForumParser::operator=(const ForumParser& o) {

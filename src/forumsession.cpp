@@ -14,8 +14,6 @@
     along with libSiilihai.  If not, see <http://www.gnu.org/licenses/>. */
 #include "forumsession.h"
 
-// @todo include forum id in requests, so they can be separated as nam is same for all!!
-
 ForumSession::ForumSession(QObject *parent, QNetworkAccessManager *n) : QObject(parent), nam(n) {
     operationInProgress = FSONoOp;
     cookieJar = 0;
@@ -24,17 +22,20 @@ ForumSession::ForumSession(QObject *parent, QNetworkAccessManager *n) : QObject(
     fsub = 0;
     loggedIn = false;
     cookieFetched = false;
-    clearAuthentications();
     cookieExpiredTimer.setSingleShot(true);
     cookieExpiredTimer.setInterval(10*60*1000);
     connect(&cookieExpiredTimer, SIGNAL(timeout()), this, SLOT(cookieExpired()));
+    connect(nam, SIGNAL(authenticationRequired(QNetworkReply *, QAuthenticator *)),
+            this, SLOT(authenticationRequired(QNetworkReply *, QAuthenticator *)), Qt::UniqueConnection);
+}
+
+ForumSession::~ForumSession() {
 }
 
 void ForumSession::initialize(ForumParser *fop, ForumSubscription *fos, PatternMatcher *matcher) {
     Q_ASSERT(fos);
     fsub = fos;
     fpar = fop;
-
     cookieFetched = false;
     operationInProgress = FSONoOp;
     pm = matcher;
@@ -44,11 +45,10 @@ void ForumSession::initialize(ForumParser *fop, ForumSubscription *fos, PatternM
     connect(nam, SIGNAL(finished(QNetworkReply*)), this, SLOT(networkReply(QNetworkReply*)), Qt::UniqueConnection);
 }
 
-ForumSession::~ForumSession() {
-}
-
 void ForumSession::networkReply(QNetworkReply *reply) {
     int operationAttribute = reply->request().attribute(QNetworkRequest::User).toInt();
+    int forumId = reply->request().attribute(FORUMID_ATTRIBUTE).toInt();
+    if(forumId != fsub->parser()) return;
     if(!operationAttribute) {
         qDebug( ) << Q_FUNC_INFO << "Reply " << operationAttribute << " not for me";
         return;
@@ -94,7 +94,7 @@ void ForumSession::listGroups() {
     if(prepareForUse()) return;
 
     QNetworkRequest req(QUrl(fpar->forum_url));
-    req.setAttribute(QNetworkRequest::User, FSOListGroups);
+    setRequesetAttributes(req, FSOListGroups);
     nam->post(req, emptyData);
 }
 
@@ -177,7 +177,7 @@ void ForumSession::loginToForum() {
     if (fpar->login_type == ForumParser::LoginTypeHttpPost) {
         QNetworkRequest req;
         req.setUrl(loginUrl);
-        req.setAttribute(QNetworkRequest::User, FSOLogin);
+            setRequesetAttributes(req, FSOLogin);
         QHash<QString, QString> params;
         QStringList loginParamPairs = fpar->login_parameters.split(",", QString::SkipEmptyParts);
         foreach(QString paramPair, loginParamPairs) {
@@ -239,7 +239,7 @@ void ForumSession::fetchCookie() {
     if (operationInProgress == FSONoOp)
         return;
     QNetworkRequest req(QUrl(fpar->forum_url));
-    req.setAttribute(QNetworkRequest::User, QVariant(FSOFetchCookie));
+    setRequesetAttributes(req, FSOFetchCookie);
     nam->post(req, emptyData);
 }
 
@@ -251,7 +251,7 @@ void ForumSession::listThreadsOnNextPage() {
     QString urlString = getThreadListUrl(currentGroup, currentListPage);
     QNetworkRequest req;
     req.setUrl(QUrl(urlString));
-    req.setAttribute(QNetworkRequest::User, FSOListThreads);
+        setRequesetAttributes(req, FSOListThreads);
     qDebug() << Q_FUNC_INFO << "Fetching URL" << urlString;
     nam->post(req, emptyData);
 }
@@ -267,7 +267,7 @@ void ForumSession::listMessagesOnNextPage() {
 
     QNetworkRequest req;
     req.setUrl(QUrl(urlString));
-    req.setAttribute(QNetworkRequest::User, FSOListMessages);
+        setRequesetAttributes(req, FSOListMessages);
     nam->post(req, emptyData);
 }
 
@@ -502,8 +502,7 @@ void ForumSession::performListThreads(QString &html) {
         if (fpar->thread_list_page_increment > 0) {
             // Continue to next page
             currentListPage += fpar->thread_list_page_increment;
-            qDebug() << "New threads were found - continuing to next page "
-                     << currentListPage;
+            qDebug() << Q_FUNC_INFO << "New threads were found - continuing to next page " << currentListPage;
             listThreadsOnNextPage();
         } else {
             qDebug() << Q_FUNC_INFO << "Forum doesn't support multipage - NOT continuing to next page.";
@@ -602,19 +601,6 @@ void ForumSession::authenticationRequired(QNetworkReply * reply, QAuthenticator 
     }
 }
 
-void ForumSession::clearAuthentications() {
-    cancelOperation();
-
-    if (cookieJar)
-        cookieJar->deleteLater();
-    loggedIn = false;
-
-    cookieJar = new QNetworkCookieJar();
-    nam->setCookieJar(cookieJar);
-    connect(nam, SIGNAL(authenticationRequired(QNetworkReply *, QAuthenticator *)),
-            this, SLOT(authenticationRequired(QNetworkReply *, QAuthenticator *)), Qt::UniqueConnection);
-}
-
 bool ForumSession::prepareForUse() {
     if (!cookieFetched) {
         fetchCookie();
@@ -647,4 +633,9 @@ void ForumSession::nextOperation() {
 
 void ForumSession::cookieExpired() {
     cookieFetched = false;
+}
+
+void ForumSession::setRequesetAttributes(QNetworkRequest &req, ForumSessionOperation op) {
+    req.setAttribute(QNetworkRequest::User, op);
+    req.setAttribute(FORUMID_ATTRIBUTE, fsub->parser());
 }
