@@ -32,8 +32,8 @@ class ParserManager;
   * ForumParser. Uses ForumSession to do low-level things. Stores
   * changes directly to a ForumDatabase.
   *
-  * PES_MISSING_PARSER -> UPDATING_PARSER <-> IDLE <-> UPDATING
-  *                                          -> ERROR -^
+  * PES_MISSING_PARSER -> UPDATING_PARSER <-> REQUESTING_CREDENTIALS <-> IDLE <-> UPDATING
+  *                                    '-->----------------------->------^ ^- ERROR <-'
   * @see ForumDatabase
   * @see ForumSession
   * @see ForumParser
@@ -48,7 +48,8 @@ public:
         PES_IDLE,
         PES_UPDATING,
         PES_ERROR,
-        PES_UPDATING_PARSER
+        PES_UPDATING_PARSER,
+        PES_REQUESTING_CREDENTIALS
     };
 
     ParserEngine(ForumDatabase *fd, QObject *parent, ParserManager *pm, QNetworkAccessManager &n);
@@ -64,14 +65,14 @@ public:
     QNetworkAccessManager *networkAccessManager();
 public slots:
     void cancelOperation();
-
+    void credentialsEntered(QAuthenticator* auth);
 signals:
     // Emitted if initially group list was empty but new groups were found.
     void groupListChanged(ForumSubscription *forum);
     void forumUpdated(ForumSubscription *forum);
     void statusChanged(ForumSubscription *forum, float progress);
     void updateFailure(ForumSubscription *forum, QString message);
-    void getAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator);
+    void getAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator); // Synchronous, for NAM
     void loginFinished(ForumSubscription *sub, bool success);
     void stateChanged(ParserEngine *engine, ParserEngine::ParserEngineState newState);
 
@@ -83,6 +84,7 @@ private slots:
     void loginFinishedSlot(ForumSubscription *sub, bool success);
     void subscriptionDeleted();
     void parserUpdated(ForumParser *p);
+    void sessionNeedsAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator);
 private:
     void updateNextChangedGroup();
     void updateNextChangedThread();

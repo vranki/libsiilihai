@@ -22,15 +22,12 @@
 
 ParserEngine::ParserEngine(ForumDatabase *fd, QObject *parent, ParserManager *pm, QNetworkAccessManager &n) :
     QObject(parent), nam(n), session(this, &nam), parserManager(pm) {
-    connect(&session, SIGNAL(listGroupsFinished(QList<ForumGroup*>&)), this,
-            SLOT(listGroupsFinished(QList<ForumGroup*>&)));
-    connect(&session, SIGNAL(listThreadsFinished(QList<ForumThread*>&, ForumGroup*)), this,
-            SLOT(listThreadsFinished(QList<ForumThread*>&, ForumGroup*)));
+    connect(&session, SIGNAL(listGroupsFinished(QList<ForumGroup*>&)), this, SLOT(listGroupsFinished(QList<ForumGroup*>&)));
+    connect(&session, SIGNAL(listThreadsFinished(QList<ForumThread*>&, ForumGroup*)), this, SLOT(listThreadsFinished(QList<ForumThread*>&, ForumGroup*)));
     connect(&session, SIGNAL(listMessagesFinished(QList<ForumMessage*>&, ForumThread*, bool)),
             this, SLOT(listMessagesFinished(QList<ForumMessage*>&, ForumThread*, bool)));
     connect(&session, SIGNAL(networkFailure(QString)), this, SLOT(networkFailure(QString)));
-    connect(&session, SIGNAL(getAuthentication(ForumSubscription*,QAuthenticator*)),
-            this, SIGNAL(getAuthentication(ForumSubscription*,QAuthenticator*)));
+    connect(&session, SIGNAL(getAuthentication(ForumSubscription*, QAuthenticator*)), this, SIGNAL(getAuthentication(ForumSubscription*,QAuthenticator*)));
     connect(&session, SIGNAL(loginFinished(ForumSubscription *,bool)), this, SLOT(loginFinishedSlot(ForumSubscription *,bool)));
     connect(parserManager, SIGNAL(parserUpdated(ForumParser*)), this, SLOT(parserUpdated(ForumParser*)));
     fdb = fd;
@@ -50,7 +47,7 @@ ParserEngine::~ParserEngine() {
 void ParserEngine::setParser(ForumParser *fp) {
     currentParser = fp;
     if(fp) {
-        if(fsubscription && (currentState==PES_MISSING_PARSER || currentState==PES_UPDATING_PARSER)) setState(PES_IDLE);
+        if(fsubscription && (currentState==PES_MISSING_PARSER || currentState==PES_UPDATING_PARSER)) setState(PES_REQUESTING_CREDENTIALS);
     } else {
         if(currentState != PES_UPDATING_PARSER) setState(PES_MISSING_PARSER);
     }
@@ -66,7 +63,7 @@ void ParserEngine::setSubscription(ForumSubscription *fs) {
         parserManager->updateParser(fsubscription->parser());
         setState(PES_UPDATING_PARSER);
     } else {
-        setState(PES_IDLE);
+        setState(PES_REQUESTING_CREDENTIALS);
     }
 }
 
@@ -399,9 +396,15 @@ void ParserEngine::setState(ParserEngineState newState) {
     if(newState==PES_UPDATING_PARSER) {
         Q_ASSERT(oldState==PES_IDLE || oldState==PES_MISSING_PARSER);
     }
-
     if(newState==PES_ERROR) {
         cancelOperation();
+    }
+    if(newState==PES_REQUESTING_CREDENTIALS) {
+        if(!subscription()->authenticated()) {
+            setState(PES_IDLE);
+        } else {
+
+        }
     }
     emit stateChanged(this, currentState);
 }
@@ -420,4 +423,13 @@ void ParserEngine::parserUpdated(ForumParser *p) {
         qDebug() << Q_FUNC_INFO;
         setParser(p);
     }
+}
+void ParserEngine::sessionNeedsAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator) {
+    Q_ASSERT(currentState==PES_UPDATING_PARSER);
+    setState(PES_REQUESTING_CREDENTIALS);
+    emit getAuthentication(fsub, authenticator);
+}
+
+void ParserEngine::credentialsEntered(QAuthenticator* auth) {
+
 }

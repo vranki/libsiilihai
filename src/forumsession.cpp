@@ -586,8 +586,7 @@ void ForumSession::authenticationRequired(QNetworkReply * reply, QAuthenticator 
 
     if(fpar->login_type == ForumParser::LoginTypeHttpAuth) {
         if (fsub->username().length() <= 0 || fsub->password().length() <= 0) {
-            qDebug() << Q_FUNC_INFO << "FAIL: no credentials given for subscription "
-                     << fsub->toString();
+            qDebug() << Q_FUNC_INFO << "FAIL: no credentials given for subscription " << fsub->toString();
             cancelOperation();
             emit networkFailure("Server requested for username and password for forum "
                                 + fsub->alias() + " but you haven't provided them.");
