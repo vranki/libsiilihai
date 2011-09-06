@@ -73,7 +73,6 @@ public slots:
     void networkReply(QNetworkReply *reply);
     void cancelOperation();
     void authenticationRequired ( QNetworkReply * reply, QAuthenticator * authenticator );
-    void credentialsEntered(QAuthenticator *authenticator);
 
 signals:
     void listGroupsFinished(QList<ForumGroup*> &groups);
