@@ -17,6 +17,7 @@
 #include <QObject>
 #include <QQueue>
 #include <QNetworkAccessManager>
+#include <QAuthenticator>
 #include "forumsession.h"
 #include "forumparser.h"
 
@@ -65,7 +66,7 @@ public:
     QNetworkAccessManager *networkAccessManager();
 public slots:
     void cancelOperation();
-    void credentialsEntered(QAuthenticator* auth);
+    void credentialsEntered(QAuthenticator* auth); // called from credentialsdialog when user has entered creds
 signals:
     // Emitted if initially group list was empty but new groups were found.
     void groupListChanged(ForumSubscription *forum);
@@ -74,7 +75,8 @@ signals:
     void updateFailure(ForumSubscription *forum, QString message);
     void getAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator); // Synchronous, for NAM
     void loginFinished(ForumSubscription *sub, bool success);
-    void stateChanged(ParserEngine *engine, ParserEngine::ParserEngineState newState);
+    void stateChanged(ParserEngine *engine, ParserEngine::ParserEngineState newState, ParserEngine::ParserEngineState oldState);
+    void updateForumSubscription(ForumSubscription *fsub); // Used to request protocol to update subscription
 
 private slots:
     void listMessagesFinished(QList<ForumMessage*> &messages, ForumThread *thread, bool moreAvailable);
@@ -85,6 +87,7 @@ private slots:
     void subscriptionDeleted();
     void parserUpdated(ForumParser *p);
     void sessionNeedsAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator);
+
 private:
     void updateNextChangedGroup();
     void updateNextChangedThread();

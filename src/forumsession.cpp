@@ -177,7 +177,7 @@ void ForumSession::loginToForum() {
     if (fpar->login_type == ForumParser::LoginTypeHttpPost) {
         QNetworkRequest req;
         req.setUrl(loginUrl);
-            setRequesetAttributes(req, FSOLogin);
+        setRequesetAttributes(req, FSOLogin);
         QHash<QString, QString> params;
         QStringList loginParamPairs = fpar->login_parameters.split(",", QString::SkipEmptyParts);
         foreach(QString paramPair, loginParamPairs) {
@@ -251,7 +251,7 @@ void ForumSession::listThreadsOnNextPage() {
     QString urlString = getThreadListUrl(currentGroup, currentListPage);
     QNetworkRequest req;
     req.setUrl(QUrl(urlString));
-        setRequesetAttributes(req, FSOListThreads);
+    setRequesetAttributes(req, FSOListThreads);
     qDebug() << Q_FUNC_INFO << "Fetching URL" << urlString;
     nam->post(req, emptyData);
 }
@@ -267,7 +267,7 @@ void ForumSession::listMessagesOnNextPage() {
 
     QNetworkRequest req;
     req.setUrl(QUrl(urlString));
-        setRequesetAttributes(req, FSOListMessages);
+    setRequesetAttributes(req, FSOListMessages);
     nam->post(req, emptyData);
 }
 
@@ -299,6 +299,7 @@ void ForumSession::listThreadsReply(QNetworkReply *reply) {
     QString data = convertCharset(reply->readAll());
     performListThreads(data);
 }
+
 void ForumSession::listMessages(ForumThread *thread) {
     Q_ASSERT(thread->isSane());
     if (operationInProgress != FSONoOp && operationInProgress != FSOListMessages) {
@@ -320,7 +321,7 @@ void ForumSession::listMessages(ForumThread *thread) {
         currentListPage = thread->getLastPage();
     } else {*/
     currentListPage = fpar->view_thread_page_start;
-  //  }
+    //  }
 
     listMessagesOnNextPage();
 }
@@ -441,8 +442,8 @@ QString ForumSession::statusReport() {
             + QString().number(threads.size()) + "\n" + "Messages: "
             + QString().number(messages.size()) + "\n" + "Page: "
             + QString().number(currentListPage)/* + "\n" + "Group: "
-                   + currentGroup->toString() + "\n" + "Thread: "
-                                        + currentThread->toString() + "\n"*/;
+                           + currentGroup->toString() + "\n" + "Thread: "
+                                                + currentThread->toString() + "\n"*/;
 }
 
 void ForumSession::performListThreads(QString &html) {
@@ -450,7 +451,7 @@ void ForumSession::performListThreads(QString &html) {
     emit receivedHtml(html);
     pm->setPattern(fpar->thread_list_pattern);
     QList<QHash<QString, QString> > matches = pm->findMatches(html);
-    qDebug() << Q_FUNC_INFO << "found " << matches.size() << " matches";
+    qDebug() << Q_FUNC_INFO << " found " << matches.size() << " matches. html:\n" << html;
     // Iterate through matches on page
     QHash<QString, QString> match;
     foreach(match, matches) {
@@ -488,8 +489,8 @@ void ForumSession::performListThreads(QString &html) {
                 threads.append(newThread);
                 newThread = 0;
             } else {
-                //qDebug() << "Number of threads exceeding maximum latest threads limit - not adding "
-                //        << newThread->toString();
+                qDebug() << "Number of threads exceeding maximum latest threads limit - not adding "
+                        << newThread->toString();
                 newThreadsFound = false;
                 delete newThread;
                 newThread = 0;
@@ -509,6 +510,7 @@ void ForumSession::performListThreads(QString &html) {
             finished = true;
         }
     } else { // Not continuing to next page
+        qDebug() << Q_FUNC_INFO << "No new threads - finished";
         finished = true;
     }
     if (finished) {

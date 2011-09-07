@@ -297,6 +297,7 @@ void ParserEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages, Foru
     Q_ASSERT(!dbThread->isTemp());
     Q_ASSERT(dbThread->group()->isSubscribed());
     dbThread->markToBeUpdated(false);
+    if(tempMessages.size()==0) qDebug() << Q_FUNC_INFO << "got 0 messages in thread " << dbThread->toString();
     bool messagesChanged = false;
     foreach (ForumMessage *tempMessage, tempMessages) {
         bool foundInDb = false;
@@ -400,13 +401,11 @@ void ParserEngine::setState(ParserEngineState newState) {
         cancelOperation();
     }
     if(newState==PES_REQUESTING_CREDENTIALS) {
-        if(!subscription()->authenticated()) {
+        if(!subscription()->authenticated() || subscription()->username().length()>0) {
             setState(PES_IDLE);
-        } else {
-
-        }
+        } // Else state changes to requesting, and Siilihai tris to provide creds.
     }
-    emit stateChanged(this, currentState);
+    emit stateChanged(this, currentState, oldState);
 }
 
 ParserEngine::ParserEngineState ParserEngine::state() {
@@ -428,8 +427,18 @@ void ParserEngine::sessionNeedsAuthentication(ForumSubscription *fsub, QAuthenti
     Q_ASSERT(currentState==PES_UPDATING_PARSER);
     setState(PES_REQUESTING_CREDENTIALS);
     emit getAuthentication(fsub, authenticator);
+    setState(PES_IDLE);
 }
 
-void ParserEngine::credentialsEntered(QAuthenticator* auth) {
-
+void ParserEngine::credentialsEntered(QAuthenticator* authenticator) {
+    Q_ASSERT(currentState==PES_REQUESTING_CREDENTIALS);
+    if(authenticator->user().length() > 0) {
+        subscription()->setUsername(authenticator->user());
+        subscription()->setPassword(authenticator->password());
+    } else {
+        subscription()->setAuthenticated(false);
+    }
+    emit updateForumSubscription(subscription());
+    delete authenticator;
+    setState(PES_IDLE);
 }
