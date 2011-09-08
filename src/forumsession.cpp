@@ -256,6 +256,82 @@ void ForumSession::listThreadsOnNextPage() {
     nam->post(req, emptyData);
 }
 
+void ForumSession::performListThreads(QString &html) {
+    QList<ForumThread*> newThreads;
+    emit receivedHtml(html);
+    pm->setPattern(fpar->thread_list_pattern);
+    QList<QHash<QString, QString> > matches = pm->findMatches(html);
+    qDebug() << Q_FUNC_INFO << " found " << matches.size() << " matches. Pattern: \n" <<
+                fpar->thread_list_pattern << "\nhtml:\n" << html;
+    // Iterate through matches on page
+    QHash<QString, QString> match;
+    foreach(match, matches) {
+        ForumThread *ft = new ForumThread(currentGroup);
+        ft->setId(match["%a"]);
+        ft->setName(match["%b"]);
+        ft->setLastchange(match["%c"]);
+        ft->setGetMessagesCount(currentGroup->subscription()->latestMessages());
+        ft->setHasMoreMessages(false);
+        if (ft->isSane()) {
+            newThreads.append(ft);
+        } else {
+            qDebug() << Q_FUNC_INFO << "Incomplete thread, not adding";
+            // Q_ASSERT(false);
+        }
+    }
+    // See if the new threads contains already unknown threads
+    bool newThreadsFound = false;
+    // @todo this could be optimized a lot
+    while(!newThreads.isEmpty()) {
+        ForumThread *newThread = newThreads.takeFirst();
+        bool threadFound = false;
+        foreach (ForumThread *thread, threads) {
+            if (newThread->id() == thread->id()) {
+                threadFound = true;
+            }
+        }
+        if(threadFound) { // Delete if already known thread
+            delete newThread;
+            newThread = 0;
+        } else {
+            newThreadsFound = true;
+            newThread->setOrdernum(threads.size());
+            if (threads.size() < fsub->latestThreads()) {
+                threads.append(newThread);
+                newThread = 0;
+            } else {
+                qDebug() << "Number of threads exceeding maximum latest threads limit - not adding "
+                        << newThread->toString();
+                newThreadsFound = false;
+                delete newThread;
+                newThread = 0;
+            }
+        }
+        Q_ASSERT(!newThread);
+    }
+    bool finished = false;
+    if (newThreadsFound) {
+        if (fpar->thread_list_page_increment > 0) {
+            // Continue to next page
+            currentListPage += fpar->thread_list_page_increment;
+            qDebug() << Q_FUNC_INFO << "New threads were found - continuing to next page " << currentListPage;
+            listThreadsOnNextPage();
+        } else {
+            qDebug() << Q_FUNC_INFO << "Forum doesn't support multipage - NOT continuing to next page.";
+            finished = true;
+        }
+    } else { // Not continuing to next page
+        qDebug() << Q_FUNC_INFO << "No new threads - finished";
+        finished = true;
+    }
+    if (finished) {
+        operationInProgress = FSONoOp;
+        emit listThreadsFinished(threads, currentGroup);
+        qDeleteAll(threads);
+        threads.clear();
+    }
+}
+
 void ForumSession::listMessagesOnNextPage() {
     Q_ASSERT(operationInProgress==FSOListMessages);
     if (operationInProgress != FSOListMessages) {
@@ -446,80 +522,6 @@ QString ForumSession::statusReport() {
                                                 + currentThread->toString() + "\n"*/;
 }
 
-void ForumSession::performListThreads(QString &html) {
-    QList<ForumThread*> newThreads;
-    emit receivedHtml(html);
-    pm->setPattern(fpar->thread_list_pattern);
-    QList<QHash<QString, QString> > matches = pm->findMatches(html);
-    qDebug() << Q_FUNC_INFO << " found " << matches.size() << " matches. html:\n" << html;
-    // Iterate through matches on page
-    QHash<QString, QString> match;
-    foreach(match, matches) {
-        ForumThread *ft = new ForumThread(currentGroup);
-        ft->setId(match["%a"]);
-        ft->setName(match["%b"]);
-        ft->setLastchange(match["%c"]);
-        ft->setGetMessagesCount(currentGroup->subscription()->latestMessages());
-        ft->setHasMoreMessages(false);
-        if (ft->isSane()) {
-            newThreads.append(ft);
-        } else {
-            qDebug() << Q_FUNC_INFO << "Incomplete thread, not adding";
-            // Q_ASSERT(false);
-        }
-    }
-    // See if the new threads contains already unknown threads
-    bool newThreadsFound = false;
-    // @todo this could be optimized a lot
-    while(!newThreads.isEmpty()) {
-        ForumThread *newThread = newThreads.takeFirst();
-        bool threadFound = false;
-        foreach (ForumThread *thread, threads) {
-            if (newThread->id() == thread->id()) {
-                threadFound = true;
-            }
-        }
-        if(threadFound) { // Delete if already known thread
-            delete newThread;
-            newThread = 0;
-        } else {
-            newThreadsFound = true;
-            newThread->setOrdernum(threads.size());
-            if (threads.size() < fsub->latestThreads()) {
-                threads.append(newThread);
-                newThread = 0;
-            } else {
-                qDebug() << "Number of threads exceeding maximum latest threads limit - not adding "
-                        << newThread->toString();
-                newThreadsFound = false;
-                delete newThread;
-                newThread = 0;
-            }
-        }
-        Q_ASSERT(!newThread);
-    }
-    bool finished = false;
-    if (newThreadsFound) {
-        if (fpar->thread_list_page_increment > 0) {
-            // Continue to next page
-            currentListPage += fpar->thread_list_page_increment;
-            qDebug() << Q_FUNC_INFO << "New threads were found - continuing to next page " << currentListPage;
-            listThreadsOnNextPage();
-        } else {
-            qDebug() << Q_FUNC_INFO << "Forum doesn't support multipage - NOT continuing to next page.";
-            finished = true;
-        }
-    } else { // Not continuing to next page
-        qDebug() << Q_FUNC_INFO << "No new threads - finished";
-        finished = true;
-    }
-    if (finished) {
-        operationInProgress = FSONoOp;
-        emit listThreadsFinished(threads, currentGroup);
-        qDeleteAll(threads);
-        threads.clear();
-    }
-}
 
 void ForumSession::cancelOperation() {
     qDebug() << Q_FUNC_INFO;
