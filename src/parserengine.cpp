@@ -392,7 +392,7 @@ void ParserEngine::setState(ParserEngineState newState) {
     if(newState == currentState) return;
     ParserEngineState oldState = currentState;
     currentState = newState;
-    qDebug() << Q_FUNC_INFO << oldState << " -> " << newState;
+    qDebug() << Q_FUNC_INFO << subscription()->alias() << oldState << " -> " << newState;
     if(newState==PES_UPDATING) {
         Q_ASSERT(oldState==PES_IDLE || oldState==PES_ERROR);
     }
