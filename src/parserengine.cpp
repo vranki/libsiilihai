@@ -22,15 +22,12 @@
 
 ParserEngine::ParserEngine(ForumDatabase *fd, QObject *parent, ParserManager *pm, QNetworkAccessManager &n) :
     QObject(parent), nam(n), session(this, &nam), parserManager(pm) {
-    connect(&session, SIGNAL(listGroupsFinished(QList<ForumGroup*>&)), this,
-            SLOT(listGroupsFinished(QList<ForumGroup*>&)));
-    connect(&session, SIGNAL(listThreadsFinished(QList<ForumThread*>&, ForumGroup*)), this,
-            SLOT(listThreadsFinished(QList<ForumThread*>&, ForumGroup*)));
+    connect(&session, SIGNAL(listGroupsFinished(QList<ForumGroup*>&)), this, SLOT(listGroupsFinished(QList<ForumGroup*>&)));
+    connect(&session, SIGNAL(listThreadsFinished(QList<ForumThread*>&, ForumGroup*)), this, SLOT(listThreadsFinished(QList<ForumThread*>&, ForumGroup*)));
     connect(&session, SIGNAL(listMessagesFinished(QList<ForumMessage*>&, ForumThread*, bool)),
             this, SLOT(listMessagesFinished(QList<ForumMessage*>&, ForumThread*, bool)));
     connect(&session, SIGNAL(networkFailure(QString)), this, SLOT(networkFailure(QString)));
-    connect(&session, SIGNAL(getAuthentication(ForumSubscription*,QAuthenticator*)),
-            this, SIGNAL(getAuthentication(ForumSubscription*,QAuthenticator*)));
+    connect(&session, SIGNAL(getAuthentication(ForumSubscription*, QAuthenticator*)), this, SIGNAL(getAuthentication(ForumSubscription*,QAuthenticator*)));
     connect(&session, SIGNAL(loginFinished(ForumSubscription *,bool)), this, SLOT(loginFinishedSlot(ForumSubscription *,bool)));
     connect(parserManager, SIGNAL(parserUpdated(ForumParser*)), this, SLOT(parserUpdated(ForumParser*)));
     fdb = fd;
@@ -50,7 +47,7 @@ ParserEngine::~ParserEngine() {
 void ParserEngine::setParser(ForumParser *fp) {
     currentParser = fp;
     if(fp) {
-        if(fsubscription && (currentState==PES_MISSING_PARSER || currentState==PES_UPDATING_PARSER)) setState(PES_IDLE);
+        if(fsubscription && (currentState==PES_MISSING_PARSER || currentState==PES_UPDATING_PARSER)) setState(PES_REQUESTING_CREDENTIALS);
     } else {
         if(currentState != PES_UPDATING_PARSER) setState(PES_MISSING_PARSER);
     }
@@ -66,7 +63,7 @@ void ParserEngine::setSubscription(ForumSubscription *fs) {
         parserManager->updateParser(fsubscription->parser());
         setState(PES_UPDATING_PARSER);
     } else {
-        setState(PES_IDLE);
+        setState(PES_REQUESTING_CREDENTIALS);
     }
 }
 
@@ -300,6 +297,7 @@ void ParserEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages, Foru
     Q_ASSERT(!dbThread->isTemp());
     Q_ASSERT(dbThread->group()->isSubscribed());
     dbThread->markToBeUpdated(false);
+    if(tempMessages.size()==0) qDebug() << Q_FUNC_INFO << "got 0 messages in thread " << dbThread->toString();
     bool messagesChanged = false;
     foreach (ForumMessage *tempMessage, tempMessages) {
         bool foundInDb = false;
@@ -399,11 +397,15 @@ void ParserEngine::setState(ParserEngineState newState) {
     if(newState==PES_UPDATING_PARSER) {
         Q_ASSERT(oldState==PES_IDLE || oldState==PES_MISSING_PARSER);
     }
-
     if(newState==PES_ERROR) {
         cancelOperation();
     }
-    emit stateChanged(this, currentState);
+    if(newState==PES_REQUESTING_CREDENTIALS) {
+        if(!subscription()->authenticated() || subscription()->username().length()>0) {
+            setState(PES_IDLE);
+        } // Else state changes to requesting, and Siilihai tris to provide creds.
+    }
+    emit stateChanged(this, currentState, oldState);
 }
 
 ParserEngine::ParserEngineState ParserEngine::state() {
@@ -420,4 +422,23 @@ void ParserEngine::parserUpdated(ForumParser *p) {
         qDebug() << Q_FUNC_INFO;
         setParser(p);
     }
+}
+void ParserEngine::sessionNeedsAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator) {
+    Q_ASSERT(currentState==PES_UPDATING_PARSER);
+    setState(PES_REQUESTING_CREDENTIALS);
+    emit getAuthentication(fsub, authenticator);
+    setState(PES_IDLE);
+}
+
+void ParserEngine::credentialsEntered(QAuthenticator* authenticator) {
+    Q_ASSERT(currentState==PES_REQUESTING_CREDENTIALS);
+    if(authenticator->user().length() > 0) {
+        subscription()->setUsername(authenticator->user());
+        subscription()->setPassword(authenticator->password());
+    } else {
+        subscription()->setAuthenticated(false);
+    }
+    emit updateForumSubscription(subscription());
+    delete authenticator;
+    setState(PES_IDLE);
 }

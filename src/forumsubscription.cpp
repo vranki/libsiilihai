@@ -70,18 +70,23 @@ QString ForumSubscription::toString() const {
 int ForumSubscription::parser() const {
     return _parser;
 }
+
 QString ForumSubscription::alias() const {
     return _alias;
 }
+
 QString ForumSubscription::username() const {
     return _username;
 }
+
 QString ForumSubscription::password() const {
     return _password;
 }
+
 int ForumSubscription::latestThreads() const {
     return _latestThreads;
 }
+
 int ForumSubscription::latestMessages() const {
     return _latestMessages;
 }
@@ -89,16 +94,19 @@ int ForumSubscription::latestMessages() const {
 bool ForumSubscription::authenticated() const {
     return _authenticated;
 }
+
 void ForumSubscription::setParser(int parser) {
     if(parser==_parser) return;
     _parser = parser;
     emit changed(this);
 }
+
 void ForumSubscription::setAlias(QString name) {
     if(_alias==name) return;
     _alias = name;
     emit changed(this);
 }
+
 void ForumSubscription::setUsername(QString username) {
     if(_username == username) return;
     _username = username;
@@ -109,11 +117,13 @@ void ForumSubscription::setPassword(QString password) {
     _password = password;
     emit changed(this);
 }
+
 void ForumSubscription::setLatestThreads(unsigned int lt) {
     if(lt==_latestThreads) return;
     _latestThreads = lt;
     emit changed(this);
 }
+
 void ForumSubscription::setLatestMessages(unsigned int lm) {
     if(lm==_latestMessages) return;
     _latestMessages = lm;
@@ -129,6 +139,7 @@ void ForumSubscription::setAuthenticated(bool na) {
 int ForumSubscription::unreadCount() const {
     return _unreadCount;
 }
+
 void ForumSubscription::incrementUnreadCount(int urc) {
     if(!urc) return;
     _unreadCount += urc;
@@ -156,7 +167,6 @@ bool ForumSubscription::hasGroupListChanged() const {
 void ForumSubscription::setGroupListChanged(bool changed) {
     _groupListChanged = changed;
 }
-
 
 void ForumSubscription::markRead(bool read) {
     foreach(ForumGroup *group, values()) {

@@ -59,7 +59,6 @@ public:
     void listRequests();
     void listSubscriptions();
     void getParser(const int id);
-    void subscribeForum(ForumSubscription *fs, bool unsubscribe = false);
     void subscribeGroups(ForumSubscription *fs); // Sends groups in forum to server
     void saveParser(const ForumParser *parser);
 
@@ -73,6 +72,7 @@ public:
 
     bool isLoggedIn();
 public slots:
+    void subscribeForum(ForumSubscription *fs, bool unsubscribe = false);
     void sendParserReport(ParserReport pr);
 
 private slots:

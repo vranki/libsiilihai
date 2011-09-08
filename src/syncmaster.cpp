@@ -135,7 +135,7 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
 
             qDebug() << Q_FUNC_INFO << "Changesets for " << dbGroup->toString() << ": db " << dbGroup->changeset() << " server " << serverGrp->changeset();
             if(dbGroup->changeset() != serverGrp->changeset()) {
-                qDebug() << "Adding group to download queue and setting changeset " << dbGroup->toString();
+                qDebug() << Q_FUNC_INFO << "Adding group to download queue and setting changeset " << dbGroup->toString();
                 dbGroup->setChangeset(serverGrp->changeset());
                 groupsToDownload.append(dbGroup);
             }

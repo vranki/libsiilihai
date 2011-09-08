@@ -568,6 +568,7 @@ void SiilihaiProtocol::getThreadData(ForumGroup *grp) {
 
 void SiilihaiProtocol::replyGetThreadData(QNetworkReply *reply) {
     QString docs = QString().fromUtf8(reply->readAll());
+    qDebug() << Q_FUNC_INFO << docs;
     QMap<ForumThread, QList<ForumMessage> > threadData;
 
     if (reply->error() == QNetworkReply::NoError) {
