@@ -75,6 +75,7 @@ signals:
     void updateFailure(ForumSubscription *forum, QString message);
     void getAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator); // Synchronous, for NAM
     void loginFinished(ForumSubscription *sub, bool success);
+    // Caution: engine's subscription may be null!
     void stateChanged(ParserEngine *engine, ParserEngine::ParserEngineState newState, ParserEngine::ParserEngineState oldState);
     void updateForumSubscription(ForumSubscription *fsub); // Used to request protocol to update subscription
 
@@ -86,7 +87,6 @@ private slots:
     void loginFinishedSlot(ForumSubscription *sub, bool success);
     void subscriptionDeleted();
     void parserUpdated(ForumParser *p);
-    void sessionNeedsAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator);
 
 private:
     void updateNextChangedGroup();

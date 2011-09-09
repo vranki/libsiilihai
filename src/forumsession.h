@@ -81,6 +81,7 @@ signals:
     void networkFailure(QString message);
     void loginFinished(ForumSubscription *sub, bool success);
     void receivedHtml(const QString &data);
+    // authenticator MUST set values when emitted
     void getAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator);
 private slots:
     void cookieExpired(); // Called when cookie needs to be fetched again

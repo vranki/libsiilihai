@@ -261,8 +261,6 @@ void ForumSession::performListThreads(QString &html) {
     emit receivedHtml(html);
     pm->setPattern(fpar->thread_list_pattern);
     QList<QHash<QString, QString> > matches = pm->findMatches(html);
-    qDebug() << Q_FUNC_INFO << " found " << matches.size() << " matches. Pattern: \n" <<
-                fpar->thread_list_pattern << "\nhtml:\n" << html;
     // Iterate through matches on page
     QHash<QString, QString> match;
     foreach(match, matches) {
@@ -585,8 +583,10 @@ QString ForumSession::getMessageListUrl(const ForumThread *thread, int page) {
 void ForumSession::authenticationRequired(QNetworkReply * reply, QAuthenticator * authenticator) {
     Q_UNUSED(reply);
     if(operationInProgress == FSONoOp) return;
+    int forumId = reply->request().attribute(FORUMID_ATTRIBUTE).toInt();
+    if(forumId != fsub->parser()) return;
 
-    qDebug() << Q_FUNC_INFO;
+    qDebug() << Q_FUNC_INFO << reply << authenticator;
 
     if(fpar->login_type == ForumParser::LoginTypeHttpAuth) {
         if (fsub->username().length() <= 0 || fsub->password().length() <= 0) {

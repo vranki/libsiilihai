@@ -388,9 +388,11 @@ QNetworkAccessManager * ParserEngine::networkAccessManager() {
 
 void ParserEngine::setState(ParserEngineState newState) {
     if(newState == currentState) return;
+    // Caution: subscriotion may be null!
     ParserEngineState oldState = currentState;
     currentState = newState;
-    qDebug() << Q_FUNC_INFO << subscription()->alias() << oldState << " -> " << newState;
+    if(subscription())
+        qDebug() << Q_FUNC_INFO << subscription()->alias() << oldState << " -> " << newState;
     if(newState==PES_UPDATING) {
         Q_ASSERT(oldState==PES_IDLE || oldState==PES_ERROR);
     }
@@ -422,12 +424,6 @@ void ParserEngine::parserUpdated(ForumParser *p) {
         qDebug() << Q_FUNC_INFO;
         setParser(p);
     }
-}
-void ParserEngine::sessionNeedsAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator) {
-    Q_ASSERT(currentState==PES_UPDATING_PARSER);
-    setState(PES_REQUESTING_CREDENTIALS);
-    emit getAuthentication(fsub, authenticator);
-    setState(PES_IDLE);
 }
 
 void ParserEngine::credentialsEntered(QAuthenticator* authenticator) {

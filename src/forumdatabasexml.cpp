@@ -13,6 +13,8 @@ ForumDatabaseXml::ForumDatabaseXml(QObject *parent) :
 void ForumDatabaseXml::resetDatabase(){
     unsaved = false;
     loaded = false;
+    foreach(ForumSubscription *sub, values())
+        deleteSubscription(sub);
     clear();
 }
 
