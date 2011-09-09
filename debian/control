@@ -8,7 +8,7 @@ Homepage: http://www.siilihai.com/
 
 Package: libsiilihai
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libqt4-sql-sqlite, libqt4-xml
+Depends: ${shlibs:Depends}, ${misc:Depends}, libqt4-xml
 Description: Siilihai forum reader support library
  Contains library for creating Siilihai web forum reader UI:s.
 
