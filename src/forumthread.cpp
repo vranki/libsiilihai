@@ -152,6 +152,7 @@ void ForumThread::removeMessage(ForumMessage* msg, bool affectsSync) {
     Q_ASSERT(contains(msg->id()));
     remove(msg->id());
     emit messageRemoved(msg);
+    msg->deleteLater();
 }
 
 bool ForumThread::needsToBeUpdated() const {

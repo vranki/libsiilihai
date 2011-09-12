@@ -54,6 +54,7 @@ void ForumGroup::removeThread(ForumThread* thr, bool affectsSync) {
     if(affectsSync) setHasChanged(true);
     remove(thr->id());
     emit threadRemoved(thr);
+    thr->deleteLater();
 }
 
 QString ForumGroup::toString() const {

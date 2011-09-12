@@ -57,6 +57,7 @@ void ForumSubscription::removeGroup(ForumGroup* grp, bool affectsSync) {
     if(affectsSync)
         setGroupListChanged();
     emit groupRemoved(grp);
+    grp->deleteLater();
 }
 
 bool ForumSubscription::isSane() const {

@@ -116,6 +116,8 @@ void ForumSession::listGroupsReply(QNetworkReply *reply) {
 
 void ForumSession::performListGroups(QString &html) {
     Q_ASSERT(pm);
+    // Parser maker may need this
+    if(operationInProgress == FSONoOp) operationInProgress = FSOListGroups;
     emit receivedHtml(html);
     QList<ForumGroup*> groups;
     pm->setPattern(fpar->group_list_pattern);
@@ -257,6 +259,8 @@ void ForumSession::listThreadsOnNextPage() {
 }
 
 void ForumSession::performListThreads(QString &html) {
+    // Parser maker may need this
+    if(operationInProgress == FSONoOp) operationInProgress = FSOListThreads;
     QList<ForumThread*> newThreads;
     emit receivedHtml(html);
     pm->setPattern(fpar->thread_list_pattern);
@@ -414,6 +418,9 @@ void ForumSession::listMessagesReply(QNetworkReply *reply) {
 }
 
 void ForumSession::performListMessages(QString &html) {
+    // Parser maker may need this
+    if(operationInProgress == FSONoOp) operationInProgress = FSOListMessages;
+
     QList<ForumMessage*> newMessages;
     Q_ASSERT(currentThread->isSane());
     emit receivedHtml(html);
