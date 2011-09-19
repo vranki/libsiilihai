@@ -405,7 +405,8 @@ void ParserEngine::setState(ParserEngineState newState) {
     if(newState==PES_REQUESTING_CREDENTIALS) {
         if(!subscription()->authenticated() || subscription()->username().length()>0) {
             setState(PES_IDLE);
-        } // Else state changes to requesting, and Siilihai tris to provide creds.
+            // @todo is parser updated now?
+        } // Else state changes to requesting, and Siilihai tries to provide creds.
     }
     emit stateChanged(this, currentState, oldState);
 }
