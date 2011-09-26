@@ -13,6 +13,13 @@
     You should have received a copy of the GNU Lesser General Public License
     along with libSiilihai.  If not, see <http://www.gnu.org/licenses/>. */
 #include "forumsession.h"
+#include "forumparser.h"
+#include "forumsubscription.h"
+#include "httppost.h"
+#include "patternmatcher.h"
+#include "forumgroup.h"
+#include "forumthread.h"
+#include "forummessage.h"
 
 ForumSession::ForumSession(QObject *parent, QNetworkAccessManager *n) : QObject(parent), nam(n) {
     operationInProgress = FSONoOp;

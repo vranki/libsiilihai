@@ -26,9 +26,9 @@ public:
 
     // Message related
     ForumMessage* getMessage(const int forum, QString groupid, QString threadid, QString messageid);
-    virtual void checkSanity();
 public slots:
     virtual bool storeDatabase()=0;
+    virtual void checkSanity();
 
 signals:
     void subscriptionFound(ForumSubscription *sub);

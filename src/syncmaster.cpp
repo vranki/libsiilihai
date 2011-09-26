@@ -184,6 +184,7 @@ void SyncMaster::processGroups() {
         qDebug() << Q_FUNC_INFO << " will now D/L group " << groupBeingDownloaded->toString();
         protocol.getThreadData(groupBeingDownloaded);
     }
+    fdb.checkSanity();
 }
 
 void SyncMaster::sendThreadDataFinished(bool success, QString message) {
@@ -224,6 +225,7 @@ void SyncMaster::serverThreadData(ForumThread *tempThread) { // Thread is tempor
         qDebug() << "Got invalid thread!" << tempThread->toString();
         Q_ASSERT(false);
     }
+    fdb.checkSanity();
 }
 
 void SyncMaster::serverMessageData(ForumMessage *tempMessage) { // Temporary object!
@@ -254,6 +256,7 @@ void SyncMaster::serverMessageData(ForumMessage *tempMessage) { // Temporary obj
         qDebug() << Q_FUNC_INFO << "Got invalid message!" << tempMessage->toString();
         Q_ASSERT(false);
     }
+    fdb.checkSanity();
     QCoreApplication::processEvents();
 }
 

@@ -40,10 +40,10 @@ void ForumGroup::copyFrom(ForumGroup * o) {
 ForumGroup::~ForumGroup() {
 }
 
-void ForumGroup::addThread(ForumThread* thr, bool affectsSync) {
+void ForumGroup::addThread(ForumThread* thr, bool affectsSync, bool incrementUnreads) {
     Q_ASSERT(thr->group() == this);
     Q_ASSERT(!value(thr->id()));
-    incrementUnreadCount(thr->unreadCount());
+    if(incrementUnreads) incrementUnreadCount(thr->unreadCount());
     if(affectsSync) setHasChanged(true);
     insert(thr->id(), thr);
     emit threadAdded(thr);
@@ -52,6 +52,10 @@ void ForumGroup::addThread(ForumThread* thr, bool affectsSync) {
 void ForumGroup::removeThread(ForumThread* thr, bool affectsSync) {
     Q_ASSERT(thr->group() == this);
     if(affectsSync) setHasChanged(true);
+    int urc = thr->unreadCount();
+    incrementUnreadCount(-urc);
+    if(isSubscribed())
+        subscription()->incrementUnreadCount(-urc);
     remove(thr->id());
     emit threadRemoved(thr);
     thr->deleteLater();
@@ -117,7 +121,6 @@ void ForumGroup::markToBeUpdated(bool toBe) {
     if(toBe)
         subscription()->markToBeUpdated();
 }
-
 
 void ForumGroup::markRead(bool read) {
     foreach(ForumThread *ft, values()) {

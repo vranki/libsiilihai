@@ -47,7 +47,7 @@ public:
     void setLatestMessages(unsigned int lm);
     void setAuthenticated(bool na);
     void incrementUnreadCount(int urc);
-    void addGroup(ForumGroup* grp, bool affectsSync=true);
+    void addGroup(ForumGroup* grp, bool affectsSync=true, bool incrementUnreads = true);
     void removeGroup(ForumGroup* grp, bool affectsSync=true);
     void setGroupListChanged(bool changed=true); // To trigger sending group list update
 

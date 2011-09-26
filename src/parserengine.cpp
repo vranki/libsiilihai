@@ -221,6 +221,8 @@ void ParserEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups) {
     if (groupsChanged && dbGroupsWasEmpty) {
         emit(groupListChanged(fsubscription));
     }
+
+    fdb->checkSanity();
 }
 
 void ParserEngine::listThreadsFinished(QList<ForumThread*> &tempThreads, ForumGroup *group) {
@@ -289,6 +291,8 @@ void ParserEngine::listThreadsFinished(QList<ForumThread*> &tempThreads, ForumGr
 
     if(updateAll)
         updateNextChangedThread();
+
+    fdb->checkSanity();
 }
 
 void ParserEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages, ForumThread *dbThread, bool moreAvailable) {
@@ -347,6 +351,7 @@ void ParserEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages, Foru
         setState(PES_IDLE);
         emit forumUpdated(fsubscription);
     }
+    fdb->checkSanity();
 }
 
 void ParserEngine::updateCurrentProgress() {

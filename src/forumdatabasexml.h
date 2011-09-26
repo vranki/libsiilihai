@@ -6,7 +6,6 @@
 #include <QFile>
 #include "forumdatabase.h"
 
-
 class ForumDatabaseXml : public ForumDatabase
 {
     Q_OBJECT

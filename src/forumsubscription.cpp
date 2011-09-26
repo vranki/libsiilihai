@@ -41,9 +41,9 @@ void ForumSubscription::copyFrom(ForumSubscription * other) {
 ForumSubscription::~ForumSubscription() {
 }
 
-void ForumSubscription::addGroup(ForumGroup* grp, bool affectsSync) {
+void ForumSubscription::addGroup(ForumGroup* grp, bool affectsSync, bool incrementUnreads) {
     Q_ASSERT(grp->subscription() == this);
-    incrementUnreadCount(grp->unreadCount());
+    if(incrementUnreads) incrementUnreadCount(grp->unreadCount());
     insert(grp->id(), grp);
     if(affectsSync)
         setGroupListChanged();

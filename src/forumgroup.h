@@ -41,7 +41,7 @@ public:
     void setChangeset(int cs);
     void setHasChanged(bool hc);
     bool isTemp();
-    void addThread(ForumThread* thr, bool affectsSync = true);
+    void addThread(ForumThread* thr, bool affectsSync = true, bool incrementUnreads = true);
     void removeThread(ForumThread* thr, bool affectsSync = true);
     virtual void markToBeUpdated(bool toBe=true);
     void markRead(bool read=true);

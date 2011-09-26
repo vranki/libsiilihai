@@ -1,5 +1,5 @@
 TEMPLATE = lib
-VERSION = 0.10.0
+VERSION = 0.10.3
 TARGET = siilihai
 
 DESTDIR = .
@@ -22,6 +22,11 @@ CONFIG += qt create_prl
 QT += core xml network
 
 QT -= gui
+
+CONFIG(debug) {
+    message(Debug build - enabling sanity checks)
+    DEFINES += SANITY_CHECKS
+}
 
 HEADERS += syncmaster.h \
     parserreport.h \

@@ -101,7 +101,7 @@ ForumSubscription* XmlSerialization::readSubscription(QDomElement &element, QObj
     QDomElement groupElement = element.firstChildElement(GRP_GROUP);
     while(!groupElement.isNull()) {
         ForumGroup *grp = readGroup(groupElement, sub);
-        if(grp) sub->addGroup(grp, false);
+        if(grp) sub->addGroup(grp, false, false);
         groupElement = groupElement.nextSiblingElement(GRP_GROUP);
     }
 
@@ -116,16 +116,16 @@ ForumGroup* XmlSerialization::readGroup(QDomElement &element, ForumSubscription 
     grp->setSubscribed(!element.attribute(GRP_SUBSCRIBED).isNull());
     grp->setChangeset(QString(element.firstChildElement(COMMON_CHANGESET).text()).toInt());
     if(grp->name()==UNKNOWN_SUBJECT) grp->markToBeUpdated();
-
-    QDomElement threadElement = element.firstChildElement(THR_THREAD);
-    while(!threadElement.isNull()) {
-        ForumThread *thr = readThread(threadElement, grp);
-        if(thr) grp->addThread(thr, false);
-        threadElement = threadElement.nextSiblingElement(THR_THREAD);
+    if(grp->isSubscribed()) {
+        QDomElement threadElement = element.firstChildElement(THR_THREAD);
+        while(!threadElement.isNull()) {
+            ForumThread *thr = readThread(threadElement, grp);
+            if(thr) grp->addThread(thr, false, false);
+            threadElement = threadElement.nextSiblingElement(THR_THREAD);
+        }
+        if(grp->isEmpty()) // Force update if contains no threads
+            grp->markToBeUpdated();
     }
-
-    if(grp->isEmpty()) // Force update if contains no threads
-        grp->markToBeUpdated();
 
     return grp;
 }

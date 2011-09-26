@@ -4,6 +4,10 @@
 #include "forumsubscription.h"
 #include "xmlserialization.h"
 
+#ifdef SANITY_CHECKS
+#include "forumgroup.h"
+#endif
+
 ForumDatabaseXml::ForumDatabaseXml(QObject *parent) :
     ForumDatabase(parent) {
     resetDatabase();
@@ -16,6 +20,7 @@ void ForumDatabaseXml::resetDatabase(){
     foreach(ForumSubscription *sub, values())
         deleteSubscription(sub);
     clear();
+    checkSanity();
 }
 
 int ForumDatabaseXml::schemaVersion(){
@@ -48,6 +53,7 @@ bool ForumDatabaseXml::openDatabase(QIODevice *source) {
         subscriptionElement = subscriptionElement.nextSiblingElement(SUB_SUBSCRIPTION);
     }
     loaded = true;
+    checkSanity();
     return true;
 }
 
@@ -58,6 +64,11 @@ bool ForumDatabaseXml::isStored(){
 bool ForumDatabaseXml::addSubscription(ForumSubscription *fs){
     insert(fs->parser(), fs);
     emit subscriptionFound(fs);
+    checkSanity();
+#ifdef SANITY_CHECKS
+    foreach(ForumGroup *g, fs->values())
+        connect(g, SIGNAL(threadAdded(ForumThread*)), this, SLOT(checkSanity()));
+#endif
     return true;
 }
 
@@ -68,6 +79,7 @@ void ForumDatabaseXml::deleteSubscription(ForumSubscription *sub){
 }
 
 bool ForumDatabaseXml::storeDatabase(){
+    checkSanity();
     if(databaseFileName.isNull()) {
         qDebug() << Q_FUNC_INFO << "no file open!";
         return false;
@@ -94,3 +106,4 @@ bool ForumDatabaseXml::storeDatabase(){
     emit databaseStored();
     return true;
 }
+

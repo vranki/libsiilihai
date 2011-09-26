@@ -136,7 +136,10 @@ void ForumThread::addMessage(ForumMessage* msg, bool affectsSync) {
     }
     Q_ASSERT(!contains(msg->id()));
     insert(msg->id(), msg);
+#ifdef SANITY_CHECKS
+    Q_ASSERT(unreadCount() >= 0);
     Q_ASSERT(unreadCount() <= size());
+#endif
     emit messageAdded(msg);
 }
 

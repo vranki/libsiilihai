@@ -28,13 +28,12 @@
 #include <QAuthenticator>
 #include <QTimer>
 
-#include "forumparser.h"
-#include "forumsubscription.h"
-#include "httppost.h"
-#include "patternmatcher.h"
-#include "forumgroup.h"
-#include "forumthread.h"
-#include "forummessage.h"
+class ForumParser;
+class ForumSubscription;
+class PatternMatcher;
+class ForumGroup;
+class ForumThread;
+class ForumMessage;
 
 #define FORUMID_ATTRIBUTE (QNetworkRequest::Attribute(QNetworkRequest::User + 1))
 
