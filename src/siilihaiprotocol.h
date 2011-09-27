@@ -25,15 +25,15 @@
 #include <QDebug>
 #include <QHash>
 #include <QList>
-#include "forumparser.h"
-#include "forumrequest.h"
-#include "forumsubscription.h"
-#include "forumgroup.h"
-#include "forumthread.h"
-#include "forummessage.h"
-#include "httppost.h"
-#include "parserreport.h"
-#include "usersettings.h"
+
+class ForumParser;
+class UserSettings;
+class ParserReport;
+class ForumRequest;
+class ForumSubscription;
+class ForumGroup;
+class ForumThread;
+class ForumMessage;
 
 #define CLIENT_VERSION "0.9.0"
 
@@ -73,7 +73,7 @@ public:
     bool isLoggedIn();
 public slots:
     void subscribeForum(ForumSubscription *fs, bool unsubscribe = false);
-    void sendParserReport(ParserReport pr);
+    void sendParserReport(ParserReport *pr);
 
 private slots:
     void networkReply(QNetworkReply *reply);
@@ -96,7 +96,7 @@ private:
 signals:
     void loginFinished(bool success, QString motd, bool syncEnabled);
     void listParsersFinished(QList<ForumParser*> parsers); // Receiver MUST free the parsers!
-    void listRequestsFinished(QList<ForumRequest> requests);
+    void listRequestsFinished(QList<ForumRequest*> requests); // Receiver MUST free requests!
     void subscribeForumFinished(ForumSubscription *fs, bool success);
     void getParserFinished(ForumParser *parser); // Receiver MUST deleteLater() the parser!
     void saveParserFinished(int newId, QString message);

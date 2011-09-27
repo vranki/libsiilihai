@@ -15,7 +15,7 @@
 
 #include "forumrequest.h"
 
-ForumRequest::ForumRequest() {
+ForumRequest::ForumRequest(QObject *parent) : QObject(parent) {
     // TODO Auto-generated constructor stub
 
 }

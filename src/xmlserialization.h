@@ -7,6 +7,7 @@ class ForumGroup;
 class ForumThread;
 class ForumMessage;
 class ForumParser;
+class ForumRequest;
 
 #include <QDomElement>
 #include <QDomDocument>
@@ -40,10 +41,12 @@ class ForumParser;
 #define MSG_BODY "body"
 #define MSG_READ "read"
 
+/**
+  * Contains static functions for (de)serializing objects as XML
+  */
 class XmlSerialization
 {
 public:
-    XmlSerialization();
     static void serialize(ForumSubscription *sub, QDomElement &parent, QDomDocument &doc);
     static void serialize(ForumGroup *grp, QDomElement &parent, QDomDocument &doc);
     static void serialize(ForumThread *thr, QDomElement &parent, QDomDocument &doc);
@@ -55,6 +58,8 @@ public:
 
     static void serialize(ForumParser *p, QDomElement &parent, QDomDocument &doc);
     static ForumParser *readParser(QDomElement &element, QObject *parent);
+
+    static ForumRequest *readForumRequest(QDomElement &element, QObject *parent);
 private:
     static void appendValue(QString name, QString value, QDomElement &parent, QDomDocument &doc);
     static void appendForumDataItemValues(ForumDataItem *item, QDomElement &parent, QDomDocument &doc);

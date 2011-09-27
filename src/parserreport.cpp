@@ -15,8 +15,7 @@
 
 #include "parserreport.h"
 
-ParserReport::ParserReport() {
-}
+ParserReport::ParserReport() {}
 
 ParserReport::~ParserReport() {
 }

@@ -16,14 +16,18 @@
 #ifndef FORUMREQUEST_H_
 #define FORUMREQUEST_H_
 #include <QString>
+#include <QObject>
+
 /**
   * Represents a single forum request.
   *
   * @todo make a proper class
   */
-class ForumRequest {
+class ForumRequest : public QObject {
+    Q_OBJECT
+
 public:
-    ForumRequest();
+    ForumRequest(QObject *parent=0);
     virtual ~ForumRequest();
     QString forum_url;
     QString date;

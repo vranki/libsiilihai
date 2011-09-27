@@ -14,6 +14,16 @@
     along with libSiilihai.  If not, see <http://www.gnu.org/licenses/>. */
 #include "siilihaiprotocol.h"
 #include "xmlserialization.h"
+#include "forumparser.h"
+#include "forumrequest.h"
+#include "forumsubscription.h"
+#include "forumgroup.h"
+#include "forumthread.h"
+#include "forummessage.h"
+#include "httppost.h"
+#include "parserreport.h"
+#include "usersettings.h"
+#include "parserreport.h"
 
 SiilihaiProtocol::SiilihaiProtocol(QObject *parent) : QObject(parent) {
     operationInProgress = SPONoOp;
@@ -27,7 +37,6 @@ SiilihaiProtocol::~SiilihaiProtocol() {
 }
 
 void SiilihaiProtocol::networkReply(QNetworkReply *reply) {
-    qDebug() << Q_FUNC_INFO << " RX bytes " << reply->size();
     int operationAttribute = reply->request().attribute(QNetworkRequest::User).toInt();
     if(!operationAttribute) {
         qDebug( ) << Q_FUNC_INFO << "Reply " << operationAttribute << " not for me";
@@ -127,6 +136,7 @@ void SiilihaiProtocol::replyLogin(QNetworkReply *reply) {
     reply->deleteLater();
 }
 
+// Reply is handled in login
 void SiilihaiProtocol::registerUser(QString user, QString pass, QString email, bool sync) {
     qDebug() << Q_FUNC_INFO;
     QNetworkRequest req(registerUrl);
@@ -136,7 +146,7 @@ void SiilihaiProtocol::registerUser(QString user, QString pass, QString email, b
     params.insert("email", email);
     if(sync)
         params.insert("sync_enabled", "true");
-    params.insert("captcha", "earth");
+    params.insert("captcha", "earth"); // @todo something smarter
     params.insert("clientversion", CLIENT_VERSION);
     registerData = HttpPost::setPostParameters(&req, params);
     req.setAttribute(QNetworkRequest::User, SPORegisterUser);
@@ -155,26 +165,27 @@ void SiilihaiProtocol::listParsers() {
 }
 
 void SiilihaiProtocol::replyListParsers(QNetworkReply *reply) {
-    qDebug() << Q_FUNC_INFO;
     QString docs = QString().fromUtf8(reply->readAll());
     QList<ForumParser*> parsers;
     if (reply->error() == QNetworkReply::NoError) {
         QDomDocument doc;
         doc.setContent(docs);
-        QDomNode n = doc.firstChild().firstChild();
+        QDomElement n = doc.firstChild().firstChild().toElement();
         while (!n.isNull()) {
-            // @todo move to xmlserialization
+            ForumParser *parser = XmlSerialization::readParser(n, this);
+            /*
             ForumParser *parser = new ForumParser(this);
             parser->id = QString(n.firstChildElement("id").text()).toInt();
             parser->forum_url = n.firstChildElement("forum_url").text();
             parser->parser_name = n.firstChildElement("name").text();
             parser->parser_status = QString(n.firstChildElement("status").text()).toInt();
             parser->parser_type = QString(n.firstChildElement("parser_type").text()).toInt();
-            parsers.append(parser);
-            n = n.nextSibling();
+            */
+            if(parser) parsers.append(parser);
+            n = n.nextSibling().toElement();
         }
     } else {
-        qDebug() << Q_FUNC_INFO << " network error: " << reply->errorString();
+        qDebug() << Q_FUNC_INFO << "Network error: " << reply->errorString();
     }
     emit(listParsersFinished(parsers));
     reply->deleteLater();
@@ -193,22 +204,18 @@ void SiilihaiProtocol::listRequests() {
 
 void SiilihaiProtocol::replyListRequests(QNetworkReply *reply) {
     QString docs = QString().fromUtf8(reply->readAll());
-    QList<ForumRequest> requests;
+    QList<ForumRequest*> requests;
     if (reply->error() == QNetworkReply::NoError) {
         QDomDocument doc;
         doc.setContent(docs);
-        QDomNode n = doc.firstChild().firstChild();
+        QDomElement n = doc.firstChild().firstChild().toElement();
         while (!n.isNull()) {
-            ForumRequest request;
-            request.forum_url = n.firstChildElement("forum_url").text();
-            request.comment = n.firstChildElement("comment").text();
-            request.date = n.firstChildElement("date").text();
-            request.user = n.firstChildElement("user").text();
+            ForumRequest *request = XmlSerialization::readForumRequest(n, this);
             requests.append(request);
-            n = n.nextSibling();
+            n = n.nextSibling().toElement();
         }
     } else {
-        qDebug() << Q_FUNC_INFO << " network error: " << reply->errorString();
+        qDebug() << Q_FUNC_INFO << "Network error: " << reply->errorString();
     }
     emit listRequestsFinished(requests);
     reply->deleteLater();
@@ -238,7 +245,7 @@ void SiilihaiProtocol::replyListSubscriptions(QNetworkReply *reply) {
             n = n.nextSibling();
         }
     } else {
-        qDebug() << Q_FUNC_INFO << "error: " << reply->errorString();
+        qDebug() << Q_FUNC_INFO << "Network error:" << reply->errorString();
     }
     // @todo error handling?
     emit listSubscriptionsFinished(subscriptions);
@@ -269,12 +276,11 @@ void SiilihaiProtocol::replyGetParser(QNetworkReply *reply) {
         parser = XmlSerialization::readParser(re, this);
         if(parser) qDebug() << Q_FUNC_INFO << parser->id;
     } else {
-        qDebug() << Q_FUNC_INFO << " network error: " << reply->errorString();
+        qDebug() << Q_FUNC_INFO << "Network error: " << reply->errorString();
     }
     emit getParserFinished(parser);
     reply->deleteLater();
 }
-
 
 void SiilihaiProtocol::subscribeForum(ForumSubscription *fs, bool unsubscribe) {
     QNetworkRequest req(subscribeForumUrl);
@@ -304,7 +310,7 @@ void SiilihaiProtocol::replySubscribeForum(QNetworkReply *reply) {
     bool success = reply->error() == QNetworkReply::NoError;
 
     if(!success) {
-        qDebug() << Q_FUNC_INFO << " failed: " << reply->errorString();
+        qDebug() << Q_FUNC_INFO << "Network error:" << reply->errorString();
     }
     emit subscribeForumFinished(forumBeingSubscribed, success);
     reply->deleteLater();
@@ -346,13 +352,14 @@ void SiilihaiProtocol::replySubscribeGroups(QNetworkReply *reply) {
     reply->deleteLater();
 }
 
-
 void SiilihaiProtocol::saveParser(const ForumParser *parser) {
     if (!parser->mayWork()) {
-        qDebug() << "Tried to save not working parser!!";
+        qDebug() << Q_FUNC_INFO << "Tried to save not working parser!!";
         emit saveParserFinished(-666, "That won't work!");
         return;
     }
+
+    // @todo save as XML
     QNetworkRequest req(saveParserUrl);
     QHash<QString, QString> params;
     params.insert("id", QString().number(parser->id));
@@ -396,7 +403,6 @@ void SiilihaiProtocol::replySaveParser(QNetworkReply *reply) {
     QString docs = QString().fromUtf8(reply->readAll());
     int id = -1;
     QString msg = QString::null;
-    qDebug() << docs;
     if (reply->error() == QNetworkReply::NoError) {
         QDomDocument doc;
         doc.setContent(docs);
@@ -404,7 +410,7 @@ void SiilihaiProtocol::replySaveParser(QNetworkReply *reply) {
         id = re.firstChildElement("id").text().toInt();
         msg = re.firstChildElement("save_message").text();
     } else {
-        qDebug() << Q_FUNC_INFO << "network error: " << reply->errorString();
+        qDebug() << Q_FUNC_INFO << "Network error: " << reply->errorString();
         msg = reply->errorString();
     }
     emit saveParserFinished(id, msg);
@@ -452,12 +458,12 @@ void SiilihaiProtocol::getUserSettings() {
     setUserSettings(0);
 }
 
-void SiilihaiProtocol::sendParserReport(ParserReport pr) {
+void SiilihaiProtocol::sendParserReport(ParserReport *pr) {
     QNetworkRequest req(sendParserReportUrl);
     QHash<QString, QString> params;
-    params.insert("parser_id", QString().number(pr.parserid));
-    params.insert("type", QString().number(pr.type));
-    params.insert("comment", pr.comment);
+    params.insert("parser_id", QString().number(pr->parserid));
+    params.insert("type", QString().number(pr->type));
+    params.insert("comment", pr->comment);
 
     if (!clientKey.isNull()) {
         params.insert("client_key", clientKey);
@@ -477,16 +483,14 @@ void SiilihaiProtocol::replySendParserReport(QNetworkReply *reply) {
         if (successStr == "true") {
             success = true;
         } else {
-            qDebug() << Q_FUNC_INFO << " network error: " << reply->errorString();
+            qDebug() << Q_FUNC_INFO << "Network error: " << reply->errorString();
         }
     }
     emit sendParserReportFinished(success);
     reply->deleteLater();
 }
 
-
 // ########### Sync stuff below (move to another file?)
-
 
 void SiilihaiProtocol::sendThreadData(ForumGroup *grp, QList<ForumMessage*> &fms) {
     QNetworkRequest req(sendThreadDataUrl);
@@ -526,8 +530,7 @@ void SiilihaiProtocol::sendThreadData(ForumGroup *grp, QList<ForumMessage*> &fms
         threadTag.setAttribute("changeset", i.key()->changeset());
         threadTag.setAttribute("getmessagescount", i.key()->getMessagesCount());
 
-        foreach(ForumMessage *fm, i.value())
-        {
+        foreach(ForumMessage *fm, i.value()) {
             QDomElement messageTag = doc.createElement("message");
             messageTag.setAttribute("id", fm->id());
             threadTag.appendChild(messageTag);
@@ -542,12 +545,11 @@ void SiilihaiProtocol::sendThreadData(ForumGroup *grp, QList<ForumMessage*> &fms
 void SiilihaiProtocol::replySendThreadData(QNetworkReply *reply) {
     bool success = reply->error() == QNetworkReply::NoError;
     if(!success) {
-        qDebug() << Q_FUNC_INFO << " network error: " << reply->errorString();
+        qDebug() << Q_FUNC_INFO << "Network error: " << reply->errorString();
     }
     reply->deleteLater();
     emit sendThreadDataFinished(success, reply->errorString());
 }
-
 
 void SiilihaiProtocol::getThreadData(ForumGroup *grp) {
     Q_ASSERT(!getThreadDataGroup);
@@ -568,7 +570,6 @@ void SiilihaiProtocol::getThreadData(ForumGroup *grp) {
 
 void SiilihaiProtocol::replyGetThreadData(QNetworkReply *reply) {
     QString docs = QString().fromUtf8(reply->readAll());
-    qDebug() << Q_FUNC_INFO << docs;
     QMap<ForumThread, QList<ForumMessage> > threadData;
 
     if (reply->error() == QNetworkReply::NoError) {
@@ -616,7 +617,7 @@ void SiilihaiProtocol::replyGetThreadData(QNetworkReply *reply) {
             }
         }
     } else {
-        qDebug() << Q_FUNC_INFO << " network error: " << reply->error() << reply->errorString();
+        qDebug() << Q_FUNC_INFO << "Network error: " << reply->error() << reply->errorString();
     }
     reply->deleteLater();
     getThreadDataGroup->commitChanges();
@@ -638,7 +639,6 @@ void SiilihaiProtocol::getSyncSummary() {
 
 void SiilihaiProtocol::replyGetSyncSummary(QNetworkReply *reply) {
     QString docs = QString().fromUtf8(reply->readAll());
-    qDebug() << Q_FUNC_INFO << docs;
     QList<ForumSubscription*> subs;
     QList<ForumGroup*> grps; // to keep groups in context
     if (reply->error() == QNetworkReply::NoError) {
@@ -670,7 +670,7 @@ void SiilihaiProtocol::replyGetSyncSummary(QNetworkReply *reply) {
             }
         }
     } else {
-        qDebug() << Q_FUNC_INFO << " network error: " << reply->errorString();
+        qDebug() << Q_FUNC_INFO << "Network error: " << reply->errorString();
     }
     reply->deleteLater();
     // @todo errors?

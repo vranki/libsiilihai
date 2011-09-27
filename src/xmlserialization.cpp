@@ -4,10 +4,7 @@
 #include "forumthread.h"
 #include "forummessage.h"
 #include "forumparser.h"
-
-XmlSerialization::XmlSerialization()
-{
-}
+#include "forumrequest.h"
 
 void XmlSerialization::serialize(ForumSubscription *sub, QDomElement &parent, QDomDocument &doc) {
     QDomElement subElement = doc.createElement(SUB_SUBSCRIPTION);
@@ -180,52 +177,41 @@ void XmlSerialization::readForumDataItemValues(ForumDataItem *item, QDomElement 
 ForumParser *XmlSerialization::readParser(QDomElement &element, QObject *parent) {
     if(element.tagName() != "parser") return 0;
     ForumParser *parser = new ForumParser(parent);
+
     parser->id = element.firstChildElement("id").text().toInt();
     parser->parser_name = element.firstChildElement("parser_name").text();
     parser->forum_url = element.firstChildElement("forum_url").text();
     parser->parser_status = element.firstChildElement("status").text().toInt();
-    parser->thread_list_path
-            = element.firstChildElement("thread_list_path").text();
-    parser->view_thread_path
-            = element.firstChildElement("view_thread_path").text();
+    parser->thread_list_path = element.firstChildElement("thread_list_path").text();
+    parser->view_thread_path = element.firstChildElement("view_thread_path").text();
     parser->login_path = element.firstChildElement("login_path").text();
     parser->date_format = element.firstChildElement("date_format").text().toInt();
-    parser->group_list_pattern
-            = element.firstChildElement("group_list_pattern").text();
-    parser->thread_list_pattern
-            = element.firstChildElement("thread_list_pattern").text();
-    parser->message_list_pattern = element.firstChildElement(
-                "message_list_pattern").text();
-    parser->verify_login_pattern = element.firstChildElement(
-                "verify_login_pattern").text();
-    parser->login_parameters
-            = element.firstChildElement("login_parameters").text();
-    parser->login_type = (ForumParser::ForumLoginType) element.firstChildElement(
-                "login_type").text().toInt();
+    parser->group_list_pattern = element.firstChildElement("group_list_pattern").text();
+    parser->thread_list_pattern = element.firstChildElement("thread_list_pattern").text();
+    parser->message_list_pattern = element.firstChildElement("message_list_pattern").text();
+    parser->verify_login_pattern = element.firstChildElement("verify_login_pattern").text();
+    parser->login_parameters = element.firstChildElement("login_parameters").text();
+    parser->login_type = (ForumParser::ForumLoginType) element.firstChildElement("login_type").text().toInt();
     parser->charset = element.firstChildElement("charset").text().toLower();
-    parser->thread_list_page_start = element.firstChildElement(
-                "thread_list_page_start").text().toInt();
-    parser->thread_list_page_increment = element.firstChildElement(
-                "thread_list_page_increment").text().toInt();
-    parser->view_thread_page_start = element.firstChildElement(
-                "view_thread_page_start").text().toInt();
-    parser->view_thread_page_increment = element.firstChildElement(
-                "view_thread_page_increment").text().toInt();
-
+    parser->thread_list_page_start = element.firstChildElement("thread_list_page_start").text().toInt();
+    parser->thread_list_page_increment = element.firstChildElement("thread_list_page_increment").text().toInt();
+    parser->view_thread_page_start = element.firstChildElement("view_thread_page_start").text().toInt();
+    parser->view_thread_page_increment = element.firstChildElement("view_thread_page_increment").text().toInt();
     parser->forum_software = element.firstChildElement("forum_software").text();
-    parser->view_message_path
-            = element.firstChildElement("view_message_path").text();
+    parser->view_message_path = element.firstChildElement("view_message_path").text();
     parser->parser_type = element.firstChildElement("parser_type").text().toInt();
     parser->posting_path = element.firstChildElement("posting_path").text();
     parser->posting_subject = element.firstChildElement("posting_subject").text();
     parser->posting_message = element.firstChildElement("posting_message").text();
-    parser->posting_parameters
-            = element.firstChildElement("posting_parameters").text();
+    parser->posting_parameters = element.firstChildElement("posting_parameters").text();
     parser->posting_hints = element.firstChildElement("posting_hints").text();
+
+    // @todo remove later
+    if(parser->parser_name.isNull())
+        parser->parser_name = element.firstChildElement("name").text();
 
     return parser;
 }
-
 
 void XmlSerialization::serialize(ForumParser *p, QDomElement &parent, QDomDocument &doc) {
     QDomElement newElement = doc.createElement("parser");
@@ -257,4 +243,16 @@ void XmlSerialization::serialize(ForumParser *p, QDomElement &parent, QDomDocume
     appendValue("posting_parameters", p->posting_parameters, newElement, doc);
     appendValue("posting_hints", p->posting_hints, newElement, doc);
     parent.appendChild(newElement);
+}
+
+ForumRequest *XmlSerialization::readForumRequest(QDomElement &element, QObject *parent) {
+    if(element.tagName() != "request") return 0;
+
+    ForumRequest *request = new ForumRequest(parent);
+    request->forum_url = element.firstChildElement("forum_url").text();
+    request->comment = element.firstChildElement("comment").text();
+    request->date = element.firstChildElement("date").text();
+    request->user = element.firstChildElement("user").text();
+
+    return request;
 }
