@@ -439,6 +439,7 @@ void ForumSession::performListMessages(QString &html) {
         // This will be deleted or added to messages
         ForumMessage *fm = new ForumMessage(currentThread);
         fm->setRead(false, false);
+        Q_ASSERT(!fm->isRead());
         fm->setId(match["%a"]);
         fm->setName(match["%b"]);
         fm->setBody(match["%c"]);
