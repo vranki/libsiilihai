@@ -6,6 +6,13 @@ class ParserDatabase;
 class ForumParser;
 class SiilihaiProtocol;
 
+/**
+  * Manages the collection of ForumParsers.
+  *
+  * Uses ParserDatabase as backend.
+  * @see ForumParser
+  * @see ParserDatabase
+  */
 class ParserManager : public QObject
 {
     Q_OBJECT

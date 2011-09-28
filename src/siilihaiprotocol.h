@@ -98,7 +98,7 @@ signals:
     void listParsersFinished(QList<ForumParser*> parsers); // Receiver MUST free the parsers!
     void listRequestsFinished(QList<ForumRequest*> requests); // Receiver MUST free requests!
     void subscribeForumFinished(ForumSubscription *fs, bool success);
-    void getParserFinished(ForumParser *parser); // Receiver MUST deleteLater() the parser!
+    void getParserFinished(ForumParser *parser); // Parser is deleted after call!
     void saveParserFinished(int newId, QString message);
     void listSubscriptionsFinished(QList<int> subscriptions);
     void sendParserReportFinished(bool success);

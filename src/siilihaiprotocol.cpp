@@ -280,6 +280,7 @@ void SiilihaiProtocol::replyGetParser(QNetworkReply *reply) {
     }
     emit getParserFinished(parser);
     reply->deleteLater();
+    parser->deleteLater();
 }
 
 void SiilihaiProtocol::subscribeForum(ForumSubscription *fs, bool unsubscribe) {

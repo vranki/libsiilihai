@@ -41,7 +41,6 @@ void ParserManager::storeOrUpdateParser(ForumParser* parser) {
     Q_ASSERT(newParser->id == parser->id);
     parserDatabase->insert(newParser->id, newParser);
     emit parserUpdated(newParser);
-    parser->deleteLater();
 }
 
 void ParserManager::updateParser(int id) {

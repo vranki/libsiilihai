@@ -537,6 +537,21 @@ QString ForumSession::statusReport() {
 
 void ForumSession::cancelOperation() {
     qDebug() << Q_FUNC_INFO;
+    if(operationInProgress == FSOListGroups) {
+        QList<ForumGroup*> emptyList;
+        emit listGroupsFinished(emptyList);
+    }
+    if(operationInProgress == FSOListThreads) {
+        QList<ForumThread*> emptyList;
+        emit listThreadsFinished(emptyList, currentGroup);
+    }
+
+    if(operationInProgress == FSOListMessages) {
+        QList<ForumMessage*> emptyList;
+        emit listMessagesFinished(emptyList, currentThread, false);
+    }
+
+    if(operationInProgress == FSOLogin) emit loginFinished(fsub, false);
 
     operationInProgress = FSONoOp;
     cookieFetched = false;
@@ -655,4 +670,6 @@ void ForumSession::cookieExpired() {
 void ForumSession::setRequesetAttributes(QNetworkRequest &req, ForumSessionOperation op) {
     req.setAttribute(QNetworkRequest::User, op);
     req.setAttribute(FORUMID_ATTRIBUTE, fsub->parser());
+    // @todo Make this configurable
+    req.setRawHeader("User-Agent", "Mozilla/5.0 (X11; Linux i686; rv:6.0) Gecko/20100101 Firefox/6.0");
 }
