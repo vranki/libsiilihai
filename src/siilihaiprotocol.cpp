@@ -510,6 +510,8 @@ void SiilihaiProtocol::sendThreadData(ForumGroup *grp, QList<ForumMessage*> &fms
 
     groupTag.appendChild(doc.createTextNode(grp->id()));
 
+    qDebug() << Q_FUNC_INFO << "Sending group " << grp->toString();
+
     QDomElement changesetTag = doc.createElement("changeset");
     root.appendChild(changesetTag);
 
@@ -535,6 +537,7 @@ void SiilihaiProtocol::sendThreadData(ForumGroup *grp, QList<ForumMessage*> &fms
             QDomElement messageTag = doc.createElement("message");
             messageTag.setAttribute("id", fm->id());
             threadTag.appendChild(messageTag);
+            qDebug() << Q_FUNC_INFO << "Sending message " << fm->toString();
         }
         root.appendChild(threadTag);
     }
@@ -586,10 +589,8 @@ void SiilihaiProtocol::replyGetThreadData(QNetworkReply *reply) {
                     QDomElement groupElement = forumElement.childNodes().at(k).toElement();
                     QString groupid = groupElement.attribute("id");
                     Q_ASSERT(groupid == getThreadDataGroup->id());
-
                     for (int l = 0; l < groupElement.childNodes().size(); l++) {
-                        QDomElement threadElement =
-                                groupElement.childNodes().at(l).toElement();
+                        QDomElement threadElement = groupElement.childNodes().at(l).toElement();
                         QString threadid = threadElement.attribute("id");
                         Q_ASSERT(threadid.length()>0);
                         int threadChangeset = threadElement.attribute("changeset").toInt();

@@ -56,7 +56,7 @@ public slots:
     void subscribeGroupsFinished(bool success);
 signals:
     void syncFinished(bool success, QString message);
-    void syncProgress(float progress);
+    void syncProgress(float progress, QString message);
 private:
     void processSubscriptions();
     void processGroups();

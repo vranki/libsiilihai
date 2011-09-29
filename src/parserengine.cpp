@@ -208,7 +208,7 @@ void ParserEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups) {
         }
         if (!groupFound) {
             groupsChanged = true;
-            qDebug() << "Group " << dbGroup->toString() << " has been deleted!";
+            qDebug() << Q_FUNC_INFO << "Group " << dbGroup->toString() << " has been deleted!";
             fsubscription->removeGroup(dbGroup);
         }
     }
@@ -258,7 +258,7 @@ void ParserEngine::listThreadsFinished(QList<ForumThread*> &tempThreads, ForumGr
                 dbThread->setGetMessagesCount(oldGetMessagesCount);
                 dbThread->setHasMoreMessages(oldHasMoreMessages);
                 dbThread->commitChanges();
-                qDebug() << Q_FUNC_INFO << "Thread " << dbThread->toString() << " shall be updated";
+//                qDebug() << Q_FUNC_INFO << "Thread " << dbThread->toString() << " shall be updated";
                 dbThread->markToBeUpdated();
                 threadsToUpdateQueue.enqueue(dbThread);
             }
@@ -283,7 +283,7 @@ void ParserEngine::listThreadsFinished(QList<ForumThread*> &tempThreads, ForumGr
         }
         if (!threadFound) {
             deletedThreads.insert(dbThread);
-            qDebug() << "Thread " << dbThread->toString() << " has been deleted!";
+//            qDebug() << "Thread " << dbThread->toString() << " has been deleted!";
         }
     }
     foreach(ForumThread *thr, deletedThreads.values())

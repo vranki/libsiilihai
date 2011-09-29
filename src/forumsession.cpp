@@ -309,8 +309,8 @@ void ForumSession::performListThreads(QString &html) {
                 threads.append(newThread);
                 newThread = 0;
             } else {
-                qDebug() << "Number of threads exceeding maximum latest threads limit - not adding "
-                        << newThread->toString();
+//                qDebug() << "Number of threads exceeding maximum latest threads limit - not adding "
+//                        << newThread->toString();
                 newThreadsFound = false;
                 delete newThread;
                 newThread = 0;

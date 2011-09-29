@@ -41,7 +41,6 @@ SyncMaster::~SyncMaster() {
 }
 
 void SyncMaster::startSync() {
-    qDebug( ) << Q_FUNC_INFO;
     canceled = false;
     errorCount = 0;
     groupBeingDownloaded = 0;
@@ -50,7 +49,6 @@ void SyncMaster::startSync() {
 }
 
 void SyncMaster::endSync() {
-    qDebug( ) << Q_FUNC_INFO;
     fdb.checkSanity();
     canceled = false;
     errorCount = 0;
@@ -74,8 +72,6 @@ void SyncMaster::endSync() {
 }
 
 void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp objects!
-    qDebug() << Q_FUNC_INFO << subs.size();
-
     // Update local subs
     foreach(ForumSubscription *serverSub, subs) {
         ForumSubscription *dbSub = fdb.value(serverSub->parser());
@@ -137,7 +133,6 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
 
             Q_ASSERT(dbGroup);
 
-            qDebug() << Q_FUNC_INFO << "Changesets for " << dbGroup->toString() << ": db " << dbGroup->changeset() << " server " << serverGrp->changeset();
             if(dbGroup->changeset() != serverGrp->changeset()) {
                 qDebug() << Q_FUNC_INFO << "Adding group to download queue and setting changeset " << dbGroup->toString();
                 dbGroup->setChangeset(serverGrp->changeset());
@@ -154,38 +149,28 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
 // Sends the next group in groupsToUpload and download status for
 // next in groupsToDownload
 void SyncMaster::processGroups() {
-    qDebug( ) << Q_FUNC_INFO;
     if(canceled) return;
-    emit syncProgress((float) (maxGroupCount - groupsToUpload.size() - groupsToDownload.size()) / (float) (maxGroupCount+1));
     if (groupsToUpload.isEmpty() && groupsToDownload.isEmpty()) {
         emit syncFinished(true, QString::null);
         return;
     }
     // Do the uploading
     if(!groupsToUpload.isEmpty()) {
-        qDebug() << Q_FUNC_INFO << groupsToUpload.size() << "groups to upload";
-        foreach (ForumGroup* g, groupsToUpload) {
-            qDebug() << Q_FUNC_INFO << g->toString();
-        }
         ForumGroup *g = groupsToUpload.takeFirst();
-        qDebug() << Q_FUNC_INFO << g;
-        qDebug() << Q_FUNC_INFO << g->toString();
         g->setChangeset(rand());
-        qDebug() << Q_FUNC_INFO << "Group " << g->toString() << "new changeset: " << g->changeset();
         foreach(ForumThread *thread, g->values()) {
             Q_ASSERT(thread);
-            qDebug() << Q_FUNC_INFO << "appending thread " << thread->toString() << thread->values().size();
             messagesToUpload.append(thread->values());
         }
         connect(&protocol, SIGNAL(sendThreadDataFinished(bool, QString)), this, SLOT(sendThreadDataFinished(bool, QString)));
         protocol.sendThreadData(g, messagesToUpload);
         g->commitChanges();
         messagesToUpload.clear();
+        emit syncProgress(0, "Synchronizing " + g->name() + " in " + g->subscription()->alias() + "..");
     }
     if(!groupsToDownload.isEmpty()) {
         Q_ASSERT(!groupBeingDownloaded);
         groupBeingDownloaded = groupsToDownload.takeFirst();
-        qDebug() << Q_FUNC_INFO << " will now D/L group " << groupBeingDownloaded->toString();
         protocol.getThreadData(groupBeingDownloaded);
     }
     fdb.checkSanity();
@@ -225,15 +210,17 @@ void SyncMaster::serverThreadData(ForumThread *tempThread) { // Thread is tempor
             dbGroup->commitChanges();
         }
         dbThread->commitChanges();
+        qDebug() << Q_FUNC_INFO << "Received thread " << dbThread->toString();
+        emit syncProgress(0, "Synchronizing " + dbThread->group()->name() + " in " + dbThread->group()->subscription()->alias() + "..");
     } else {
-        qDebug() << "Got invalid thread!" << tempThread->toString();
+        qDebug() << Q_FUNC_INFO << "Got invalid thread!" << tempThread->toString();
         Q_ASSERT(false);
     }
     fdb.checkSanity();
 }
 
 void SyncMaster::serverMessageData(ForumMessage *tempMessage) { // Temporary object!
-//    qDebug() << Q_FUNC_INFO << tempMessage->toString();
+    qDebug() << Q_FUNC_INFO << "Received message " << tempMessage->toString();
     if(canceled) return;
     if (tempMessage->isSane()) {
         ForumMessage *dbMessage = fdb.getMessage(tempMessage->thread()->group()->subscription()->parser(),
@@ -241,7 +228,7 @@ void SyncMaster::serverMessageData(ForumMessage *tempMessage) { // Temporary obj
         if (dbMessage) { // Message already found, merge it
             dbMessage->setRead(tempMessage->isRead());
         } else { // message hasn't been found yet!
-            qDebug() << Q_FUNC_INFO << "message" << tempMessage->toString() << " NOT in DB - adding as new";
+            qDebug() << Q_FUNC_INFO << "message NOT in DB - adding as new";
             ForumThread *dbThread = fdb.getThread(tempMessage->thread()->group()->subscription()->parser(),
                                                   tempMessage->thread()->group()->id(),
                                                   tempMessage->thread()->id());
@@ -265,7 +252,6 @@ void SyncMaster::serverMessageData(ForumMessage *tempMessage) { // Temporary obj
 }
 
 void SyncMaster::getThreadDataFinished(bool success, QString message){
-    qDebug() << Q_FUNC_INFO << success;
     if(canceled) return;
     if(success) {
         groupBeingDownloaded = 0;
@@ -286,7 +272,6 @@ void SyncMaster::getThreadDataFinished(bool success, QString message){
 }
 
 void SyncMaster::threadChanged(ForumThread *thread) {
-    qDebug() << Q_FUNC_INFO << thread->toString();
 }
 
 void SyncMaster::cancel() {
@@ -301,7 +286,6 @@ void SyncMaster::cancel() {
 }
 
 void SyncMaster::processSubscriptions() {
-    qDebug() << Q_FUNC_INFO << "need to update " << forumsToUpload.size() << "forums";
     if(forumsToUpload.isEmpty()) {
         processGroups();
     } else {
@@ -311,7 +295,6 @@ void SyncMaster::processSubscriptions() {
 }
 
 void SyncMaster::subscribeGroupsFinished(bool success) {
-    qDebug() << Q_FUNC_INFO << success;
     if(canceled) return;
     if (success) {
         processSubscriptions();
