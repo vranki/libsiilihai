@@ -92,7 +92,6 @@ QString ForumSession::convertCharset(const QByteArray &src) {
 }
 
 void ForumSession::listGroups() {
-    qDebug() << Q_FUNC_INFO << fpar->forum_url;
     if (operationInProgress != FSONoOp && operationInProgress != FSOListGroups) {
         qDebug() << Q_FUNC_INFO << "Operation in progress!! Don't command me yet! ";
         return;
@@ -261,7 +260,6 @@ void ForumSession::listThreadsOnNextPage() {
     QNetworkRequest req;
     req.setUrl(QUrl(urlString));
     setRequesetAttributes(req, FSOListThreads);
-    qDebug() << Q_FUNC_INFO << "Fetching URL" << urlString;
     nam->post(req, emptyData);
 }
 
@@ -323,14 +321,14 @@ void ForumSession::performListThreads(QString &html) {
         if (fpar->thread_list_page_increment > 0) {
             // Continue to next page
             currentListPage += fpar->thread_list_page_increment;
-            qDebug() << Q_FUNC_INFO << "New threads were found - continuing to next page " << currentListPage;
+            //qDebug() << Q_FUNC_INFO << "New threads were found - continuing to next page " << currentListPage;
             listThreadsOnNextPage();
         } else {
-            qDebug() << Q_FUNC_INFO << "Forum doesn't support multipage - NOT continuing to next page.";
+            // qDebug() << Q_FUNC_INFO << "Forum doesn't support multipage - NOT continuing to next page.";
             finished = true;
         }
     } else { // Not continuing to next page
-        qDebug() << Q_FUNC_INFO << "No new threads - finished";
+        // qDebug() << Q_FUNC_INFO << "No new threads - finished";
         finished = true;
     }
     if (finished) {

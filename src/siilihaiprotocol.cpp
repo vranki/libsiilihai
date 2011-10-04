@@ -253,7 +253,6 @@ void SiilihaiProtocol::replyListSubscriptions(QNetworkReply *reply) {
 }
 
 void SiilihaiProtocol::getParser(const int id) {
-    qDebug() << Q_FUNC_INFO << id;
     QNetworkRequest req(getParserUrl);
     QHash<QString, QString> params;
     params.insert("id", QString().number(id));
@@ -274,7 +273,6 @@ void SiilihaiProtocol::replyGetParser(QNetworkReply *reply) {
         doc.setContent(docs);
         QDomElement re = doc.firstChild().toElement();
         parser = XmlSerialization::readParser(re, this);
-        if(parser) qDebug() << Q_FUNC_INFO << parser->id;
     } else {
         qDebug() << Q_FUNC_INFO << "Network error: " << reply->errorString();
     }

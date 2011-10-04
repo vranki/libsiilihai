@@ -396,8 +396,8 @@ void ParserEngine::setState(ParserEngineState newState) {
     // Caution: subscriotion may be null!
     ParserEngineState oldState = currentState;
     currentState = newState;
-    if(subscription())
-        qDebug() << Q_FUNC_INFO << subscription()->alias() << oldState << " -> " << newState;
+//    if(subscription())
+//        qDebug() << Q_FUNC_INFO << subscription()->alias() << oldState << " -> " << newState;
     if(newState==PES_UPDATING) {
         Q_ASSERT(oldState==PES_IDLE || oldState==PES_ERROR);
     }
