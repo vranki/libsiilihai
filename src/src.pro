@@ -2,8 +2,6 @@ TEMPLATE = lib
 VERSION = 1.0.0
 TARGET = siilihai
 
-DESTDIR = .
-
 isEmpty(PREFIX) {
   PREFIX = /usr
 }
