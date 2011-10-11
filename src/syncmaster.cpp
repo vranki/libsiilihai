@@ -72,6 +72,7 @@ void SyncMaster::endSync() {
 }
 
 void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp objects!
+    fdb.checkSanity();
     // Update local subs
     foreach(ForumSubscription *serverSub, subs) {
         ForumSubscription *dbSub = fdb.value(serverSub->parser());
@@ -149,6 +150,8 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
 // Sends the next group in groupsToUpload and download status for
 // next in groupsToDownload
 void SyncMaster::processGroups() {
+    fdb.checkSanity();
+
     if(canceled) return;
     if (groupsToUpload.isEmpty() && groupsToDownload.isEmpty()) {
         emit syncFinished(true, QString::null);

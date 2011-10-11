@@ -87,6 +87,7 @@ void ForumGroup::setSubscribed(bool s) {
     if(s==_subscribed) return;
     _subscribed = s;
     _propertiesChanged = true;
+    subscription()->incrementUnreadCount(-unreadCount());
 }
 
 void ForumGroup::setChangeset(int cs) {
