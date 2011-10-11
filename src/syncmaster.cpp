@@ -199,14 +199,13 @@ void SyncMaster::serverThreadData(ForumThread *tempThread) { // Thread is tempor
         if (dbThread) { // Thread already found, merge it
             dbThread->setChangeset(tempThread->changeset());
         } else { // thread hasn't been found yet!
-            ForumGroup *dbGroup = fdb.value(tempThread->group()->subscription()->parser())->value(
-                        tempThread->group()->id());
+            ForumGroup *dbGroup = fdb.value(tempThread->group()->subscription()->parser())->value(tempThread->group()->id());
             Q_ASSERT(dbGroup);
             Q_ASSERT(!dbGroup->isTemp());
             ForumThread *newThread = new ForumThread(dbGroup, false);
             newThread->copyFrom(tempThread);
             newThread->markToBeUpdated();
-            dbGroup->addThread(newThread);
+            dbGroup->addThread(newThread, false);
             dbThread = newThread;
             // Make sure group will be updated
             dbGroup->markToBeUpdated();
@@ -240,7 +239,7 @@ void SyncMaster::serverMessageData(ForumMessage *tempMessage) { // Temporary obj
             ForumMessage *newMessage = new ForumMessage(dbThread, false);
             newMessage->copyFrom(tempMessage);
             newMessage->setRead(true, false);
-            dbThread->addMessage(newMessage);
+            dbThread->addMessage(newMessage, false);
             dbThread->setLastPage(0); // Mark as 0 to force update of full thread
             newMessage->markToBeUpdated();
             dbThread->commitChanges();

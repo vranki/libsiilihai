@@ -51,7 +51,7 @@ void ForumGroup::addThread(ForumThread* thr, bool affectsSync, bool incrementUnr
 
 void ForumGroup::removeThread(ForumThread* thr, bool affectsSync) {
     Q_ASSERT(thr->group() == this);
-    if(affectsSync) setHasChanged(true);
+    if(affectsSync && (thr->size() - thr->unreadCount()) > 0)  setHasChanged(true);
     int urc = thr->unreadCount();
     incrementUnreadCount(-urc);
     if(isSubscribed())
@@ -100,7 +100,9 @@ void ForumGroup::setHasChanged(bool hc) {
     if(hc==_hasChanged) return;
     _hasChanged = hc;
     _propertiesChanged = true; // @todo should we? this bool goes nowhere
+    emit changed(this);
 }
+
 bool ForumGroup::hasChanged() const {
     return _hasChanged;
 }
