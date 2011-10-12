@@ -23,8 +23,13 @@ QT += core xml network
 
 QT -= gui
 
-CONFIG(debug) {
+debug {
     message(Debug build - enabling sanity checks)
+    DEFINES += SANITY_CHECKS
+}
+
+release {
+    message(Release build - no extra crap)
     DEFINES += SANITY_CHECKS
 }
 
