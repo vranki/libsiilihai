@@ -266,7 +266,7 @@ void ParserEngine::listThreadsFinished(QList<ForumThread*> &tempThreads, ForumGr
             ForumThread *newThread = new ForumThread(group, false);
             newThread->copyFrom(serverThread);
             newThread->setChangeset(-1);
-            group->addThread(newThread);
+            group->addThread(newThread, false);
             threadsToUpdateQueue.enqueue(newThread);
         }
     }

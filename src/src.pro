@@ -2,12 +2,14 @@ TEMPLATE = lib
 VERSION = 1.0.0
 TARGET = siilihai
 
+DESTDIR = .
+
 isEmpty(PREFIX) {
   PREFIX = /usr
 }
 BINDIR = $$PREFIX/bin
 DATADIR = $$PREFIX/share
-INCLUDEDIR = $$PREFIX/include
+INCLUDEDIR = $$PREFIX/include/siilihai
 
 !contains(QMAKE_HOST.arch, x86_64) {
    LIBDIR = $$PREFIX/lib
@@ -21,8 +23,13 @@ QT += core xml network
 
 QT -= gui
 
-CONFIG(debug) {
+debug {
     message(Debug build - enabling sanity checks)
+    DEFINES += SANITY_CHECKS
+}
+
+release {
+    message(Release build - no extra crap)
     DEFINES += SANITY_CHECKS
 }
 

@@ -126,13 +126,13 @@ int ForumThread::lastPage() {
 
 void ForumThread::addMessage(ForumMessage* msg, bool affectsSync) {
     Q_ASSERT(msg->thread() == this);
-    if(!msg->isRead()) {
+    if(msg->isRead()) {
+        if(affectsSync) group()->setHasChanged(true);
+    } else {
         incrementUnreadCount(1);
         group()->incrementUnreadCount(1);
         if(group()->isSubscribed())
             group()->subscription()->incrementUnreadCount(1);
-    } else {
-        if(affectsSync) group()->setHasChanged(true);
     }
     Q_ASSERT(!contains(msg->id()));
     insert(msg->id(), msg);
@@ -151,7 +151,7 @@ void ForumThread::removeMessage(ForumMessage* msg, bool affectsSync) {
         if(group()->isSubscribed())
             group()->subscription()->incrementUnreadCount(-1);
     }
-    if(affectsSync) group()->setHasChanged(true);
+    if(affectsSync && msg->isRead()) group()->setHasChanged(true);
     Q_ASSERT(contains(msg->id()));
     remove(msg->id());
     emit messageRemoved(msg);
