@@ -53,7 +53,8 @@ HEADERS += syncmaster.h \
     updateableitem.h \
     forumdatabasexml.h \
     xmlserialization.h \
-    parsermanager.h
+    parsermanager.h \
+    clientlogic.h
 
 SOURCES += syncmaster.cpp \
     parserreport.cpp \
@@ -75,10 +76,13 @@ SOURCES += syncmaster.cpp \
     updateableitem.cpp \
     forumdatabasexml.cpp \
     xmlserialization.cpp \
-    parsermanager.cpp
+    parsermanager.cpp \
+    clientlogic.cpp
 
 target.path = $$LIBDIR
 INSTALLS += target
 headers.path = $$INCLUDEDIR
 headers.files = $$HEADERS
 INSTALLS += headers
+
+
