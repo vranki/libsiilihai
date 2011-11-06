@@ -421,6 +421,7 @@ void ClientLogic::subscriptionFound(ForumSubscription *sub) {
             this, SLOT(parserEngineStateChanged(ParserEngine *, ParserEngine::ParserEngineState, ParserEngine::ParserEngineState)));
     connect(pe, SIGNAL(updateForumSubscription(ForumSubscription *)), &protocol, SLOT(subscribeForum(ForumSubscription *)));
     if(!pe->parser()) pe->setParser(parserManager->getParser(sub->parser())); // Load the (possibly old) parser
+    Q_ASSERT(sub->parserEngine());
 }
 
 
