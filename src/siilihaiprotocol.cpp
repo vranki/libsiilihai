@@ -83,7 +83,7 @@ QString SiilihaiProtocol::baseURL() {
     return baseUrl;
 }
 
-void SiilihaiProtocol::setBaseURL(QString &bu) {
+void SiilihaiProtocol::setBaseURL(QString bu) {
     baseUrl = bu;
     listParsersUrl = QUrl(baseUrl + "api/forumlist.xml");
     loginUrl = QUrl(baseUrl + "api/login.xml");

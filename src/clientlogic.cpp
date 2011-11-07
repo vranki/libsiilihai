@@ -2,10 +2,10 @@
 #include <time.h>
 #include <QDir>
 #include <QNetworkProxy>
-#include <siilihai/parsermanager.h>
-#include <siilihai/forumsubscription.h>
-#include <siilihai/forumgroup.h>
-#include <siilihai/forumthread.h>
+#include "parsermanager.h"
+#include "forumsubscription.h"
+#include "forumgroup.h"
+#include "forumthread.h"
 
 ClientLogic::ClientLogic(QObject *parent) : QObject(parent), forumDatabase(this), syncmaster(this, forumDatabase, protocol),
     settings(0), parserManager(0)
@@ -14,27 +14,21 @@ ClientLogic::ClientLogic(QObject *parent) : QObject(parent), forumDatabase(this)
     firstRun = true;
     dbStored = false;
     srand ( time(NULL) );
-}
-
-void ClientLogic::launchSiilihai() {
-    settings = new QSettings(getDataFilePath() + "/siilihai_settings.ini", QSettings::IniFormat, this);
-
-    QDir dataDir(getDataFilePath());
-    if(!dataDir.exists()) dataDir.mkpath(getDataFilePath());
-
-    currentState = SH_STARTED;
     // Make sure Siilihai::subscriptionFound is called first to get ParserEngine
     connect(&forumDatabase, SIGNAL(subscriptionFound(ForumSubscription*)), this, SLOT(subscriptionFound(ForumSubscription*)));
     connect(&forumDatabase, SIGNAL(databaseStored()), this, SLOT(databaseStored()), Qt::QueuedConnection);
+    connect(&protocol, SIGNAL(userSettingsReceived(bool,UserSettings*)), this, SLOT(userSettingsReceived(bool,UserSettings*)));
+}
 
-    parserManager = new ParserManager(this, &protocol);
-    parserManager->openDatabase(getDataFilePath() + "/siilihai_parsers.xml");
+void ClientLogic::launchSiilihai() {
+    changeState(SH_STARTED);
+    settings = new QSettings(getDataFilePath() + "/siilihai_settings.ini", QSettings::IniFormat, this);
 
     firstRun = settings->value("first_run", true).toBool();
-
     settings->setValue("first_run", false);
+
     QString proxy = settings->value("preferences/http_proxy", "").toString();
-    if (proxy.length() > 0) {
+    if (!proxy.isEmpty()) {
         QUrl proxyUrl = QUrl(proxy);
         if (proxyUrl.isValid()) {
             QNetworkProxy nproxy(QNetworkProxy::HttpProxy, proxyUrl.host(), proxyUrl.port(0));
@@ -43,13 +37,20 @@ void ClientLogic::launchSiilihai() {
             errorDialog("Warning: http proxy is not valid URL");
         }
     }
-    baseUrl = settings->value("network/baseurl", BASEURL).toString();
+
+    QDir dataDir(getDataFilePath());
+    if(!dataDir.exists()) dataDir.mkpath(getDataFilePath());
+
+    parserManager = new ParserManager(this, &protocol);
+    parserManager->openDatabase(getDataFilePath() + "/siilihai_parsers.xml");
+
     settingsChanged(false);
     connect(&syncmaster, SIGNAL(syncFinished(bool, QString)), this, SLOT(syncFinished(bool, QString)));
 
-    protocol.setBaseURL(baseUrl);
+    protocol.setBaseURL(settings->value("network/baseurl", BASEURL).toString());
 
     QString databaseFileName = getDataFilePath() + "/siilihai_forums.xml";
+
     if(firstRun) {
         forumDatabase.openDatabase(databaseFileName); // Fails
     } else {
@@ -67,11 +68,8 @@ void ClientLogic::launchSiilihai() {
     settings->setValue("forum_database_schema", forumDatabase.schemaVersion());
     settings->sync();
 
-    connect(&protocol, SIGNAL(userSettingsReceived(bool,UserSettings*)), this, SLOT(userSettingsReceived(bool,UserSettings*)));
-
-
 #ifdef Q_WS_HILDON
-    if(settings->value("firstrun", true).toBool()) {
+    if(firstRun) {
         errorDialog("This is beta software\nMaemo version can't connect\n"
                     "to the Internet, so please do it manually before continuing.\n"
                     "The UI is also work in progress. Go to www.siilihai.com for details.");
@@ -79,14 +77,13 @@ void ClientLogic::launchSiilihai() {
     }
 #endif
 
-    if (settings->value("account/username", "").toString() == "") {
+    if (settings->value("account/username", "").toString().isEmpty()) {
         showLoginWizard();
     } else {
         showMainWindow();
         tryLogin();
     }
 }
-
 
 void ClientLogic::haltSiilihai() {
     cancelClicked();

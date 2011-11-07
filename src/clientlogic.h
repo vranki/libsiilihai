@@ -4,10 +4,10 @@
 #include <QObject>
 #include <QSettings>
 
-#include <siilihai/parserengine.h>
-#include <siilihai/forumdatabasexml.h>
-#include <siilihai/syncmaster.h>
-#include <siilihai/usersettings.h>
+#include "parserengine.h"
+#include "forumdatabasexml.h"
+#include "syncmaster.h"
+#include "usersettings.h"
 
 #define BASEURL "http://www.siilihai.com/"
 #define MAX_CONCURRENT_UPDATES 2
@@ -47,20 +47,20 @@ public slots:
     void cancelClicked();
     void syncFinished(bool success, QString message);
     void offlineModeSet(bool newOffline);
+    virtual void subscriptionFound(ForumSubscription* sub);
+    virtual void errorDialog(QString message)=0;
+    virtual void loginFinished(bool success, QString motd, bool sync);
+    virtual void parserEngineStateChanged(ParserEngine *engine, ParserEngine::ParserEngineState newState, ParserEngine::ParserEngineState oldState);
+    virtual void unsubscribeForum(ForumSubscription* fs);
+    virtual void updateGroupSubscriptions(ForumSubscription *sub);
 protected:
     virtual QString getDataFilePath();
-    virtual void errorDialog(QString message)=0;
     virtual void settingsChanged(bool byUser);
     virtual void showLoginWizard()=0;
     virtual void changeState(siilihai_states newState);
     virtual void closeUi()=0;
-    virtual void loginFinished(bool success, QString motd, bool sync);
-    virtual void parserEngineStateChanged(ParserEngine *engine, ParserEngine::ParserEngineState newState, ParserEngine::ParserEngineState oldState);
     virtual void loginWizardFinished();
     virtual void showMainWindow()=0;
-    virtual void subscriptionFound(ForumSubscription* sub);
-    virtual void unsubscribeForum(ForumSubscription* fs);
-    virtual void updateGroupSubscriptions(ForumSubscription *sub);
     QSettings *settings;
     ForumDatabaseXml forumDatabase;
     SiilihaiProtocol protocol;
@@ -85,10 +85,8 @@ private slots:
     void forumLoginFinished(ForumSubscription *sub, bool success);
 private:
     void tryLogin();
-
     QHash <ForumSubscription*, ParserEngine*> engines;
     QList<ForumSubscription*> subscriptionsToUpdateLeft;
-
     UserSettings usettings;
     bool dbStored;
     QNetworkAccessManager nam;
