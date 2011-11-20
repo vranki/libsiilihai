@@ -161,6 +161,7 @@ void ClientLogic::changeState(siilihai_states newState) {
 }
 
 void ClientLogic::updateClicked() {
+    if(currentState != SH_READY) return;
     int parsersUpdating = 0;
     foreach(ParserEngine* engine, engines.values()) {
         if(parsersUpdating <= MAX_CONCURRENT_UPDATES) {
@@ -175,6 +176,8 @@ void ClientLogic::updateClicked() {
 }
 
 void ClientLogic::updateClicked(ForumSubscription* sub , bool force) {
+    if(currentState != SH_READY) return;
+
     Q_ASSERT(engines.contains(sub));
     ParserEngine *engine = engines.value(sub);
     if(engine && engine->state()==ParserEngine::PES_IDLE && currentState != SH_OFFLINE && currentState != SH_STARTED)
@@ -210,43 +213,33 @@ void ClientLogic::offlineModeSet(bool newOffline) {
 }
 
 void ClientLogic::listSubscriptionsFinished(QList<int> serversSubscriptions) {
-    qDebug() << Q_FUNC_INFO << "count of subscribed forums " << serversSubscriptions.size();
-    disconnect(&protocol, SIGNAL(listSubscriptionsFinished(QList<int>)), this,
-               SLOT(listSubscriptionsFinished(QList<int>)));
+    disconnect(&protocol, SIGNAL(listSubscriptionsFinished(QList<int>)), this, SLOT(listSubscriptionsFinished(QList<int>)));
 
     QList<ForumSubscription*> unsubscribedForums;
     foreach(ForumSubscription* sub, forumDatabase.values()) {
         bool found = false;
         foreach(int serverSubscriptionId, serversSubscriptions) {
-            qDebug() << Q_FUNC_INFO << "Server says: subscribed to " << serverSubscriptionId;
             if (serverSubscriptionId == sub->parser())
                 found = true;
         }
         if (!found) {
-            qDebug() << Q_FUNC_INFO << "Server says not subscribed to " << sub->toString();
             unsubscribedForums.append(sub);
         }
     }
     foreach (ForumSubscription *sub, unsubscribedForums) {
-        qDebug() << Q_FUNC_INFO << "Deleting forum " << sub->toString() << "as server says it's not subscribed";
         parserManager->deleteParser(sub->parser());
         forumDatabase.deleteSubscription(sub);
     }
-
 }
 
 
 void ClientLogic::loginFinished(bool success, QString motd, bool sync) {
-    qDebug() << Q_FUNC_INFO << success;
     disconnect(&protocol, SIGNAL(loginFinished(bool, QString,bool)), this, SLOT(loginFinished(bool, QString,bool)));
 
     if (success) {
-        connect(&protocol, SIGNAL(listSubscriptionsFinished(QList<int>)), this,
-                SLOT(listSubscriptionsFinished(QList<int>)));
-        connect(&protocol, SIGNAL(sendParserReportFinished(bool)), this,
-                SLOT(sendParserReportFinished(bool)));
-        connect(&protocol, SIGNAL(subscribeForumFinished(ForumSubscription*, bool)), this,
-                SLOT(subscribeForumFinished(ForumSubscription*,bool)));
+        connect(&protocol, SIGNAL(listSubscriptionsFinished(QList<int>)), this, SLOT(listSubscriptionsFinished(QList<int>)));
+        connect(&protocol, SIGNAL(sendParserReportFinished(bool)), this, SLOT(sendParserReportFinished(bool)));
+        connect(&protocol, SIGNAL(subscribeForumFinished(ForumSubscription*, bool)), this, SLOT(subscribeForumFinished(ForumSubscription*,bool)));
         usettings.setSyncEnabled(sync);
         settings->setValue("preferences/sync_enabled", usettings.syncEnabled());
         settings->sync();
@@ -315,7 +308,6 @@ void ClientLogic::forumUpdated(ForumSubscription* forum) {
 }
 
 void ClientLogic::subscribeForumFinished(ForumSubscription *sub, bool success) {
-    qDebug() << Q_FUNC_INFO << success;
     if (!success) {
         errorDialog("Subscribing to forum failed. Please check network connection.");
         if(forumDatabase.value(sub->parser()))
@@ -324,7 +316,6 @@ void ClientLogic::subscribeForumFinished(ForumSubscription *sub, bool success) {
 }
 
 void ClientLogic::userSettingsReceived(bool success, UserSettings *newSettings) {
-    qDebug() << Q_FUNC_INFO << success;
     if (!success) {
         errorDialog("Getting settings failed. Please check network connection.");
     } else {
@@ -381,9 +372,6 @@ void ClientLogic::databaseStored() {
 
 // Caution - engine->subscription() may be null (when deleted)!
 void ClientLogic::parserEngineStateChanged(ParserEngine *engine, ParserEngine::ParserEngineState newState, ParserEngine::ParserEngineState oldState) {
-//    if(engine->subscription())
-//        emit statusChanged(engine->subscription(), false, -1);
-
     if(newState != ParserEngine::PES_REQUESTING_CREDENTIALS  && currentState==SH_READY && newState == ParserEngine::PES_IDLE && oldState != ParserEngine::PES_UPDATING) {
         if (settings->value("preferences/update_automatically", true).toBool())
             updateClicked(engine->subscription());
@@ -392,7 +380,6 @@ void ClientLogic::parserEngineStateChanged(ParserEngine *engine, ParserEngine::P
 
 void ClientLogic::loginWizardFinished() {
     if (settings->value("account/username", "").toString().length() == 0) {
-        qDebug() << "Settings wizard failed, quitting.";
         haltSiilihai();
     } else {
         showMainWindow();
@@ -421,13 +408,13 @@ void ClientLogic::subscriptionFound(ForumSubscription *sub) {
     Q_ASSERT(sub->parserEngine());
 }
 
-
 void ClientLogic::updateGroupSubscriptions(ForumSubscription *sub) {
     protocol.subscribeGroups(sub);
     engines.value(sub)->updateForum();
 }
 
 void ClientLogic::updateThread(ForumThread* thread, bool force) {
+    if(currentState != SH_READY) return;
     ForumSubscription *sub = thread->group()->subscription();
     Q_ASSERT(sub);
     Q_ASSERT(engines.contains(sub));
@@ -435,10 +422,10 @@ void ClientLogic::updateThread(ForumThread* thread, bool force) {
 }
 
 void ClientLogic::forumLoginFinished(ForumSubscription *sub, bool success) {
-    qDebug() << Q_FUNC_INFO << sub->toString() << success;
     if(!success)
         errorDialog(QString("Login to %1 failed. Please check credentials.").arg(sub->alias()));
 }
+
 void ClientLogic::unsubscribeForum(ForumSubscription* fs) {
     protocol.subscribeForum(fs, true);
     forumDatabase.deleteSubscription(fs);
