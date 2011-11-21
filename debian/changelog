@@ -10,7 +10,7 @@ libsiilihai (1.0.1-1) oneiric; urgency=low
 
  -- Ville Ranki <ville.ranki@iki.fi>  Mon, 17 Oct 2011 12:34:56 +0300
 
- libsiilihai (1.0.1) natty; urgency=low
+libsiilihai (1.0.1) natty; urgency=low
 
    * Fix assert fail when unsubscribed group
    * Fixed unnecessary syncing of all groups
