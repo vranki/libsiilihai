@@ -100,7 +100,7 @@ void ForumGroup::setHasChanged(bool hc) {
     if(hc==_hasChanged) return;
     _hasChanged = hc;
     _propertiesChanged = true; // @todo should we? this bool goes nowhere
-    emit changed(this);
+    emit changed();
 }
 
 bool ForumGroup::hasChanged() const {
@@ -112,11 +112,11 @@ bool ForumGroup::isTemp() {
 }
 
 void ForumGroup::emitChanged() {
-    emit changed(this);
+    emit changed();
 }
 
 void ForumGroup::emitUnreadCountChanged() {
-    emit unreadCountChanged(this);
+    emit unreadCountChanged();
 }
 
 void ForumGroup::markToBeUpdated(bool toBe) {

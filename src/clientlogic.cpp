@@ -431,3 +431,18 @@ void ClientLogic::unsubscribeForum(ForumSubscription* fs) {
     forumDatabase.deleteSubscription(fs);
     parserManager->deleteParser(fs->parser());
 }
+
+void ClientLogic::getAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator) {
+    bool failed = false;
+    QString gname = QString().number(fsub->parser());
+    settings->beginGroup("authentication");
+    if(settings->contains(QString("%1/username").arg(gname))) {
+        authenticator->setUser(settings->value(QString("%1/username").arg(gname)).toString());
+        authenticator->setPassword(settings->value(QString("%1/password").arg(gname)).toString());
+        if(settings->value(QString("authentication/%1/failed").arg(gname)).toString() == "true") failed = true;
+    }
+    settings->endGroup();
+    if(authenticator->user().isNull() || failed) {
+        showCredentialsDialog(fsub, authenticator);
+    }
+}

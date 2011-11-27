@@ -99,42 +99,43 @@ bool ForumSubscription::authenticated() const {
 void ForumSubscription::setParser(int parser) {
     if(parser==_parser) return;
     _parser = parser;
-    emit changed(this);
+    emit changed();
 }
 
 void ForumSubscription::setAlias(QString name) {
     if(_alias==name) return;
     _alias = name;
-    emit changed(this);
+    emit aliasChanged(_alias);
+    emit changed();
 }
 
 void ForumSubscription::setUsername(QString username) {
     if(_username == username) return;
     _username = username;
-    emit changed(this);
+    emit changed();
 }
 void ForumSubscription::setPassword(QString password) {
     if(_password==password) return;
     _password = password;
-    emit changed(this);
+    emit changed();
 }
 
 void ForumSubscription::setLatestThreads(unsigned int lt) {
     if(lt==_latestThreads) return;
     _latestThreads = lt;
-    emit changed(this);
+    emit changed();
 }
 
 void ForumSubscription::setLatestMessages(unsigned int lm) {
     if(lm==_latestMessages) return;
     _latestMessages = lm;
-    emit changed(this);
+    emit changed();
 }
 
 void ForumSubscription::setAuthenticated(bool na) {
     if(na==_authenticated) return;
     _authenticated = na;
-    emit changed(this);
+    emit changed();
 }
 
 int ForumSubscription::unreadCount() const {
@@ -145,7 +146,7 @@ void ForumSubscription::incrementUnreadCount(int urc) {
     if(!urc) return;
     _unreadCount += urc;
     Q_ASSERT(_unreadCount >= 0);
-    emit unreadCountChanged(this);
+    emit unreadCountChanged();
 }
 
 bool ForumSubscription::isTemp() const {
@@ -154,7 +155,7 @@ bool ForumSubscription::isTemp() const {
 
 void ForumSubscription::setParserEngine(ParserEngine *eng) {
     _engine = eng;
-    emit changed(this);
+    emit changed();
 }
 
 ParserEngine *ForumSubscription::parserEngine() const {

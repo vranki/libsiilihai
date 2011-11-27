@@ -22,7 +22,7 @@
 #include "forumparser.h"
 
 /**
-  * Stores ForumParsers in a local sqlite database.
+  * Stores ForumParsers in a local database.
   *
   * @see ForumParser
   */

@@ -57,6 +57,7 @@ protected:
     virtual QString getDataFilePath();
     virtual void settingsChanged(bool byUser);
     virtual void showLoginWizard()=0;
+    virtual void showCredentialsDialog(ForumSubscription *fsub, QAuthenticator * authenticator)=0;
     virtual void changeState(siilihai_states newState);
     virtual void closeUi()=0;
     virtual void loginWizardFinished();
@@ -67,11 +68,13 @@ protected:
     QString baseUrl;
     SyncMaster syncmaster;
     ParserManager *parserManager;
+protected slots:
+    virtual void subscriptionDeleted(QObject* subobj);
+    virtual void getAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator);
 private slots:
     virtual void subscribeForum()=0;
     void listSubscriptionsFinished(QList<int> subscriptions);
     void forumAdded(ForumSubscription *fs);
-    void subscriptionDeleted(QObject* subobj);
     void forumUpdated(ForumSubscription* forumid);
     void subscribeForumFinished(ForumSubscription *sub, bool success);
     void userSettingsReceived(bool success, UserSettings *newSettings);
