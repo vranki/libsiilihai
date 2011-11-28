@@ -54,7 +54,8 @@ HEADERS += syncmaster.h \
     forumdatabasexml.h \
     xmlserialization.h \
     parsermanager.h \
-    clientlogic.h
+    clientlogic.h \
+    messageformatting.h
 
 SOURCES += syncmaster.cpp \
     parserreport.cpp \
@@ -77,7 +78,8 @@ SOURCES += syncmaster.cpp \
     forumdatabasexml.cpp \
     xmlserialization.cpp \
     parsermanager.cpp \
-    clientlogic.cpp
+    clientlogic.cpp \
+    messageformatting.cpp
 
 target.path = $$LIBDIR
 INSTALLS += target
