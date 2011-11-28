@@ -19,6 +19,7 @@ public:
     void setName(QString name);
     void setId(QString id);
     QString name() const;
+    virtual QString displayName() const; // Get human-readable name in plain text
     QString id() const;
     int unreadCount() const;
     virtual void incrementUnreadCount(int urc);

@@ -16,6 +16,7 @@
 #include "forumgroup.h"
 #include "forumthread.h"
 #include "forumsubscription.h"
+#include "messageformatting.h"
 
 ForumMessage::~ForumMessage() {
 }
@@ -71,6 +72,21 @@ QString ForumMessage::author() const { return _author; }
 
 QString ForumMessage::body() const { return _body; }
 bool ForumMessage::isRead() const { return _read; }
+
+QString ForumMessage::displayName() const {
+    QString subj;
+    if(thread()) {
+        if(name().length() > thread()->name().length()) {
+            subj = name();
+        } else {
+            subj = thread()->name();
+        }
+    } else {
+        subj = name();
+    }
+    if(ordernum() > 0) subj = "Re: " + subj;
+    return MessageFormatting::sanitize(subj);
+}
 
 void ForumMessage::setOrdernum(int nod) {
     if(nod == _ordernum) return;

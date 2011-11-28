@@ -40,6 +40,7 @@ public:
     QString url() const;
     QString author() const;
     QString body() const;
+    virtual QString displayName() const;
     bool isRead() const;
     void setOrdernum(int nod);
     void setUrl(QString nurl);

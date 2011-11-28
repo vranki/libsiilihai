@@ -1,4 +1,5 @@
 #include "forumdataitem.h"
+#include "messageformatting.h"
 
 ForumDataItem::ForumDataItem(QObject * parent) : QObject(parent), UpdateableItem()
 {
@@ -25,6 +26,11 @@ void ForumDataItem::setName(QString name) {
 
 QString ForumDataItem::name() const {
     return _name;
+}
+
+QString ForumDataItem::displayName() const {
+    QString dn = name();
+    return MessageFormatting::sanitize(dn);
 }
 
 QString ForumDataItem::lastchange() const {
