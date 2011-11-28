@@ -53,7 +53,7 @@ public:
     virtual ~SiilihaiProtocol();
     void login(QString user, QString pass);
     void registerUser(QString user, QString pass, QString email, bool sync);
-    void setBaseURL(QString &bu);
+    void setBaseURL(QString bu);
     QString baseURL();
     void listParsers();
     void listRequests();

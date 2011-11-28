@@ -2,8 +2,6 @@ TEMPLATE = lib
 VERSION = 1.0.0
 TARGET = siilihai
 
-DESTDIR = .
-
 isEmpty(PREFIX) {
   PREFIX = /usr
 }
@@ -53,7 +51,9 @@ HEADERS += siilihai/syncmaster.h \
     siilihai/updateableitem.h \
     siilihai/forumdatabasexml.h \
     siilihai/xmlserialization.h \
-    siilihai/parsermanager.h
+    siilihai/parsermanager.h \
+    siilihai/clientlogic.h \
+    siilihai/messageformatting.h
 
 SOURCES += siilihai/syncmaster.cpp \
     siilihai/parserreport.cpp \
@@ -75,10 +75,14 @@ SOURCES += siilihai/syncmaster.cpp \
     siilihai/updateableitem.cpp \
     siilihai/forumdatabasexml.cpp \
     siilihai/xmlserialization.cpp \
-    siilihai/parsermanager.cpp
+    siilihai/parsermanager.cpp \
+    siilihai/clientlogic.cpp \
+    siilihai/messageformatting.cpp
 
 target.path = $$LIBDIR
 INSTALLS += target
 headers.path = $$INCLUDEDIR
 headers.files = $$HEADERS
 INSTALLS += headers
+
+

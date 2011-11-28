@@ -119,7 +119,7 @@ bool ForumMessage::isTemp() {
 }
 
 void ForumMessage::emitChanged() {
-    emit changed(this);
+    emit changed();
 }
 
 void ForumMessage::emitUnreadCountChanged() {

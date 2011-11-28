@@ -107,11 +107,11 @@ bool ForumThread::isTemp() {
 }
 
 void ForumThread::emitChanged() {
-    emit changed(this);
+    emit changed();
 }
 
 void ForumThread::emitUnreadCountChanged() {
-    emit unreadCountChanged(this);
+    emit unreadCountChanged();
 }
 
 void ForumThread::setLastPage(int lp) {

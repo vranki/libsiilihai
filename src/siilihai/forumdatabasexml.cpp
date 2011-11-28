@@ -44,7 +44,6 @@ bool ForumDatabaseXml::openDatabase(QIODevice *source) {
     if(docElem.tagName() != "forumdatabase") return false;
     QDomElement subscriptionElement = docElem.firstChildElement(SUB_SUBSCRIPTION);
     while(!subscriptionElement.isNull()) {
-        qDebug() << qPrintable(subscriptionElement.tagName()); // the node really is an element.
         ForumSubscription *sub = XmlSerialization::readSubscription(subscriptionElement, this);
         if(sub) {
             insert(sub->parser(), sub);

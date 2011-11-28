@@ -25,6 +25,9 @@ class ForumThread;
   */
 class ForumMessage : public ForumDataItem {
     Q_OBJECT
+
+    Q_PROPERTY(QString name READ name WRITE setName NOTIFY changed)
+    Q_PROPERTY(QString id READ id WRITE setId NOTIFY changed)
 public:
     virtual ~ForumMessage();
     ForumMessage(ForumThread *thr, bool temp=true);
@@ -46,7 +49,7 @@ public:
     bool isTemp();
     virtual void markToBeUpdated(bool toBe=true);
 signals:
-    void changed(ForumMessage * fm);
+    void changed();
     void markedRead(ForumMessage * fm, bool read);
 protected:
     virtual void emitChanged();

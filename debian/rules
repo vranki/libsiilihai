@@ -3,9 +3,9 @@ APPNAME := libsiilihai
 
 # build with DEB_BUILD_OPTIONS=debug to get debug version
 ifeq (debug,$(DEB_BUILD_OPTIONS))
-	CONFIG = 
+	DEBUG = release
 else
-	CONFIG = debug
+	DEBUG = debug
 endif
 
 build: build-stamp
@@ -14,7 +14,7 @@ build-stamp:
 	echo $(DEB_BUILD_OPTIONS)
 	dh_testdir
 	# Add here commands to compile the package.
-	qmake "CONFIG-=$(CONFIG)" PREFIX=/usr -recursive 
+	qmake PREFIX=/usr -recursive "CONFIG-=$(DEBUG)"
 	$(MAKE)
 	touch $@
 

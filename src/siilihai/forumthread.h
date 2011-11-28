@@ -31,6 +31,10 @@ class ForumGroup;
   */
 class ForumThread : public ForumDataItem, public QMap<QString, ForumMessage*> {
     Q_OBJECT
+
+    Q_PROPERTY(QString name READ name WRITE setName NOTIFY changed)
+    Q_PROPERTY(QString id READ id WRITE setId NOTIFY changed)
+    Q_PROPERTY(int unreadCount READ unreadCount() NOTIFY unreadCountChanged)
 public:
     ForumThread(ForumGroup *grp, bool temp=true);
     virtual ~ForumThread();
@@ -55,8 +59,8 @@ public:
     virtual bool needsToBeUpdated() const;
     virtual void markToBeUpdated(bool toBe=true);
 signals:
-    void changed(ForumThread *thr);
-    void unreadCountChanged(ForumThread *thr);
+    void changed();
+    void unreadCountChanged();
     void messageRemoved(ForumMessage *msg);
     void messageAdded(ForumMessage *msg);
 protected:

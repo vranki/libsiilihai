@@ -32,7 +32,9 @@ class ParserEngine;
   */
 class ForumSubscription : public QObject, public QMap<QString, ForumGroup*>, public UpdateableItem  {
     Q_OBJECT
-
+    Q_PROPERTY(QString alias READ alias WRITE setAlias NOTIFY changed)
+    Q_PROPERTY(int parser READ parser WRITE setParser NOTIFY changed)
+    Q_PROPERTY(int unreadCount READ unreadCount() NOTIFY unreadCountChanged)
 public:
     ForumSubscription(QObject *parent=0, bool temp=true);
     void copyFrom(ForumSubscription * o);
@@ -65,11 +67,11 @@ public:
     bool hasGroupListChanged() const;
     void markRead(bool read=true);
  signals:
-    void changed(ForumSubscription *s);
-    void unreadCountChanged(ForumSubscription *s);
+    void changed();
+    void unreadCountChanged();
     void groupRemoved(ForumGroup *grp);
     void groupAdded(ForumGroup *grp);
-
+    void aliasChanged(QString alias);
 private:
     Q_DISABLE_COPY(ForumSubscription)
 
