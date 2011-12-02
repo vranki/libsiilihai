@@ -53,6 +53,7 @@ public slots:
     virtual void parserEngineStateChanged(ParserEngine *engine, ParserEngine::ParserEngineState newState, ParserEngine::ParserEngineState oldState);
     virtual void unsubscribeForum(ForumSubscription* fs);
     virtual void updateGroupSubscriptions(ForumSubscription *sub);
+
 protected:
     virtual QString getDataFilePath();
     virtual void settingsChanged(bool byUser);
@@ -72,6 +73,7 @@ protected slots:
     virtual void subscriptionDeleted(QObject* subobj);
     virtual void getAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator);
     void forumAdded(ForumSubscription *fs);
+    virtual void showSubscribeGroup(ForumSubscription* forum) {};
 private slots:
     virtual void subscribeForum()=0;
     void listSubscriptionsFinished(QList<int> subscriptions);

@@ -30,8 +30,8 @@ class ForumGroup : public ForumDataItem, public QMap<QString, ForumThread*> {
 
     Q_PROPERTY(QString name READ name WRITE setName NOTIFY changed)
     Q_PROPERTY(QString id READ id WRITE setId NOTIFY changed)
-    Q_PROPERTY(int unreadCount READ unreadCount() NOTIFY unreadCountChanged)
-
+    Q_PROPERTY(int unreadCount READ unreadCount NOTIFY unreadCountChanged)
+    Q_PROPERTY(bool isSubscribed READ isSubscribed WRITE setSubscribed NOTIFY changed)
 public:
     ForumGroup(ForumSubscription *sub, bool temp=true);
     virtual ~ForumGroup();
