@@ -26,8 +26,12 @@ class ForumThread;
 class ForumMessage : public ForumDataItem {
     Q_OBJECT
 
+    Q_PROPERTY(QString displayName READ displayName NOTIFY changed)
     Q_PROPERTY(QString name READ name WRITE setName NOTIFY changed)
     Q_PROPERTY(QString id READ id WRITE setId NOTIFY changed)
+    Q_PROPERTY(QString body READ body WRITE setBody NOTIFY changed)
+    Q_PROPERTY(bool isRead READ isRead WRITE setRead NOTIFY markedRead)
+    Q_PROPERTY(QString author READ author WRITE setAuthor NOTIFY changed)
 public:
     virtual ~ForumMessage();
     ForumMessage(ForumThread *thr, bool temp=true);
