@@ -44,7 +44,7 @@ bool ParserDatabase::openDatabase(QIODevice *source) {
     while(!parserElement.isNull()) {
         ForumParser *parser = XmlSerialization::readParser(parserElement, this);
         if(parser) {
-            insert(parser->id, parser);
+            insert(parser->id(), parser);
         }
         parserElement = parserElement.nextSiblingElement("parser");
     }

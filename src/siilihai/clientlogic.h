@@ -71,10 +71,10 @@ protected:
 protected slots:
     virtual void subscriptionDeleted(QObject* subobj);
     virtual void getAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator);
+    void forumAdded(ForumSubscription *fs);
 private slots:
     virtual void subscribeForum()=0;
     void listSubscriptionsFinished(QList<int> subscriptions);
-    void forumAdded(ForumSubscription *fs);
     void forumUpdated(ForumSubscription* forumid);
     void subscribeForumFinished(ForumSubscription *sub, bool success);
     void userSettingsReceived(bool success, UserSettings *newSettings);

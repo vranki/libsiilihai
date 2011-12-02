@@ -178,8 +178,8 @@ ForumParser *XmlSerialization::readParser(QDomElement &element, QObject *parent)
     if(element.tagName() != "parser") return 0;
     ForumParser *parser = new ForumParser(parent);
 
-    parser->id = element.firstChildElement("id").text().toInt();
-    parser->parser_name = element.firstChildElement("parser_name").text();
+    parser->setId(element.firstChildElement("id").text().toInt());
+    parser->setName(element.firstChildElement("name").text());
     parser->forum_url = element.firstChildElement("forum_url").text();
     parser->parser_status = element.firstChildElement("status").text().toInt();
     parser->thread_list_path = element.firstChildElement("thread_list_path").text();
@@ -206,17 +206,13 @@ ForumParser *XmlSerialization::readParser(QDomElement &element, QObject *parent)
     parser->posting_parameters = element.firstChildElement("posting_parameters").text();
     parser->posting_hints = element.firstChildElement("posting_hints").text();
 
-    // @todo remove later
-    if(parser->parser_name.isNull())
-        parser->parser_name = element.firstChildElement("name").text();
-
     return parser;
 }
 
 void XmlSerialization::serialize(ForumParser *p, QDomElement &parent, QDomDocument &doc) {
     QDomElement newElement = doc.createElement("parser");
-    appendValue("id", QString::number(p->id), newElement, doc);
-    appendValue("parser_name", p->parser_name, newElement, doc);
+    appendValue("id", QString::number(p->id()), newElement, doc);
+    appendValue("name", p->name(), newElement, doc);
     appendValue("forum_url", p->forum_url, newElement, doc);
     appendValue("status", QString::number(p->parser_status), newElement, doc);
     appendValue("thread_list_path", p->thread_list_path, newElement, doc);

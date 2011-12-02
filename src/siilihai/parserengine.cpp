@@ -68,7 +68,9 @@ void ParserEngine::setSubscription(ForumSubscription *fs) {
 }
 
 void ParserEngine::updateForum(bool force) {
-    if(!currentParser->isSane()) qDebug() << Q_FUNC_INFO << "Warning: Parser not sane!";
+    if(!currentParser->isSane()) {
+        qDebug() << Q_FUNC_INFO << "Warning: Parser not sane!";
+    }
     Q_ASSERT(fsubscription);
 
     forceUpdate = force;
@@ -154,7 +156,7 @@ void ParserEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups) {
     groupsToUpdateQueue.clear();
     fsubscription->markToBeUpdated(false);
     if (tempGroups.size() == 0 && fsubscription->size() > 0) {
-        emit updateFailure(fsubscription, "Updating group list for " + currentParser->parser_name
+        emit updateFailure(fsubscription, "Updating group list for " + currentParser->name()
                            + " failed. \nCheck your network connection.");
         setState(PES_ERROR);
         return;
@@ -426,7 +428,7 @@ ForumParser *ParserEngine::parser() {
 
 void ParserEngine::parserUpdated(ForumParser *p) {
     Q_ASSERT(p);
-    if(subscription()->parser() == p->id) {
+    if(subscription()->parser() == p->id()) {
         qDebug() << Q_FUNC_INFO;
         setParser(p);
     }

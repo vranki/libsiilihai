@@ -52,7 +52,6 @@ public:
     SiilihaiProtocol(QObject *parent = 0);
     virtual ~SiilihaiProtocol();
     void login(QString user, QString pass);
-    void registerUser(QString user, QString pass, QString email, bool sync);
     void setBaseURL(QString bu);
     QString baseURL();
     void listParsers();
@@ -72,6 +71,10 @@ public:
 
     bool isLoggedIn();
 public slots:
+    /**
+      * replyLogin is emitted after registration.
+      */
+    void registerUser(QString user, QString pass, QString email, bool sync);
     void subscribeForum(ForumSubscription *fs, bool unsubscribe = false);
     void sendParserReport(ParserReport *pr);
 

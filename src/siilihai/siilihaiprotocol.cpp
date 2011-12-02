@@ -175,9 +175,9 @@ void SiilihaiProtocol::replyListParsers(QNetworkReply *reply) {
             ForumParser *parser = XmlSerialization::readParser(n, this);
             /*
             ForumParser *parser = new ForumParser(this);
-            parser->id = QString(n.firstChildElement("id").text()).toInt();
+            parser->id() = QString(n.firstChildElement("id").text()).toInt();
             parser->forum_url = n.firstChildElement("forum_url").text();
-            parser->parser_name = n.firstChildElement("name").text();
+            parser->name() = n.firstChildElement("name").text();
             parser->parser_status = QString(n.firstChildElement("status").text()).toInt();
             parser->parser_type = QString(n.firstChildElement("parser_type").text()).toInt();
             */
@@ -361,8 +361,8 @@ void SiilihaiProtocol::saveParser(const ForumParser *parser) {
     // @todo save as XML
     QNetworkRequest req(saveParserUrl);
     QHash<QString, QString> params;
-    params.insert("id", QString().number(parser->id));
-    params.insert("parser_name", parser->parser_name);
+    params.insert("id", QString().number(parser->id()));
+    params.insert("parser_name", parser->name());
     params.insert("forum_url", parser->forum_url);
     params.insert("parser_status", QString().number(parser->parser_status));
     params.insert("thread_list_path", parser->thread_list_path);

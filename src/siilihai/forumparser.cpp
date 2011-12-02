@@ -15,7 +15,7 @@
 #include "forumparser.h"
 
 ForumParser::ForumParser(QObject *parent) : QObject(parent){
-    id = -1;
+    _id = -1;
     thread_list_page_start = 0;
     thread_list_page_increment = 0;
     view_thread_page_start = 0;
@@ -27,8 +27,8 @@ ForumParser::ForumParser(QObject *parent) : QObject(parent){
 }
 
 ForumParser &ForumParser::operator=(const ForumParser& o) {
-    id = o.id;
-    parser_name = o.parser_name;
+    setId(o.id());
+    setName(o.name());
     forum_url = o.forum_url;
     thread_list_path = o.thread_list_path;
     view_thread_path = o.view_thread_path;
@@ -65,16 +65,16 @@ ForumParser::~ForumParser() {
 }
 
 QString ForumParser::toString() {
-    return QString().number(id) + ": " + parser_name;
+    return QString().number(id()) + ": " + name();
 }
 
 bool ForumParser::isSane() const {
-    return mayWork() && id > 0;
+    return mayWork() && id() > 0;
 }
 
 bool ForumParser::mayWork() const {
     // @todo check all required fields
-    return parser_name.length() > 3 && forum_url.length() >4 && thread_list_path.length() > 2;
+    return name().length() > 3 && forum_url.length() >4 && thread_list_path.length() > 2;
 }
 
 QString ForumParser::forumUrlWithoutEnd() const {
@@ -100,4 +100,22 @@ bool ForumParser::supportsMessageUrl() const {
 
 bool ForumParser::supportsLogin() const {
     return (login_path.length() > 0 && login_type > 0);
+}
+
+QString ForumParser::name() const {
+    return _parser_name;
+}
+
+void ForumParser::setName(QString name) {
+    _parser_name = name;
+    emit changed();
+}
+
+int ForumParser::id() const {
+    return _id;
+}
+
+void ForumParser::setId(int id) {
+    _id = id;
+    emit changed();
 }

@@ -34,12 +34,12 @@ void ParserManager::storeOrUpdateParser(ForumParser* parser) {
         updateParser(parsersToUpdate.takeFirst());
     }
     if(!parser) return;
-    ForumParser *newParser = parserDatabase->value(parser->id);
+    ForumParser *newParser = parserDatabase->value(parser->id());
     if(!newParser) newParser = new ForumParser(parserDatabase);
     (*newParser) = (*parser);
     Q_ASSERT(newParser != parser);
-    Q_ASSERT(newParser->id == parser->id);
-    parserDatabase->insert(newParser->id, newParser);
+    Q_ASSERT(newParser->id() == parser->id());
+    parserDatabase->insert(newParser->id(), newParser);
     emit parserUpdated(newParser);
 }
 

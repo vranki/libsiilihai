@@ -26,6 +26,8 @@
 class ForumParser : public QObject {
     Q_OBJECT
 public:
+    Q_PROPERTY(QString name READ name WRITE setName NOTIFY changed)
+    Q_PROPERTY(int id READ id WRITE setId NOTIFY changed)
     enum ForumLoginType { LoginTypeNotSupported=0, LoginTypeHttpPost=1, LoginTypeHttpAuth=2 };
 
     ForumParser(QObject *parent=0);
@@ -40,9 +42,15 @@ public:
     bool supportsMessagePages() const;
     bool supportsMessageUrl() const;
     bool supportsLogin() const;
+    QString name() const;
+    void setName(QString name);
+    int id() const;
+    void setId(int id);
+
+signals:
+    void changed();
     // @todo these _should_ be private and have getters&setters
-    int id;
-    QString parser_name;
+public:
     QString forum_url;
     QString thread_list_path;
     QString view_thread_path;
@@ -73,6 +81,8 @@ public:
     QString reply_message;
     QString reply_parameters;
 private:
+    int _id;
+    QString _parser_name;
 };
 
 #endif /* FORUMPARSER_H_ */
