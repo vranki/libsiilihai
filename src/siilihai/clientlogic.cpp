@@ -7,6 +7,7 @@
 #include "forumgroup.h"
 #include "forumthread.h"
 #include "credentialsrequest.h"
+#include "forumparser.h"
 
 ClientLogic::ClientLogic(QObject *parent) : QObject(parent), forumDatabase(this), syncmaster(this, forumDatabase, protocol),
     settings(0), parserManager(0), currentCredentialsRequest(0)
@@ -373,20 +374,10 @@ void ClientLogic::databaseStored() {
 
 // Caution - engine->subscription() may be null (when deleted)!
 void ClientLogic::parserEngineStateChanged(ParserEngine *engine, ParserEngine::ParserEngineState newState, ParserEngine::ParserEngineState oldState) {
-    if(/*newState != ParserEngine::PES_REQUESTING_CREDENTIALS  &&*/ currentState==SH_READY && newState == ParserEngine::PES_IDLE && oldState != ParserEngine::PES_UPDATING) {
+    if(currentState==SH_READY && newState == ParserEngine::PES_IDLE && oldState != ParserEngine::PES_UPDATING) {
         if (settings->value("preferences/update_automatically", true).toBool())
             updateClicked(engine->subscription());
-    }/* else if(newState == ParserEngine::PES_REQUESTING_CREDENTIALS) {
-
-        ForumSubscription *sub = engine->subscription();
-        QAuthenticator *authenticator = new QAuthenticator();
-        CredentialsDialog *creds = new CredentialsDialog(mainWin, sub, authenticator, settings);
-        connect(creds, SIGNAL(credentialsEntered(QAuthenticator*)), engine, SLOT(credentialsEntered(QAuthenticator*)));
-        creds->setModal(false);
-        creds->show();
-
     }
-    */
 }
 
 void ClientLogic::loginWizardFinished() {
@@ -482,15 +473,33 @@ void ClientLogic::showNextCredentialsDialog() {
     Q_ASSERT(!currentCredentialsRequest);
     if(credentialsRequests.isEmpty()) return;
     currentCredentialsRequest = credentialsRequests.takeFirst();
-    connect(currentCredentialsRequest, SIGNAL(credentialsEntered()), this, SLOT(credentialsEntered()));
+    connect(currentCredentialsRequest, SIGNAL(credentialsEntered(bool)), this, SLOT(credentialsEntered(bool)));
     showCredentialsDialog(currentCredentialsRequest);
 }
 
-void ClientLogic::credentialsEntered() {
-    qDebug() << Q_FUNC_INFO;
+void ClientLogic::credentialsEntered(bool store) {
     CredentialsRequest *cr = qobject_cast<CredentialsRequest*>(sender());
     Q_ASSERT(cr==currentCredentialsRequest);
     Q_ASSERT(engines.value(currentCredentialsRequest->subscription));
+    qDebug() << Q_FUNC_INFO << store << currentCredentialsRequest->authenticator.user();
+    if(store) {
+        ForumParser::ForumLoginType loginType = parserManager->getParser(currentCredentialsRequest->subscription->parser())->login_type;
+        if(loginType == ForumParser::LoginTypeHttpAuth) {
+            qDebug() << Q_FUNC_INFO << "storing into settings";
+            settings->beginGroup("authentication");
+            settings->beginGroup(QString::number(currentCredentialsRequest->subscription->parser()));
+            settings->setValue("username", currentCredentialsRequest->authenticator.user());
+            settings->setValue("password", currentCredentialsRequest->authenticator.password());
+            settings->setValue("failed", "false");
+            settings->endGroup();
+            settings->endGroup();
+            settings->sync();
+        } else if(loginType == ForumParser::LoginTypeHttpPost) {
+            qDebug() << Q_FUNC_INFO << "storing into subscription";
+            currentCredentialsRequest->subscription->setUsername(currentCredentialsRequest->authenticator.user());
+            currentCredentialsRequest->subscription->setPassword(currentCredentialsRequest->authenticator.password());
+        }
+    }
     ParserEngine *engine = engines.value(currentCredentialsRequest->subscription);
     engine->credentialsEntered(currentCredentialsRequest);
     currentCredentialsRequest->deleteLater();

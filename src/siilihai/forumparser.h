@@ -28,6 +28,7 @@ class ForumParser : public QObject {
 public:
     Q_PROPERTY(QString name READ name WRITE setName NOTIFY changed)
     Q_PROPERTY(int id READ id WRITE setId NOTIFY changed)
+    Q_PROPERTY(bool supportsLogin READ supportsLogin NOTIFY changed)
     enum ForumLoginType { LoginTypeNotSupported=0, LoginTypeHttpPost=1, LoginTypeHttpAuth=2 };
 
     ForumParser(QObject *parent=0);

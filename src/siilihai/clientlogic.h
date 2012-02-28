@@ -92,7 +92,9 @@ private slots:
     void databaseStored();
     void updateThread(ForumThread* thread, bool force=false);
     void forumLoginFinished(ForumSubscription *sub, bool success);
-    void credentialsEntered(); // from CredentialsRequest
+    void credentialsEntered(bool store); // from CredentialsRequest
+protected:
+    CredentialsRequest* currentCredentialsRequest; // If being asked
 private:
     void tryLogin();
     void showNextCredentialsDialog();
@@ -104,7 +106,6 @@ private:
     bool endSyncDone;
     bool firstRun;
     QQueue<CredentialsRequest*> credentialsRequests;
-    CredentialsRequest* currentCredentialsRequest; // If being asked
 };
 
 #endif // CLIENTLOGIC_H

@@ -18,9 +18,9 @@ public:
     } credentialType;
     QAuthenticator authenticator;
     ForumSubscription *subscription;
-    void signalCredentialsEntered();
+    void signalCredentialsEntered(bool store);
 signals:
-    void credentialsEntered();
+    void credentialsEntered(bool store);
 };
 
 #endif // CREDENTIALSREQUEST_H

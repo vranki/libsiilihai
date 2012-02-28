@@ -13,6 +13,7 @@
     You should have received a copy of the GNU Lesser General Public License
     along with libSiilihai.  If not, see <http://www.gnu.org/licenses/>. */
 #include "forumparser.h"
+#include <QDebug>
 
 ForumParser::ForumParser(QObject *parent) : QObject(parent){
     _id = -1;
@@ -58,6 +59,7 @@ ForumParser &ForumParser::operator=(const ForumParser& o) {
     reply_subject = o.reply_subject;
     reply_message = o.reply_message;
     reply_parameters = o.reply_parameters;
+    emit changed();
     return *this;
 }
 

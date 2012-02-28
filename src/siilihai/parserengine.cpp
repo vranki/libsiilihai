@@ -154,6 +154,7 @@ void ParserEngine::updateNextChangedThread() {
 }
 
 void ParserEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups) {
+    if(!fsubscription) return;
     bool dbGroupsWasEmpty = fsubscription->isEmpty();
     groupsToUpdateQueue.clear();
     fsubscription->markToBeUpdated(false);
@@ -364,7 +365,7 @@ void ParserEngine::updateCurrentProgress() {
 }
 
 void ParserEngine::cancelOperation() {
-    if(currentState==PES_IDLE) return;
+    if(currentState==PES_IDLE || currentState==PES_ERROR) return;
     updateAll = false;
     session.cancelOperation();
     groupsToUpdateQueue.clear();
@@ -397,11 +398,13 @@ QNetworkAccessManager * ParserEngine::networkAccessManager() {
 
 void ParserEngine::setState(ParserEngineState newState) {
     if(newState == currentState) return;
-    // Caution: subscriotion may be null!
     ParserEngineState oldState = currentState;
     currentState = newState;
-//    if(subscription())
-    qDebug() << Q_FUNC_INFO << subscription()->alias() << oldState << " -> " << newState;
+
+    // Caution: subscriotion may be null!
+    if(subscription())
+        qDebug() << Q_FUNC_INFO << subscription()->alias() << oldState << " -> " << newState;
+    //
     if(newState==PES_UPDATING) {
         Q_ASSERT(oldState==PES_IDLE || oldState==PES_ERROR);
     }
@@ -419,8 +422,10 @@ void ParserEngine::setState(ParserEngineState newState) {
         } // Else state changes to requesting, and Siilihai tries to provide creds.
     }
     */
-    if(subscription()->authenticated() && subscription()->username().isEmpty() && !requestingCredentials) {
-        qDebug() << Q_FUNC_INFO << "Parser " << subscription()->alias() << "requires authentication. Asking for it.";
+    if(subscription() && subscription()->authenticated()
+            && subscription()->username().isEmpty()
+            && !requestingCredentials) {
+        qDebug() << Q_FUNC_INFO << "Parser " << subscription()->alias() << "requires authentication. Asking for it. U:" << subscription()->username();
         requestingCredentials = true;
         emit getForumAuthentication(subscription());
     }
