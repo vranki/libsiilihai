@@ -31,6 +31,7 @@ ForumSession::ForumSession(QObject *parent, QNetworkAccessManager *n) : QObject(
     cookieFetched = false;
     cookieExpiredTimer.setSingleShot(true);
     cookieExpiredTimer.setInterval(10*60*1000);
+    waitingForAuthentication = false;
     connect(&cookieExpiredTimer, SIGNAL(timeout()), this, SLOT(cookieExpired()));
     connect(nam, SIGNAL(authenticationRequired(QNetworkReply *, QAuthenticator *)),
             this, SLOT(authenticationRequired(QNetworkReply *, QAuthenticator *)), Qt::UniqueConnection);
@@ -58,6 +59,10 @@ void ForumSession::networkReply(QNetworkReply *reply) {
     if(forumId != fsub->parser()) return;
     if(!operationAttribute) {
         qDebug( ) << Q_FUNC_INFO << "Reply " << operationAttribute << " not for me";
+        return;
+    }
+    if(waitingForAuthentication) {
+        qDebug( ) << Q_FUNC_INFO << "Waiting for authentication - ignoring this reply";
         return;
     }
     if(operationAttribute==FSONoOp) {
@@ -141,33 +146,6 @@ void ForumSession::performListGroups(QString &html) {
     qDeleteAll(groups);
 }
 
-
-void ForumSession::fetchCookieReply(QNetworkReply *reply) {
-    if(operationInProgress == FSONoOp) return;
-
-    qDebug() << Q_FUNC_INFO;
-    //  qDebug() << statusReport();
-
-    if (reply->error() != QNetworkReply::NoError) {
-        qDebug() << Q_FUNC_INFO << reply->errorString();
-        emit(networkFailure(reply->errorString()));
-        cancelOperation();
-        return;
-    }
-    if (operationInProgress == FSONoOp)
-        return;
-    /*
- QList<QNetworkCookie> cookies = cookieJar->cookiesForUrl(QUrl(
-   fpar->forum_url));
- for (int i = 0; i < cookies.size(); i++) {
-  qDebug() << "\t" << cookies[i].name();
- }
- */
-    cookieFetched = true;
-    cookieExpiredTimer.start();
-    nextOperation();
-}
-
 void ForumSession::loginToForum() {
     qDebug() << Q_FUNC_INFO;
 
@@ -226,18 +204,18 @@ void ForumSession::loginReply(QNetworkReply *reply) {
 }
 
 void ForumSession::performLogin(QString &html) {
-    qDebug() << Q_FUNC_INFO << " looking for " << fpar->verify_login_pattern;
+//    qDebug() << Q_FUNC_INFO << " looking for " << fpar->verify_login_pattern;
     emit receivedHtml(html);
     bool success = html.contains(fpar->verify_login_pattern);
-    if(success)
-        qDebug() << "found in html at " << html.indexOf(fpar->verify_login_pattern);
+//    if(success)
+//        qDebug() << Q_FUNC_INFO << "found in html at " << html.indexOf(fpar->verify_login_pattern);
     emit loginFinished(fsub, success);
     loggedIn = success;
     if(loggedIn) {
         nextOperation();
     } else {
         cancelOperation();
-        qDebug() << "Login failed - cancelling ops!";
+        qDebug() << Q_FUNC_INFO << "Login failed - cancelling ops!";
     }
 }
 
@@ -251,6 +229,32 @@ void ForumSession::fetchCookie() {
     nam->post(req, emptyData);
 }
 
+
+void ForumSession::fetchCookieReply(QNetworkReply *reply) {
+    if(operationInProgress == FSONoOp) return;
+
+    qDebug() << Q_FUNC_INFO;
+    //  qDebug() << statusReport();
+
+    if (reply->error() != QNetworkReply::NoError) {
+        qDebug() << Q_FUNC_INFO << reply->errorString();
+        emit(networkFailure(reply->errorString()));
+        cancelOperation();
+        return;
+    }
+    if (operationInProgress == FSONoOp)
+        return;
+    /*
+ QList<QNetworkCookie> cookies = cookieJar->cookiesForUrl(QUrl(
+   fpar->forum_url));
+ for (int i = 0; i < cookies.size(); i++) {
+  qDebug() << "\t" << cookies[i].name();
+ }
+ */
+    cookieFetched = true;
+    cookieExpiredTimer.start();
+    nextOperation();
+}
 void ForumSession::listThreadsOnNextPage() {
     Q_ASSERT(operationInProgress==FSOListThreads);
     if (operationInProgress != FSOListThreads)
@@ -561,6 +565,7 @@ void ForumSession::cancelOperation() {
     threads.clear();
     currentGroup = 0;
     currentThread = 0;
+    waitingForAuthentication = false;
 }
 
 QString ForumSession::getMessageUrl(const ForumMessage *msg) {
@@ -628,7 +633,11 @@ void ForumSession::authenticationRequired(QNetworkReply * reply, QAuthenticator 
             authenticator->setPassword(fsub->password());
         }
     } else {
-        emit getAuthentication(fsub, authenticator);
+        waitingForAuthentication = true;
+        emit getHttpAuthentication(fsub, authenticator);
+        if(!authenticator->user().isEmpty()) { // Got authentication directly (from settings)
+            waitingForAuthentication = false;
+        }
     }
 }
 
@@ -671,4 +680,16 @@ void ForumSession::setRequesetAttributes(QNetworkRequest &req, ForumSessionOpera
     req.setAttribute(FORUMID_ATTRIBUTE, fsub->parser());
     // @todo Make this configurable
     req.setRawHeader("User-Agent", "Mozilla/5.0 (X11; Linux i686; rv:6.0) Gecko/20100101 Firefox/6.0");
+}
+
+void ForumSession::authenticationReceived() {
+    Q_ASSERT(waitingForAuthentication);
+    qDebug() << Q_FUNC_INFO;
+    statusReport();
+    waitingForAuthentication = false;
+    if(cookieFetched) {
+        nextOperation(); // Is this ok?
+    } else {
+        fetchCookie();
+    }
 }

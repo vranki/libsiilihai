@@ -3,11 +3,13 @@
 
 #include <QObject>
 #include <QSettings>
+#include <QQueue>
 
 #include "parserengine.h"
 #include "forumdatabasexml.h"
 #include "syncmaster.h"
 #include "usersettings.h"
+#include "credentialsrequest.h"
 
 #define BASEURL "http://www.siilihai.com/"
 #define MAX_CONCURRENT_UPDATES 2
@@ -26,6 +28,7 @@ class ClientLogic : public QObject
     Q_OBJECT
 
 public:
+
     enum siilihai_states {
         SH_STARTED,
         SH_LOGIN,
@@ -58,7 +61,7 @@ protected:
     virtual QString getDataFilePath();
     virtual void settingsChanged(bool byUser);
     virtual void showLoginWizard()=0;
-    virtual void showCredentialsDialog(ForumSubscription *fsub, QAuthenticator * authenticator)=0;
+    virtual void showCredentialsDialog(CredentialsRequest *cr)=0;
     virtual void changeState(siilihai_states newState);
     virtual void closeUi()=0;
     virtual void loginWizardFinished();
@@ -71,7 +74,8 @@ protected:
     ParserManager *parserManager;
 protected slots:
     virtual void subscriptionDeleted(QObject* subobj);
-    virtual void getAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator);
+    virtual void getHttpAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator);
+    virtual void getForumAuthentication(ForumSubscription *fsub);
     void forumAdded(ForumSubscription *fs);
     virtual void showSubscribeGroup(ForumSubscription* forum) {};
 private slots:
@@ -88,8 +92,10 @@ private slots:
     void databaseStored();
     void updateThread(ForumThread* thread, bool force=false);
     void forumLoginFinished(ForumSubscription *sub, bool success);
+    void credentialsEntered(); // from CredentialsRequest
 private:
     void tryLogin();
+    void showNextCredentialsDialog();
     QHash <ForumSubscription*, ParserEngine*> engines;
     QList<ForumSubscription*> subscriptionsToUpdateLeft;
     UserSettings usettings;
@@ -97,6 +103,8 @@ private:
     QNetworkAccessManager nam;
     bool endSyncDone;
     bool firstRun;
+    QQueue<CredentialsRequest*> credentialsRequests;
+    CredentialsRequest* currentCredentialsRequest; // If being asked
 };
 
 #endif // CLIENTLOGIC_H

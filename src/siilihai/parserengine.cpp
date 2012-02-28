@@ -19,6 +19,7 @@
 #include "forumdatabase.h"
 #include "forumsubscription.h"
 #include "parsermanager.h"
+#include "credentialsrequest.h"
 
 ParserEngine::ParserEngine(ForumDatabase *fd, QObject *parent, ParserManager *pm, QNetworkAccessManager &n) :
     QObject(parent), nam(n), session(this, &nam), parserManager(pm) {
@@ -27,7 +28,7 @@ ParserEngine::ParserEngine(ForumDatabase *fd, QObject *parent, ParserManager *pm
     connect(&session, SIGNAL(listMessagesFinished(QList<ForumMessage*>&, ForumThread*, bool)),
             this, SLOT(listMessagesFinished(QList<ForumMessage*>&, ForumThread*, bool)));
     connect(&session, SIGNAL(networkFailure(QString)), this, SLOT(networkFailure(QString)));
-    connect(&session, SIGNAL(getAuthentication(ForumSubscription*, QAuthenticator*)), this, SIGNAL(getAuthentication(ForumSubscription*,QAuthenticator*)));
+    connect(&session, SIGNAL(getHttpAuthentication(ForumSubscription*, QAuthenticator*)), this, SIGNAL(getHttpAuthentication(ForumSubscription*,QAuthenticator*)));
     connect(&session, SIGNAL(loginFinished(ForumSubscription *,bool)), this, SLOT(loginFinishedSlot(ForumSubscription *,bool)));
     connect(parserManager, SIGNAL(parserUpdated(ForumParser*)), this, SLOT(parserUpdated(ForumParser*)));
     fdb = fd;
@@ -37,6 +38,7 @@ ParserEngine::ParserEngine(ForumDatabase *fd, QObject *parent, ParserManager *pm
     fsubscription = 0;
     currentParser = 0;
     currentState = PES_MISSING_PARSER;
+    requestingCredentials = false;
 }
 
 ParserEngine::~ParserEngine() {
@@ -47,7 +49,7 @@ ParserEngine::~ParserEngine() {
 void ParserEngine::setParser(ForumParser *fp) {
     currentParser = fp;
     if(fp) {
-        if(fsubscription && (currentState==PES_MISSING_PARSER || currentState==PES_UPDATING_PARSER)) setState(PES_REQUESTING_CREDENTIALS);
+        if(fsubscription && (currentState==PES_MISSING_PARSER || currentState==PES_UPDATING_PARSER)) setState(PES_IDLE);
     } else {
         if(currentState != PES_UPDATING_PARSER) setState(PES_MISSING_PARSER);
     }
@@ -63,7 +65,7 @@ void ParserEngine::setSubscription(ForumSubscription *fs) {
         parserManager->updateParser(fsubscription->parser());
         setState(PES_UPDATING_PARSER);
     } else {
-        setState(PES_REQUESTING_CREDENTIALS);
+        setState(PES_IDLE);
     }
 }
 
@@ -399,7 +401,7 @@ void ParserEngine::setState(ParserEngineState newState) {
     ParserEngineState oldState = currentState;
     currentState = newState;
 //    if(subscription())
-//        qDebug() << Q_FUNC_INFO << subscription()->alias() << oldState << " -> " << newState;
+    qDebug() << Q_FUNC_INFO << subscription()->alias() << oldState << " -> " << newState;
     if(newState==PES_UPDATING) {
         Q_ASSERT(oldState==PES_IDLE || oldState==PES_ERROR);
     }
@@ -409,11 +411,18 @@ void ParserEngine::setState(ParserEngineState newState) {
     if(newState==PES_ERROR) {
         cancelOperation();
     }
+    /*
     if(newState==PES_REQUESTING_CREDENTIALS) {
         if(!subscription()->authenticated() || subscription()->username().length()>0) {
             setState(PES_IDLE);
             // @todo is parser updated now?
         } // Else state changes to requesting, and Siilihai tries to provide creds.
+    }
+    */
+    if(subscription()->authenticated() && subscription()->username().isEmpty() && !requestingCredentials) {
+        qDebug() << Q_FUNC_INFO << "Parser " << subscription()->alias() << "requires authentication. Asking for it.";
+        requestingCredentials = true;
+        emit getForumAuthentication(subscription());
     }
     emit stateChanged(this, currentState, oldState);
 }
@@ -434,15 +443,23 @@ void ParserEngine::parserUpdated(ForumParser *p) {
     }
 }
 
-void ParserEngine::credentialsEntered(QAuthenticator* authenticator) {
-    Q_ASSERT(currentState==PES_REQUESTING_CREDENTIALS);
-    if(authenticator->user().length() > 0) {
-        subscription()->setUsername(authenticator->user());
-        subscription()->setPassword(authenticator->password());
+void ParserEngine::credentialsEntered(CredentialsRequest* cr) {
+//    Q_ASSERT(currentState==PES_IDLE);
+    requestingCredentials = false;
+    if(cr->authenticator.user().length() > 0) {
+        subscription()->setUsername(cr->authenticator.user());
+        subscription()->setPassword(cr->authenticator.password());
     } else {
         subscription()->setAuthenticated(false);
     }
-    emit updateForumSubscription(subscription());
-    delete authenticator;
+    if(cr->credentialType==CredentialsRequest::SH_CREDENTIAL_HTTP) {
+        session.authenticationReceived();
+    }
+    /*
+    if(cr->credentialType==CredentialsRequest::SH_CREDENTIAL_FORUM) {
+
+    } else
+//    emit updateForumSubscription(subscription());
     setState(PES_IDLE);
+    */
 }

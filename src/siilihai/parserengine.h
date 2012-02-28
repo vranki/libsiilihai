@@ -27,6 +27,7 @@ class ForumThread;
 class ForumMessage;
 class ForumDatabase;
 class ParserManager;
+class CredentialsRequest;
 
 /**
   * Handles updating a forum's data (threads, messages, etc) using a
@@ -49,8 +50,8 @@ public:
         PES_IDLE,
         PES_UPDATING,
         PES_ERROR,
-        PES_UPDATING_PARSER,
-        PES_REQUESTING_CREDENTIALS
+        PES_UPDATING_PARSER
+//        PES_REQUESTING_CREDENTIALS
     };
 
     ParserEngine(ForumDatabase *fd, QObject *parent, ParserManager *pm, QNetworkAccessManager &n);
@@ -66,14 +67,15 @@ public:
     QNetworkAccessManager *networkAccessManager();
 public slots:
     void cancelOperation();
-    void credentialsEntered(QAuthenticator* auth); // called from credentialsdialog when user has entered creds
+    void credentialsEntered(CredentialsRequest* cr);
 signals:
     // Emitted if initially group list was empty but new groups were found.
     void groupListChanged(ForumSubscription *forum);
     void forumUpdated(ForumSubscription *forum);
     void statusChanged(ForumSubscription *forum, float progress);
     void updateFailure(ForumSubscription *forum, QString message);
-    void getAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator); // Synchronous, for NAM
+    void getHttpAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator); // Asynchronous
+    void getForumAuthentication(ForumSubscription *fsub); // Asynchronous
     void loginFinished(ForumSubscription *sub, bool success);
     // Caution: engine's subscription may be null!
     void stateChanged(ParserEngine *engine, ParserEngine::ParserEngineState newState, ParserEngine::ParserEngineState oldState);
@@ -106,6 +108,7 @@ private:
     QQueue<ForumThread*> threadsToUpdateQueue;
     ParserEngineState currentState;
     ParserManager *parserManager;
+    bool requestingCredentials;
 };
 
 #endif /* PARSERENGINE_H_ */

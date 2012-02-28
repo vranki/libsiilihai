@@ -1,5 +1,5 @@
 TEMPLATE = lib
-VERSION = 1.0.0
+VERSION = 1.1.0
 TARGET = siilihai
 
 isEmpty(PREFIX) {
@@ -53,7 +53,8 @@ HEADERS += siilihai/syncmaster.h \
     siilihai/xmlserialization.h \
     siilihai/parsermanager.h \
     siilihai/clientlogic.h \
-    siilihai/messageformatting.h
+    siilihai/messageformatting.h \
+    siilihai/credentialsrequest.h
 
 SOURCES += siilihai/syncmaster.cpp \
     siilihai/parserreport.cpp \
@@ -77,7 +78,8 @@ SOURCES += siilihai/syncmaster.cpp \
     siilihai/xmlserialization.cpp \
     siilihai/parsermanager.cpp \
     siilihai/clientlogic.cpp \
-    siilihai/messageformatting.cpp
+    siilihai/messageformatting.cpp \
+    siilihai/credentialsrequest.cpp
 
 target.path = $$LIBDIR
 INSTALLS += target

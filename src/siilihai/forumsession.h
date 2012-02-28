@@ -28,6 +28,7 @@
 #include <QAuthenticator>
 #include <QTimer>
 
+
 class ForumParser;
 class ForumSubscription;
 class PatternMatcher;
@@ -71,8 +72,8 @@ public:
 public slots:
     void networkReply(QNetworkReply *reply);
     void cancelOperation();
-    void authenticationRequired ( QNetworkReply * reply, QAuthenticator * authenticator );
-
+    void authenticationRequired (QNetworkReply * reply, QAuthenticator * authenticator); // Called by NAM
+    void authenticationReceived();
 signals:
     void listGroupsFinished(QList<ForumGroup*> &groups);
     void listThreadsFinished(QList<ForumThread*> &threads, ForumGroup *group); // Will be deleted
@@ -80,8 +81,8 @@ signals:
     void networkFailure(QString message);
     void loginFinished(ForumSubscription *sub, bool success);
     void receivedHtml(const QString &data);
-    // authenticator MUST set values when emitted
-    void getAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator);
+    // Asynchronous
+    void getHttpAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator);
 private slots:
     void cookieExpired(); // Called when cookie needs to be fetched again
 private:
@@ -116,6 +117,7 @@ private:
     bool moreMessagesAvailable; // True if thread would have more messages but limit stops search
     QString currentMessagesUrl;
     QTimer cookieExpiredTimer;
+    bool waitingForAuthentication;
 };
 
 #endif /* FORUMSESSION_H_ */
