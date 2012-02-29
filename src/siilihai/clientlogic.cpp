@@ -435,6 +435,7 @@ void ClientLogic::unsubscribeForum(ForumSubscription* fs) {
     parserManager->deleteParser(fs->parser());
 }
 
+// Authenticator can be null!
 void ClientLogic::getHttpAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator) {
     qDebug() << Q_FUNC_INFO << fsub->alias();
     bool failed = false;
@@ -442,12 +443,14 @@ void ClientLogic::getHttpAuthentication(ForumSubscription *fsub, QAuthenticator 
     settings->beginGroup("authentication");
     if(settings->contains(QString("%1/username").arg(gname))) {
         qDebug() << Q_FUNC_INFO << "reading u/p from settings";
-        authenticator->setUser(settings->value(QString("%1/username").arg(gname)).toString());
-        authenticator->setPassword(settings->value(QString("%1/password").arg(gname)).toString());
+        if(authenticator) {
+            authenticator->setUser(settings->value(QString("%1/username").arg(gname)).toString());
+            authenticator->setPassword(settings->value(QString("%1/password").arg(gname)).toString());
+        }
         if(settings->value(QString("authentication/%1/failed").arg(gname)).toString() == "true") failed = true;
     }
     settings->endGroup();
-    if(authenticator->user().isNull() || failed) { // Ask user the credentials
+    if(!authenticator || authenticator->user().isNull() || failed) { // Ask user the credentials
         qDebug() << Q_FUNC_INFO << "asking user for http credentials";
         CredentialsRequest *cr = new CredentialsRequest(this);
         cr->subscription = fsub;
@@ -484,7 +487,7 @@ void ClientLogic::credentialsEntered(bool store) {
     qDebug() << Q_FUNC_INFO << store << currentCredentialsRequest->authenticator.user();
     if(store) {
         ForumParser::ForumLoginType loginType = parserManager->getParser(currentCredentialsRequest->subscription->parser())->login_type;
-        if(loginType == ForumParser::LoginTypeHttpAuth) {
+        if(cr->credentialType == CredentialsRequest::SH_CREDENTIAL_HTTP) {
             qDebug() << Q_FUNC_INFO << "storing into settings";
             settings->beginGroup("authentication");
             settings->beginGroup(QString::number(currentCredentialsRequest->subscription->parser()));
@@ -494,7 +497,7 @@ void ClientLogic::credentialsEntered(bool store) {
             settings->endGroup();
             settings->endGroup();
             settings->sync();
-        } else if(loginType == ForumParser::LoginTypeHttpPost) {
+        } else if(cr->credentialType == CredentialsRequest::SH_CREDENTIAL_FORUM) {
             qDebug() << Q_FUNC_INFO << "storing into subscription";
             currentCredentialsRequest->subscription->setUsername(currentCredentialsRequest->authenticator.user());
             currentCredentialsRequest->subscription->setPassword(currentCredentialsRequest->authenticator.password());

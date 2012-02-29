@@ -74,14 +74,7 @@ void ParserEngine::updateForum(bool force) {
         qDebug() << Q_FUNC_INFO << "Warning: Parser not sane!";
     }
     Q_ASSERT(fsubscription);
-
     forceUpdate = force;
-    updateAll = true;
-    if (!sessionInitialized) {
-        session.initialize(currentParser, fsubscription);
-        sessionInitialized = true;
-    }
-    session.listGroups();
     setState(PES_UPDATING);
 }
 
@@ -387,7 +380,7 @@ ForumSubscription* ParserEngine::subscription() {
 }
 
 void ParserEngine::subscriptionDeleted() {
-    cancelOperation();
+    //cancelOperation(); causes trouble
     fsubscription = 0;
     setState(PES_MISSING_PARSER);
 }
@@ -407,6 +400,30 @@ void ParserEngine::setState(ParserEngineState newState) {
     //
     if(newState==PES_UPDATING) {
         Q_ASSERT(oldState==PES_IDLE || oldState==PES_ERROR);
+        Q_ASSERT(subscription() && parser());
+        if(subscription() && subscription()->authenticated()
+                && subscription()->username().isEmpty()
+                && !requestingCredentials) {
+            qDebug() << Q_FUNC_INFO << "Parser " << subscription()->alias() << "requires authentication. Asking for it. U:"
+                     << subscription()->username() << " lt " << parser()->login_type;
+            requestingCredentials = true;
+            if(parser()->login_type==ForumParser::LoginTypeHttpPost) {
+                emit getForumAuthentication(subscription());
+            } else if(parser()->login_type==ForumParser::LoginTypeHttpAuth) {
+                emit getHttpAuthentication(subscription(), 0);
+            }
+        }
+
+        updateAll = true;
+        if (!sessionInitialized) {
+            session.initialize(currentParser, fsubscription);
+            sessionInitialized = true;
+        }
+        if(requestingCredentials) {
+            qDebug() << Q_FUNC_INFO << "Requesting credentials - NOT updating!";
+        } else {
+            session.listGroups();
+        }
     }
     if(newState==PES_UPDATING_PARSER) {
         Q_ASSERT(oldState==PES_IDLE || oldState==PES_MISSING_PARSER);
@@ -422,13 +439,7 @@ void ParserEngine::setState(ParserEngineState newState) {
         } // Else state changes to requesting, and Siilihai tries to provide creds.
     }
     */
-    if(subscription() && subscription()->authenticated()
-            && subscription()->username().isEmpty()
-            && !requestingCredentials) {
-        qDebug() << Q_FUNC_INFO << "Parser " << subscription()->alias() << "requires authentication. Asking for it. U:" << subscription()->username();
-        requestingCredentials = true;
-        emit getForumAuthentication(subscription());
-    }
+
     emit stateChanged(this, currentState, oldState);
 }
 
@@ -449,7 +460,6 @@ void ParserEngine::parserUpdated(ForumParser *p) {
 }
 
 void ParserEngine::credentialsEntered(CredentialsRequest* cr) {
-//    Q_ASSERT(currentState==PES_IDLE);
     requestingCredentials = false;
     if(cr->authenticator.user().length() > 0) {
         subscription()->setUsername(cr->authenticator.user());
@@ -460,11 +470,9 @@ void ParserEngine::credentialsEntered(CredentialsRequest* cr) {
     if(cr->credentialType==CredentialsRequest::SH_CREDENTIAL_HTTP) {
         session.authenticationReceived();
     }
-    /*
-    if(cr->credentialType==CredentialsRequest::SH_CREDENTIAL_FORUM) {
-
-    } else
-//    emit updateForumSubscription(subscription());
-    setState(PES_IDLE);
-    */
+    // Start updating when credentials entered
+    if(currentState==PES_UPDATING) {
+        qDebug() << Q_FUNC_INFO << "resuming update now";
+        session.listGroups();
+    }
 }

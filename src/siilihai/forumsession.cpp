@@ -687,9 +687,11 @@ void ForumSession::authenticationReceived() {
     qDebug() << Q_FUNC_INFO;
     statusReport();
     waitingForAuthentication = false;
+    /*
     if(cookieFetched) {
         nextOperation(); // Is this ok?
     } else {
         fetchCookie();
     }
+    */
 }
