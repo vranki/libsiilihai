@@ -1,40 +1,42 @@
 #include "messageformatting.h"
-
+/*
 MessageFormatting::MessageFormatting() {
 }
 
 MessageFormatting::~MessageFormatting() {
-}
+}*/
 
-QString MessageFormatting::sanitize(QString &txt) {
+QString MessageFormatting::sanitize(const QString &txt) {
     QString s = stripHtml(txt);
     s.replace('\n', "");
     s.replace(QRegExp("\\s+"), " ");
     return s;
 }
 
-QString MessageFormatting::stripHtml(QString &txt) {
+QString MessageFormatting::stripHtml(const QString &txt) {
     QRegExp tagRe = QRegExp("<.*>");
     tagRe.setMinimal(true);
-    txt.replace(tagRe, "");
+    QString newTxt = txt;
+    newTxt.replace(tagRe, "");
     // @todo Smarter way to do this
-    txt.replace("&amp;", "&");
-    txt.replace("&quot;", "\"");
-    txt.replace("&lt;", "<");
-    txt.replace("&gt;", ">");
-    txt.replace("&nbsp;", " ");
-    txt.replace("&#63;", "?");
-    txt.replace("&#8230;", "'");
-    txt.replace("&#8220;", "\"");
-    txt.replace("&#8221;", "\"");
-    txt.replace("&#8217;", "'");
-    return txt;
+    newTxt.replace("&amp;", "&");
+    newTxt.replace("&quot;", "\"");
+    newTxt.replace("&lt;", "<");
+    newTxt.replace("&gt;", ">");
+    newTxt.replace("&nbsp;", " ");
+    newTxt.replace("&#63;", "?");
+    newTxt.replace("&#8230;", "'");
+    newTxt.replace("&#8220;", "\"");
+    newTxt.replace("&#8221;", "\"");
+    newTxt.replace("&#8217;", "'");
+    return newTxt;
 }
 
-QString MessageFormatting::replaceCharacters(QString &txt) {
-    txt.replace("&", "&amp;");
-    txt.replace("\"", "&quot;");
-    txt.replace("<", "&lt;");
-    txt.replace(">", "&gt;");
-    return txt;
+QString MessageFormatting::replaceCharacters(const QString &txt) {
+    QString newTxt = txt;
+    newTxt.replace("&", "&amp;");
+    newTxt.replace("\"", "&quot;");
+    newTxt.replace("<", "&lt;");
+    newTxt.replace(">", "&gt;");
+    return newTxt;
 }

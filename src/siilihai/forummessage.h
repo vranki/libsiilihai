@@ -32,6 +32,7 @@ class ForumMessage : public ForumDataItem {
     Q_PROPERTY(QString body READ body WRITE setBody NOTIFY changed)
     Q_PROPERTY(bool isRead READ isRead WRITE setRead NOTIFY markedRead)
     Q_PROPERTY(QString author READ author WRITE setAuthor NOTIFY changed)
+    Q_PROPERTY(QString authorCleaned READ authorCleaned NOTIFY changed)
 public:
     virtual ~ForumMessage();
     ForumMessage(ForumThread *thr, bool temp=true);
@@ -43,6 +44,7 @@ public:
     int ordernum() const;
     QString url() const;
     QString author() const;
+    QString authorCleaned() const; // html stripped version
     QString body() const;
     virtual QString displayName() const;
     bool isRead() const;

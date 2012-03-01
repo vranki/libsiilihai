@@ -69,6 +69,9 @@ ForumThread* ForumMessage::thread() const { return _thread; }
 int ForumMessage::ordernum() const { return _ordernum; }
 QString ForumMessage::url() const { return _url; }
 QString ForumMessage::author() const { return _author; }
+QString ForumMessage::authorCleaned() const {
+    return MessageFormatting::sanitize(_author);
+}
 
 QString ForumMessage::body() const { return _body; }
 bool ForumMessage::isRead() const { return _read; }
