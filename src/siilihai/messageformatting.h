@@ -5,12 +5,12 @@
 #include <QRegExp>
 
 class MessageFormatting {
-public:
+public:/*
     MessageFormatting();
-    virtual ~MessageFormatting();
-    static QString stripHtml(QString &txt);
-    static QString sanitize(QString &txt); // strip html and newlines
-    static QString replaceCharacters(QString &txt); // Convert < -> &lt; etc.
+    virtual ~MessageFormatting();*/
+    static QString stripHtml(const QString &txt);
+    static QString sanitize(const QString &txt); // strip html and newlines
+    static QString replaceCharacters(const QString &txt); // Convert < -> &lt; etc.
 };
 
 #endif /* MESSAGEFORMATTING_H_ */
