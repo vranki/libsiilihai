@@ -620,7 +620,10 @@ void ForumSession::authenticationRequired(QNetworkReply * reply, QAuthenticator 
     if(forumId != fsub->parser()) return;
 
     qDebug() << Q_FUNC_INFO << reply << authenticator;
-
+    if(waitingForAuthentication) {
+        qDebug() << Q_FUNC_INFO << "Already waiting for authentication - ignoring this.";
+        return;
+    }
     if(fpar->login_type == ForumParser::LoginTypeHttpAuth) {
         if (fsub->username().length() <= 0 || fsub->password().length() <= 0) {
             qDebug() << Q_FUNC_INFO << "FAIL: no credentials given for subscription " << fsub->toString();
