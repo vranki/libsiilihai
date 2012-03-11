@@ -18,6 +18,11 @@ LIBDIR = $$PREFIX/lib
 
 CONFIG += qt create_prl
 
+unix {
+    CONFIG += debug
+    CONFIG -= release
+}
+
 QT += core xml network
 
 QT -= gui
@@ -29,7 +34,7 @@ debug {
 
 release {
     message(Release build - no extra crap)
-    DEFINES += SANITY_CHECKS
+    DEFINES -= SANITY_CHECKS
 }
 
 HEADERS += siilihai/syncmaster.h \

@@ -1,5 +1,4 @@
 #!/usr/bin/make -f
 # -*- makefile -*-
-DEB_DH_STRIP_ARGS := --dbg-package=libsiilihai-dbg
 include /usr/share/cdbs/1/rules/debhelper.mk
 include /usr/share/cdbs/1/class/qmake.mk
