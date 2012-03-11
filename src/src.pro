@@ -5,15 +5,16 @@ TARGET = siilihai
 isEmpty(PREFIX) {
   PREFIX = /usr
 }
-BINDIR = $$PREFIX/bin
-DATADIR = $$PREFIX/share
+#BINDIR = $$PREFIX/bin
+#DATADIR = $$PREFIX/share
 INCLUDEDIR = $$PREFIX/include/siilihai
+LIBDIR = $$PREFIX/lib
 
-!contains(QMAKE_HOST.arch, x86_64) {
-   LIBDIR = $$PREFIX/lib
-} else {
-   LIBDIR = $$PREFIX/lib64
-}
+#!contains(QMAKE_HOST.arch, x86_64) {
+#   LIBDIR = $$PREFIX/lib
+#} else {
+#   LIBDIR = $$PREFIX/lib64
+#}
 
 CONFIG += qt create_prl
 
@@ -86,5 +87,3 @@ INSTALLS += target
 headers.path = $$INCLUDEDIR
 headers.files = $$HEADERS
 INSTALLS += headers
-
-

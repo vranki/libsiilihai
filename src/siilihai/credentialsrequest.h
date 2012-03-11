@@ -10,7 +10,7 @@ class CredentialsRequest : public QObject {
     Q_OBJECT
 public:
     explicit CredentialsRequest();
-    explicit CredentialsRequest(QObject *parent = 0);
+    explicit CredentialsRequest(QObject *parent);
     enum credential_types {
         SH_CREDENTIAL_NONE=0,
         SH_CREDENTIAL_HTTP,
