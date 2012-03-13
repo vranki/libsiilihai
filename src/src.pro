@@ -1,16 +1,9 @@
 TEMPLATE = lib
-VERSION = 1.1.0
+VERSION = 1.1.1
 TARGET = siilihai
 
-#BINDIR = $$PREFIX/bin
-#DATADIR = $$PREFIX/share
-INCLUDEDIR = $$[QT_INSTALL_PREFIX]/include/siilihai
-
-#!contains(QMAKE_HOST.arch, x86_64) {
-#   LIBDIR = $$PREFIX/lib
-#} else {
-#   LIBDIR = $$PREFIX/lib64
-#}
+target.path = $$[QT_INSTALL_LIBS]
+INSTALLS += target
 
 CONFIG += qt create_prl
 
@@ -83,8 +76,6 @@ SOURCES += siilihai/syncmaster.cpp \
     siilihai/messageformatting.cpp \
     siilihai/credentialsrequest.cpp
 
-target.path = $$[QT_INSTALL_LIBS]
-INSTALLS += target
-headers.path = $$INCLUDEDIR
+headers.path = $$[QT_INSTALL_PREFIX]/include/siilihai
 headers.files = $$HEADERS
 INSTALLS += headers
