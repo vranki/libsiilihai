@@ -48,12 +48,11 @@ public slots:
     void updateClicked(ForumSubscription* forumid, bool force=false);
     void haltSiilihai();
     void cancelClicked();
-    void syncFinished(bool success, QString message);
+    virtual void syncFinished(bool success, QString message);
     void offlineModeSet(bool newOffline);
     virtual void subscriptionFound(ForumSubscription* sub);
     virtual void errorDialog(QString message)=0;
     virtual void loginFinished(bool success, QString motd, bool sync);
-    virtual void parserEngineStateChanged(ParserEngine *engine, ParserEngine::ParserEngineState newState, ParserEngine::ParserEngineState oldState);
     virtual void unsubscribeForum(ForumSubscription* fs);
     virtual void updateGroupSubscriptions(ForumSubscription *sub);
 
@@ -80,6 +79,10 @@ protected slots:
     virtual void showSubscribeGroup(ForumSubscription* forum) {};
 private slots:
     virtual void subscribeForum()=0;
+    virtual void showStatusMessage(QString message)=0;
+    virtual void parserEngineStateChanged(ParserEngine *engine, ParserEngine::ParserEngineState newState,
+                                          ParserEngine::ParserEngineState oldState);
+    void syncProgress(float progress, QString message);
     void listSubscriptionsFinished(QList<int> subscriptions);
     void forumUpdated(ForumSubscription* forumid);
     void subscribeForumFinished(ForumSubscription *sub, bool success);
@@ -100,6 +103,7 @@ private:
     void showNextCredentialsDialog();
     QHash <ForumSubscription*, ParserEngine*> engines;
     QList<ForumSubscription*> subscriptionsToUpdateLeft;
+    QSet<ParserEngine*> busyParserEngines;
     UserSettings usettings;
     bool dbStored;
     QNetworkAccessManager nam;

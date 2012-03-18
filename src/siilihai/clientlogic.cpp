@@ -20,6 +20,7 @@ ClientLogic::ClientLogic(QObject *parent) : QObject(parent), forumDatabase(this)
     connect(&forumDatabase, SIGNAL(subscriptionFound(ForumSubscription*)), this, SLOT(subscriptionFound(ForumSubscription*)));
     connect(&forumDatabase, SIGNAL(databaseStored()), this, SLOT(databaseStored()), Qt::QueuedConnection);
     connect(&protocol, SIGNAL(userSettingsReceived(bool,UserSettings*)), this, SLOT(userSettingsReceived(bool,UserSettings*)));
+    connect(&syncmaster, SIGNAL(syncProgress(float, QString)), this, SLOT(syncProgress(float, QString)));
 }
 
 void ClientLogic::launchSiilihai() {
@@ -139,12 +140,14 @@ void ClientLogic::changeState(siilihai_states newState) {
             syncmaster.cancel();
     } else if(newState==SH_LOGIN) {
         qDebug() << Q_FUNC_INFO << "Login";
+        showStatusMessage("Logging in..");
     } else if(newState==SH_STARTSYNCING) {
         qDebug() << Q_FUNC_INFO << "Startsync";
         if(usettings.syncEnabled())
             syncmaster.startSync();
     } else if(newState==SH_ENDSYNC) {
         qDebug() << Q_FUNC_INFO << "Endsync";
+        showStatusMessage("Synchronizing with server..");
     } else if(newState==SH_STOREDB) {
         qDebug() << Q_FUNC_INFO << "Storedb";
         if(!forumDatabase.storeDatabase()) {
@@ -282,6 +285,7 @@ void ClientLogic::forumAdded(ForumSubscription *fs) {
 void ClientLogic::subscriptionDeleted(QObject* subobj) {
     ForumSubscription *sub = static_cast<ForumSubscription*> (subobj);
     if(!engines.contains(sub)) return; // Possible when quitting
+    busyParserEngines.remove(engines[sub]);
     engines[sub]->cancelOperation();
     engines[sub]->deleteLater();
     engines.remove(sub);
@@ -374,6 +378,16 @@ void ClientLogic::databaseStored() {
 
 // Caution - engine->subscription() may be null (when deleted)!
 void ClientLogic::parserEngineStateChanged(ParserEngine *engine, ParserEngine::ParserEngineState newState, ParserEngine::ParserEngineState oldState) {
+    if (newState==ParserEngine::PES_UPDATING) {
+        busyParserEngines.insert(engine);
+    } else {
+        busyParserEngines.remove(engine);
+    }
+    if (!busyParserEngines.isEmpty()) {
+        showStatusMessage("Updating Forums.. ");
+    } else {
+        showStatusMessage("Forums updated");
+    }
     if(currentState==SH_READY && newState == ParserEngine::PES_IDLE && oldState != ParserEngine::PES_UPDATING) {
         if (settings->value("preferences/update_automatically", true).toBool())
             updateClicked(engine->subscription());
@@ -508,4 +522,8 @@ void ClientLogic::credentialsEntered(bool store) {
     currentCredentialsRequest->deleteLater();
     currentCredentialsRequest=0;
     showNextCredentialsDialog();
+}
+
+void ClientLogic::syncProgress(float progress, QString message) {
+    showStatusMessage(message);
 }
