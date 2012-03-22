@@ -146,6 +146,7 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
                 qDebug() << Q_FUNC_INFO << "Adding group to download queue and setting changeset " << dbGroup->toString();
                 dbGroup->setChangeset(serverGrp->changeset());
                 groupsToDownload.append(dbGroup);
+                //dbGroup->subscription()->setBeingSynced(true);
             }
             dbGroup->commitChanges();
 

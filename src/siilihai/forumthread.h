@@ -35,6 +35,7 @@ class ForumThread : public ForumDataItem, public QMap<QString, ForumMessage*> {
     Q_PROPERTY(QString name READ name WRITE setName NOTIFY changed)
     Q_PROPERTY(QString id READ id WRITE setId NOTIFY changed)
     Q_PROPERTY(int unreadCount READ unreadCount() NOTIFY unreadCountChanged)
+    Q_PROPERTY(bool hasMoreMessages READ hasMoreMessages() NOTIFY changed)
 public:
     ForumThread(ForumGroup *grp, bool temp=true);
     virtual ~ForumThread();

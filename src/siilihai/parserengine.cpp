@@ -424,6 +424,10 @@ void ParserEngine::setState(ParserEngineState newState) {
         } else {
             session.listGroups();
         }
+        subscription()->setBeingUpdated(true);
+    }
+    if(newState==PES_IDLE) {
+        subscription()->setBeingUpdated(false);
     }
     if(newState==PES_UPDATING_PARSER) {
         Q_ASSERT(oldState==PES_IDLE || oldState==PES_MISSING_PARSER);

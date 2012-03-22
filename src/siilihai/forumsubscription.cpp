@@ -26,6 +26,7 @@ ForumSubscription::ForumSubscription(QObject *parent, bool temp) : QObject(paren
     _temp = temp;
     _engine = 0;
     _groupListChanged = false;
+    _beingUpdated = _beingSynced = false;
 }
 
 void ForumSubscription::copyFrom(ForumSubscription * other) {
@@ -174,4 +175,21 @@ void ForumSubscription::markRead(bool read) {
     foreach(ForumGroup *group, values()) {
         group->markRead(read);
     }
+}
+void ForumSubscription::setBeingUpdated(bool bu) {
+    _beingUpdated = bu;
+    emit changed();
+}
+
+void ForumSubscription::setBeingSynced(bool bs) {
+    _beingSynced = bs;
+    emit changed();
+}
+
+bool ForumSubscription::beingUpdated(){
+    return _beingUpdated;
+}
+
+bool ForumSubscription::beingSynced() {
+    return _beingSynced;
 }

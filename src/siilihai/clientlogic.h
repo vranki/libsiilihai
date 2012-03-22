@@ -43,13 +43,13 @@ public:
 signals:
 
 public slots:
-    void launchSiilihai();
-    void updateClicked();
-    void updateClicked(ForumSubscription* forumid, bool force=false);
-    void haltSiilihai();
-    void cancelClicked();
+    virtual void launchSiilihai();
+    virtual void updateClicked();
+    virtual void updateClicked(ForumSubscription* forumid, bool force=false);
+    virtual void haltSiilihai();
+    virtual void cancelClicked();
     virtual void syncFinished(bool success, QString message);
-    void offlineModeSet(bool newOffline);
+    virtual void offlineModeSet(bool newOffline);
     virtual void subscriptionFound(ForumSubscription* sub);
     virtual void errorDialog(QString message)=0;
     virtual void loginFinished(bool success, QString motd, bool sync);
@@ -77,6 +77,10 @@ protected slots:
     virtual void getForumAuthentication(ForumSubscription *fsub);
     void forumAdded(ForumSubscription *fs);
     virtual void showSubscribeGroup(ForumSubscription* forum) {};
+    void moreMessagesRequested(ForumThread* thread);
+    void unsubscribeGroup(ForumGroup *group);
+    virtual void unregisterSiilihai();
+    virtual void updateThread(ForumThread* thread, bool force=false);
 private slots:
     virtual void subscribeForum()=0;
     virtual void showStatusMessage(QString message)=0;
@@ -88,12 +92,8 @@ private slots:
     void subscribeForumFinished(ForumSubscription *sub, bool success);
     void userSettingsReceived(bool success, UserSettings *newSettings);
     void updateFailure(ForumSubscription* sub, QString msg);
-    void moreMessagesRequested(ForumThread* thread);
-    void unsubscribeGroup(ForumGroup *group);
     void forumUpdateNeeded(ForumSubscription *sub);
-    void unregisterSiilihai();
     void databaseStored();
-    void updateThread(ForumThread* thread, bool force=false);
     void forumLoginFinished(ForumSubscription *sub, bool success);
     void credentialsEntered(bool store); // from CredentialsRequest
 protected:
