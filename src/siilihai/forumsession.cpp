@@ -21,6 +21,8 @@
 #include "forumthread.h"
 #include "forummessage.h"
 
+static const QString operationNames[] = {"(null)", "NoOp", "Login", "FetchCookie", "ListGroups", "ListThreads", "ListMessages" };
+
 ForumSession::ForumSession(QObject *parent, QNetworkAccessManager *n) : QObject(parent), nam(n) {
     operationInProgress = FSONoOp;
     cookieJar = 0;
@@ -98,7 +100,7 @@ QString ForumSession::convertCharset(const QByteArray &src) {
 
 void ForumSession::listGroups() {
     if (operationInProgress != FSONoOp && operationInProgress != FSOListGroups) {
-        qDebug() << Q_FUNC_INFO << "Operation in progress!! Don't command me yet! ";
+        qDebug() << Q_FUNC_INFO << "Operation " << operationNames[operationInProgress] << " in progress!! Don't command me yet! ";
         return;
     }
     operationInProgress = FSOListGroups;
@@ -361,7 +363,7 @@ void ForumSession::listMessagesOnNextPage() {
 void ForumSession::listThreads(ForumGroup *group) {
     if (operationInProgress != FSONoOp && operationInProgress != FSOListThreads) {
         //statusReport();
-        qDebug() << Q_FUNC_INFO << "Operation in progress!! Don't command me yet!";
+        qDebug() << Q_FUNC_INFO << "Operation " << operationNames[operationInProgress] << " in progress!! Don't command me yet!";
         Q_ASSERT(false);
         return;
     }
@@ -390,7 +392,7 @@ void ForumSession::listThreadsReply(QNetworkReply *reply) {
 void ForumSession::listMessages(ForumThread *thread) {
     Q_ASSERT(thread->isSane());
     if (operationInProgress != FSONoOp && operationInProgress != FSOListMessages) {
-        qDebug() << Q_FUNC_INFO << "Operation in progress!! Don't command me yet!";
+        qDebug() << Q_FUNC_INFO << "Operation " << operationNames[operationInProgress] << " in progress!! Don't command me yet!";
         Q_ASSERT(false);
         return;
     }
@@ -529,7 +531,7 @@ QString ForumSession::statusReport() {
     if (operationInProgress == FSOListMessages)
         op = "UpdateMessages";
 
-    return "Operation: " + op + " in " + fpar->toString() + "\n" + "Threads: "
+    return "Operation: " + operationNames[operationInProgress] + " in " + fpar->toString() + "\n" + "Threads: "
             + QString().number(threads.size()) + "\n" + "Messages: "
             + QString().number(messages.size()) + "\n" + "Page: "
             + QString().number(currentListPage)/* + "\n" + "Group: "

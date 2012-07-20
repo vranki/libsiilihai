@@ -28,7 +28,6 @@
 #include <QAuthenticator>
 #include <QTimer>
 
-
 class ForumParser;
 class ForumSubscription;
 class PatternMatcher;
@@ -37,6 +36,7 @@ class ForumThread;
 class ForumMessage;
 
 #define FORUMID_ATTRIBUTE (QNetworkRequest::Attribute(QNetworkRequest::User + 1))
+
 
 /**
   * ForumSession makes HTTP requests to forum, uses
@@ -50,7 +50,6 @@ class ForumSession : public QObject {
     Q_OBJECT
 public:
     enum ForumSessionOperation { FSONoOp=1, FSOLogin, FSOFetchCookie, FSOListGroups, FSOListThreads, FSOListMessages };
-
     ForumSession(QObject *parent, QNetworkAccessManager *n);
     virtual ~ForumSession();
     void initialize(ForumParser *fop, ForumSubscription *fos, PatternMatcher *matcher=0);

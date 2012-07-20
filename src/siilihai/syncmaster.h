@@ -47,6 +47,7 @@ public:
     void endSync();
     void cancel();
 public slots:
+    void endSyncSingleGroup(ForumGroup *group);
     void serverGroupStatus(QList<ForumSubscription*> &subs);
     void threadChanged(ForumThread *thread);
     void sendThreadDataFinished(bool success, QString message);

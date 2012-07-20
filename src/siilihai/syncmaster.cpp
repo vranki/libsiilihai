@@ -314,3 +314,7 @@ void SyncMaster::subscribeGroupsFinished(bool success) {
         emit syncFinished(false, "Updating group subscriptions to server failed");
     }
 }
+
+void SyncMaster::endSyncSingleGroup(ForumGroup *group) {
+    qDebug() << Q_FUNC_INFO << group->toString();
+}
