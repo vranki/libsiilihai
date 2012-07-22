@@ -30,7 +30,7 @@ QString ForumDataItem::name() const {
 
 QString ForumDataItem::displayName() const {
     QString dn = name();
-    return MessageFormatting::sanitize(dn);
+    return MessageFormatting::stripHtml(MessageFormatting::sanitize(dn));
 }
 
 QString ForumDataItem::lastchange() const {

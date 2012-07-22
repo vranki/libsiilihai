@@ -44,6 +44,7 @@ class ParserEngine : public QObject {
     Q_OBJECT
 
 public:
+    // Remember to sync with stateNames in .cpp
     enum ParserEngineState {
         PES_UNKNOWN=0,
         PES_MISSING_PARSER,
@@ -51,7 +52,6 @@ public:
         PES_UPDATING,
         PES_ERROR,
         PES_UPDATING_PARSER
-//        PES_REQUESTING_CREDENTIALS
     };
 
     ParserEngine(ForumDatabase *fd, QObject *parent, ParserManager *pm, QNetworkAccessManager &n);

@@ -21,6 +21,8 @@
 #include "parsermanager.h"
 #include "credentialsrequest.h"
 
+static const QString stateNames[] = {"Unknown", "Missing Parser", "Idle", "Updating", "Error", "Updating parser" };
+
 ParserEngine::ParserEngine(ForumDatabase *fd, QObject *parent, ParserManager *pm, QNetworkAccessManager &n) :
     QObject(parent), nam(n), session(this, &nam), parserManager(pm) {
     connect(&session, SIGNAL(listGroupsFinished(QList<ForumGroup*>&)), this, SLOT(listGroupsFinished(QList<ForumGroup*>&)));
@@ -396,7 +398,7 @@ void ParserEngine::setState(ParserEngineState newState) {
 
     // Caution: subscriotion may be null!
     if(subscription())
-        qDebug() << Q_FUNC_INFO << subscription()->alias() << oldState << " -> " << newState;
+        qDebug() << Q_FUNC_INFO << subscription()->alias() << stateNames[oldState] << " -> " << stateNames[newState];
     //
     if(newState==PES_UPDATING) {
         Q_ASSERT(oldState==PES_IDLE || oldState==PES_ERROR);

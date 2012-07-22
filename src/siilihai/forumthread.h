@@ -33,6 +33,7 @@ class ForumThread : public ForumDataItem, public QMap<QString, ForumMessage*> {
     Q_OBJECT
 
     Q_PROPERTY(QString name READ name WRITE setName NOTIFY changed)
+    Q_PROPERTY(QString displayName READ displayName NOTIFY changed)
     Q_PROPERTY(QString id READ id WRITE setId NOTIFY changed)
     Q_PROPERTY(int unreadCount READ unreadCount() NOTIFY unreadCountChanged)
     Q_PROPERTY(bool hasMoreMessages READ hasMoreMessages() NOTIFY changed)
