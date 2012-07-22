@@ -37,7 +37,6 @@ class ForumMessage;
 
 #define FORUMID_ATTRIBUTE (QNetworkRequest::Attribute(QNetworkRequest::User + 1))
 
-
 /**
   * ForumSession makes HTTP requests to forum, uses
   * patternmatcher to scrape data from the returned HTML and

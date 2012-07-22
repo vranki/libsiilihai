@@ -194,7 +194,6 @@ void ClientLogic::cancelClicked() {
         engine->cancelOperation();
 }
 
-
 void ClientLogic::syncFinished(bool success, QString message){
     qDebug() << Q_FUNC_INFO << success;
     if (!success) {

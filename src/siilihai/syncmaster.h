@@ -37,6 +37,7 @@ class SyncMaster : public QObject {
 public:
     SyncMaster(QObject *parent, ForumDatabase &fd, SiilihaiProtocol &prot);
     virtual ~SyncMaster();
+public slots:
     /**
      * Downloads state from server (done in startup)
      */
@@ -46,7 +47,6 @@ public:
      */
     void endSync();
     void cancel();
-public slots:
     void endSyncSingleGroup(ForumGroup *group);
     void serverGroupStatus(QList<ForumSubscription*> &subs);
     void threadChanged(ForumThread *thread);

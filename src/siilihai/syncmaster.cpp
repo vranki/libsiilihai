@@ -176,6 +176,7 @@ void SyncMaster::processGroups() {
         }
         connect(&protocol, SIGNAL(sendThreadDataFinished(bool, QString)), this, SLOT(sendThreadDataFinished(bool, QString)));
         protocol.sendThreadData(g, messagesToUpload);
+        g->setHasChanged(false);
         g->commitChanges();
         messagesToUpload.clear();
         emit syncProgress(0, "Synchronizing " + g->name() + " in " + g->subscription()->alias() + "..");
@@ -316,5 +317,9 @@ void SyncMaster::subscribeGroupsFinished(bool success) {
 }
 
 void SyncMaster::endSyncSingleGroup(ForumGroup *group) {
-    qDebug() << Q_FUNC_INFO << group->toString();
+    qDebug() << Q_FUNC_INFO << group->toString() << " has changed: " << group->hasChanged();
+    if(group->hasChanged()) {
+        groupsToUpload.append(group);
+        processGroups();
+    }
 }
