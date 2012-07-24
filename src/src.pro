@@ -1,5 +1,5 @@
 TEMPLATE = lib
-VERSION = 1.1.1
+VERSION = 1.2.0
 TARGET = siilihai
 
 target.path = $$[QT_INSTALL_LIBS]
