@@ -65,6 +65,7 @@ protected:
     virtual void closeUi()=0;
     virtual void loginWizardFinished();
     virtual void showMainWindow()=0;
+    virtual bool noAccount(); // True if accountless usage
     QSettings *settings;
     ForumDatabaseXml forumDatabase;
     SiilihaiProtocol protocol;

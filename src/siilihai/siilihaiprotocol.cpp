@@ -669,12 +669,11 @@ void SiilihaiProtocol::replyGetSyncSummary(QNetworkReply *reply) {
                 subs.append(sub);
             }
         }
+        emit serverGroupStatus(subs);
     } else {
         qDebug() << Q_FUNC_INFO << "Network error: " << reply->errorString();
     }
     reply->deleteLater();
-    // @todo errors?
-    emit serverGroupStatus(subs);
     foreach(ForumSubscription *sub, subs)
         sub->deleteLater();
     subs.clear();

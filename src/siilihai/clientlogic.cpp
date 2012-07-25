@@ -79,8 +79,7 @@ void ClientLogic::launchSiilihai() {
         settings->setValue("firstrun", false);
     }
 #endif
-
-    if (settings->value("account/username", "").toString().isEmpty()) {
+    if (settings->value("account/username", "").toString().isEmpty() && !noAccount()) {
         showLoginWizard();
     } else {
         showMainWindow();
@@ -114,7 +113,7 @@ QString ClientLogic::getDataFilePath() {
 
 void ClientLogic::settingsChanged(bool byUser) {
     usettings.setSyncEnabled(settings->value("preferences/sync_enabled", false).toBool());
-    if(byUser) {
+    if(byUser && !noAccount()) {
         protocol.setUserSettings(&usettings);
     }
     settings->sync();
@@ -122,6 +121,10 @@ void ClientLogic::settingsChanged(bool byUser) {
 
 void ClientLogic::tryLogin() {
     Q_ASSERT(currentState==SH_STARTED || currentState==SH_OFFLINE);
+    if(noAccount()) {
+        loginFinished(true, "", false);
+        return;
+    }
     changeState(SH_LOGIN);
 
     connect(&protocol, SIGNAL(loginFinished(bool, QString,bool)), this, SLOT(loginFinished(bool, QString,bool)));
@@ -276,7 +279,8 @@ void ClientLogic::forumAdded(ForumSubscription *fs) {
             errorDialog("Error: Unable to subscribe to forum. Check the log.");
         } else {
             newEngine->updateGroupList();
-            protocol.subscribeForum(newFs);
+            if(!noAccount())
+                protocol.subscribeForum(newFs);
         }
     }
 }
@@ -350,12 +354,14 @@ void ClientLogic::moreMessagesRequested(ForumThread* thread) {
 void ClientLogic::unsubscribeGroup(ForumGroup *group) {
     group->setSubscribed(false);
     group->commitChanges();
-    protocol.subscribeGroups(group->subscription());
+    if(!noAccount())
+        protocol.subscribeGroups(group->subscription());
 }
 
 void ClientLogic::forumUpdateNeeded(ForumSubscription *fs) {
     qDebug() << Q_FUNC_INFO;
-    protocol.subscribeForum(fs);
+    if(!noAccount())
+        protocol.subscribeForum(fs);
     updateClicked(fs);
 }
 
@@ -364,6 +370,7 @@ void ClientLogic::unregisterSiilihai() {
     forumDatabase.resetDatabase();
     settings->remove("account/username");
     settings->remove("account/password");
+    settings->remove("account/noaccount");
     settings->remove("first_run");
     forumDatabase.storeDatabase();
     usettings.setSyncEnabled(false);
@@ -394,13 +401,17 @@ void ClientLogic::parserEngineStateChanged(ParserEngine *engine, ParserEngine::P
 }
 
 void ClientLogic::loginWizardFinished() {
-    if (settings->value("account/username", "").toString().length() == 0) {
+    if (settings->value("account/username", "").toString().length() == 0 && !noAccount()) {
         haltSiilihai();
     } else {
         showMainWindow();
         settingsChanged(false);
         loginFinished(true, QString(), usettings.syncEnabled());
     }
+}
+
+bool ClientLogic::noAccount() {
+    return settings->value("account/noaccount", false).toBool();
 }
 
 void ClientLogic::subscriptionFound(ForumSubscription *sub) {
@@ -425,7 +436,8 @@ void ClientLogic::subscriptionFound(ForumSubscription *sub) {
 }
 
 void ClientLogic::updateGroupSubscriptions(ForumSubscription *sub) {
-    protocol.subscribeGroups(sub);
+    if(!noAccount())
+        protocol.subscribeGroups(sub);
     engines.value(sub)->updateForum();
 }
 
@@ -443,7 +455,8 @@ void ClientLogic::forumLoginFinished(ForumSubscription *sub, bool success) {
 }
 
 void ClientLogic::unsubscribeForum(ForumSubscription* fs) {
-    protocol.subscribeForum(fs, true);
+    if(!noAccount())
+        protocol.subscribeForum(fs, true);
     forumDatabase.deleteSubscription(fs);
     parserManager->deleteParser(fs->parser());
 }
