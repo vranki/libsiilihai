@@ -67,7 +67,7 @@ public:
     // Messages must be in same group!
     void sendThreadData(ForumGroup *grp, QList<ForumMessage*> &fms);
     void getSyncSummary();
-    void getThreadData(ForumGroup *grp);
+    void getThreadData(QList<ForumGroup*> &groups);
 
     bool isLoggedIn();
 public slots:
@@ -126,9 +126,8 @@ private:
     syncSummaryData, userSettingsData;
     QUrl listParsersUrl, loginUrl, getParserUrl, saveParserUrl,
     subscribeForumUrl, listRequestsUrl, registerUrl, listSubscriptionsUrl,
-    sendParserReportUrl, subscribeGroupsUrl, sendThreadDataUrl, getThreadDataUrl, syncSummaryUrl,
+    sendParserReportUrl, subscribeGroupsUrl, sendThreadDataUrl, downsyncUrl, syncSummaryUrl,
     userSettingsUrl;
-    ForumGroup *getThreadDataGroup;
     ForumSubscription *forumBeingSubscribed;
     SiilihaiProtocolOperation operationInProgress;
 };

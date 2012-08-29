@@ -67,11 +67,10 @@ private:
     QList<ForumGroup*> serversGroups;
     QList<ForumThread*> serversThreads;
     QQueue<ForumGroup*> groupsToUpload;
-    QQueue<ForumGroup*> groupsToDownload;
+    QList<ForumGroup*> groupsToDownload;
     QSet<ForumThread*> changedThreads;
     QQueue<ForumSubscription*> forumsToUpload;
     QQueue<ForumMessage*> messagesToUpload;
-    ForumGroup *groupBeingDownloaded;
     unsigned int errorCount;
     int maxGroupCount;
 };

@@ -33,7 +33,6 @@ SyncMaster::SyncMaster(QObject *parent, ForumDatabase &fd, SiilihaiProtocol &pro
     connect(&protocol, SIGNAL(subscribeGroupsFinished(bool)), this, SLOT(subscribeGroupsFinished(bool)));
 
     canceled = true;
-    groupBeingDownloaded = 0;
     errorCount = 0;
 }
 
@@ -43,7 +42,6 @@ SyncMaster::~SyncMaster() {
 void SyncMaster::startSync() {
     canceled = false;
     errorCount = 0;
-    groupBeingDownloaded = 0;
     maxGroupCount = 0;
     protocol.getSyncSummary();
 }
@@ -149,7 +147,6 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
                 //dbGroup->subscription()->setBeingSynced(true);
             }
             dbGroup->commitChanges();
-
         }
     }
 
@@ -160,7 +157,7 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
 // next in groupsToDownload
 void SyncMaster::processGroups() {
     fdb.checkSanity();
-
+    qDebug() << Q_FUNC_INFO << "Groups to upload: " << groupsToUpload.size() << " download: " << groupsToDownload.size();
     if(canceled) return;
     if (groupsToUpload.isEmpty() && groupsToDownload.isEmpty()) {
         emit syncFinished(true, QString::null);
@@ -181,10 +178,10 @@ void SyncMaster::processGroups() {
         messagesToUpload.clear();
         emit syncProgress(0, "Synchronizing " + g->name() + " in " + g->subscription()->alias() + "..");
     }
+
+    // Download groups
     if(!groupsToDownload.isEmpty()) {
-        Q_ASSERT(!groupBeingDownloaded);
-        groupBeingDownloaded = groupsToDownload.takeFirst();
-        protocol.getThreadData(groupBeingDownloaded);
+        protocol.getThreadData(groupsToDownload);
     }
     fdb.checkSanity();
 }
@@ -222,8 +219,14 @@ void SyncMaster::serverThreadData(ForumThread *tempThread) { // Thread is tempor
             dbGroup->commitChanges();
         }
         dbThread->commitChanges();
-        qDebug() << Q_FUNC_INFO << "Received thread " << dbThread->toString();
-        emit syncProgress(0, "Synchronizing " + dbThread->group()->name() + " in " + dbThread->group()->subscription()->alias() + "..");
+        // qDebug() << Q_FUNC_INFO << "Received thread " << dbThread->toString();
+        QString messagename;
+        if(dbThread->group()->name().length() < 2) {
+            messagename = "a new group";
+        } else {
+            messagename = "group " + dbThread->group()->name();
+        }
+        emit syncProgress(0, "Synchronizing " + messagename + " in " + dbThread->group()->subscription()->alias() + "..");
     } else {
         qDebug() << Q_FUNC_INFO << "Got invalid thread!" << tempThread->toString();
         Q_ASSERT(false);
@@ -266,18 +269,19 @@ void SyncMaster::serverMessageData(ForumMessage *tempMessage) { // Temporary obj
 void SyncMaster::getThreadDataFinished(bool success, QString message){
     if(canceled) return;
     if(success) {
-        groupBeingDownloaded = 0;
+        foreach(ForumSubscription *fsub, fdb.values()) {
+            foreach(ForumGroup *grp, fsub->values()) {
+                grp->commitChanges();
+            }
+        }
+        groupsToDownload.clear();
         processGroups();
     } else {
         errorCount++;
         if(errorCount > 15) {
-            groupBeingDownloaded = 0;
             emit syncFinished(false, message);
         } else {
             qDebug() << Q_FUNC_INFO << "Failed! Error count: " << errorCount;
-            Q_ASSERT(groupBeingDownloaded);
-            groupsToDownload.append(groupBeingDownloaded);
-            groupBeingDownloaded = 0;
             processGroups();
         }
     }
