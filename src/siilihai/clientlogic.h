@@ -97,6 +97,7 @@ private slots:
     void databaseStored();
     void forumLoginFinished(ForumSubscription *sub, bool success);
     void credentialsEntered(bool store); // from CredentialsRequest
+    void accountlessLoginFinished(); // Delayed login success (useless?)
 protected:
     CredentialsRequest* currentCredentialsRequest; // If being asked
 private:

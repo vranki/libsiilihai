@@ -121,15 +121,19 @@ void ClientLogic::settingsChanged(bool byUser) {
 
 void ClientLogic::tryLogin() {
     Q_ASSERT(currentState==SH_STARTED || currentState==SH_OFFLINE);
+    changeState(SH_LOGIN);
     if(noAccount()) {
-        loginFinished(true, "", false);
+        QTimer::singleShot(50, this, SLOT(accountlessLoginFinished()));
         return;
     }
-    changeState(SH_LOGIN);
 
     connect(&protocol, SIGNAL(loginFinished(bool, QString,bool)), this, SLOT(loginFinished(bool, QString,bool)));
     protocol.login(settings->value("account/username", "").toString(),
                    settings->value("account/password", "").toString());
+}
+
+void ClientLogic::accountlessLoginFinished() {
+    loginFinished(true, "", false);
 }
 
 void ClientLogic::changeState(siilihai_states newState) {
