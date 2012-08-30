@@ -181,7 +181,7 @@ void SyncMaster::processGroups() {
 
     // Download groups
     if(!groupsToDownload.isEmpty()) {
-        protocol.getThreadData(groupsToDownload);
+        protocol.downsync(groupsToDownload);
     }
     fdb.checkSanity();
 }

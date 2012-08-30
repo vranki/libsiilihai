@@ -70,7 +70,7 @@ void SiilihaiProtocol::networkReply(QNetworkReply *reply) {
     } else if(operationAttribute==SPOSendThreadData) {
         replySendThreadData(reply);
     } else if(operationAttribute==SPOGetThreadData) {
-        replyGetThreadData(reply);
+        replyDownsync(reply);
     } else if(operationAttribute==SPOGetSyncSummary) {
         replyGetSyncSummary(reply);
     } else {
@@ -552,7 +552,7 @@ void SiilihaiProtocol::replySendThreadData(QNetworkReply *reply) {
     emit sendThreadDataFinished(success, reply->errorString());
 }
 
-void SiilihaiProtocol::getThreadData(QList<ForumGroup*> &groups) {
+void SiilihaiProtocol::downsync(QList<ForumGroup*> &groups) {
     qDebug() << Q_FUNC_INFO << groups.size() << " groups";
     QNetworkRequest req(downsyncUrl);
     QHash<QString, QString> params;
@@ -585,9 +585,9 @@ void SiilihaiProtocol::getThreadData(QList<ForumGroup*> &groups) {
     qDebug() << Q_FUNC_INFO << "XML out:\n" << getThreadDataData;
 }
 
-void SiilihaiProtocol::replyGetThreadData(QNetworkReply *reply) {
+void SiilihaiProtocol::replyDownsync(QNetworkReply *reply) {
     QString docs = QString().fromUtf8(reply->readAll());
-    QMap<ForumThread, QList<ForumMessage> > threadData;
+    QMap<ForumThread, QList<ForumMessage> > downsyncData;
     qDebug() << Q_FUNC_INFO << "XML in:\n" << docs;
     if (reply->error() == QNetworkReply::NoError) {
         QDomDocument doc;
@@ -628,7 +628,6 @@ void SiilihaiProtocol::replyGetThreadData(QNetworkReply *reply) {
                             msg.setRead(true, false);
                             msg.setOrdernum(999);
                             emit serverMessageData(&msg);
-//                            QCoreApplication::processEvents();
                         }
                     }
                 }

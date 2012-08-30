@@ -30,10 +30,3 @@ Depends: libsiilihai1, libqt4-dev
 Pre-Depends: ${misc:Pre-Depends}
 Description: Development files for libsiilihai
  Contains headers for libsiilihai.
-
-Package: libsiilihai
-Depends: libsiilihai1, ${misc:Depends}
-Architecture: all
-Section: oldlibs
-Description: transitional dummy package
-

@@ -67,7 +67,7 @@ public:
     // Messages must be in same group!
     void sendThreadData(ForumGroup *grp, QList<ForumMessage*> &fms);
     void getSyncSummary();
-    void getThreadData(QList<ForumGroup*> &groups);
+    void downsync(QList<ForumGroup*> &groups);
 
     bool isLoggedIn();
 public slots:
@@ -92,7 +92,7 @@ private:
     void replySubscribeGroups(QNetworkReply *reply);
     void replySendThreadData(QNetworkReply *reply);
     void replyGetSyncSummary(QNetworkReply *reply);
-    void replyGetThreadData(QNetworkReply *reply);
+    void replyDownsync(QNetworkReply *reply);
     void replyGetUserSettings(QNetworkReply *reply);
 
 
