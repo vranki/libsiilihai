@@ -201,12 +201,16 @@ void SyncMaster::sendThreadDataFinished(bool success, QString message) {
 void SyncMaster::serverThreadData(ForumThread *tempThread) { // Thread is temporary object!
     if(canceled) return;
     if (tempThread->isSane()) {
+        static ForumGroup *lastGroupBeingSynced=0;
+        bool newGroupBeingSynced = false;
+        ForumGroup *dbGroup = 0;
         ForumThread *dbThread = fdb.getThread(tempThread->group()->subscription()->parser(), tempThread->group()->id(),
                                               tempThread->id());
         if (dbThread) { // Thread already found, merge it
             dbThread->setChangeset(tempThread->changeset());
+
         } else { // thread hasn't been found yet!
-            ForumGroup *dbGroup = fdb.value(tempThread->group()->subscription()->parser())->value(tempThread->group()->id());
+            dbGroup = fdb.value(tempThread->group()->subscription()->parser())->value(tempThread->group()->id());
             Q_ASSERT(dbGroup);
             Q_ASSERT(!dbGroup->isTemp());
             ForumThread *newThread = new ForumThread(dbGroup, false);
@@ -219,14 +223,20 @@ void SyncMaster::serverThreadData(ForumThread *tempThread) { // Thread is tempor
             dbGroup->commitChanges();
         }
         dbThread->commitChanges();
-        // qDebug() << Q_FUNC_INFO << "Received thread " << dbThread->toString();
-        QString messagename;
-        if(dbThread->group()->name().length() < 2) {
-            messagename = "a new group";
-        } else {
-            messagename = "group " + dbThread->group()->name();
+        if(lastGroupBeingSynced != dbThread->group()) {
+            newGroupBeingSynced = true;
+            dbGroup = dbThread->group();
         }
-        emit syncProgress(0, "Synchronizing " + messagename + " in " + dbThread->group()->subscription()->alias() + "..");
+        if(newGroupBeingSynced) {
+            lastGroupBeingSynced = dbGroup;
+            QString messagename;
+            if(dbThread->group()->name().length() < 2) {
+                messagename = "a new group";
+            } else {
+                messagename = "group " + dbThread->group()->name();
+            }
+            emit syncProgress(0, "Synchronizing " + messagename + " in " + dbThread->group()->subscription()->alias() + "..");
+        }
     } else {
         qDebug() << Q_FUNC_INFO << "Got invalid thread!" << tempThread->toString();
         Q_ASSERT(false);
