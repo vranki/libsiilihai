@@ -13,13 +13,13 @@
     You should have received a copy of the GNU Lesser General Public License
     along with libSiilihai.  If not, see <http://www.gnu.org/licenses/>. */
 #include "parserengine.h"
-#include "forumgroup.h"
-#include "forumthread.h"
-#include "forummessage.h"
-#include "forumdatabase.h"
-#include "forumsubscription.h"
+#include "../forumdata/forumgroup.h"
+#include "../forumdata/forumthread.h"
+#include "../forumdata/forummessage.h"
+#include "../forumdatabase/forumdatabase.h"
+#include "../forumdata/forumsubscription.h"
 #include "parsermanager.h"
-#include "credentialsrequest.h"
+#include "../credentialsrequest.h"
 
 static const QString stateNames[] = {"Unknown", "Missing Parser", "Idle", "Updating", "Error", "Updating parser" };
 

@@ -1,1 +1,4 @@
 usr/include/siilihai/*.h
+usr/include/siilihai/forumdata/*.h
+usr/include/siilihai/forumdatabase/*.h
+usr/include/siilihai/parser/*.h

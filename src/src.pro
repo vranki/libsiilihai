@@ -26,56 +26,66 @@ release {
     DEFINES -= SANITY_CHECKS
 }
 
-HEADERS += siilihai/syncmaster.h \
-    siilihai/parserreport.h \
+headers.files += \
+    siilihai/syncmaster.h \
     siilihai/forumrequest.h \
-    siilihai/forummessage.h \
-    siilihai/forumthread.h \
-    siilihai/forumgroup.h \
     siilihai/httppost.h \
     siilihai/forumsession.h \
-    siilihai/forumsubscription.h \
-    siilihai/forumdatabase.h \
-    siilihai/parserdatabase.h \
     siilihai/siilihaiprotocol.h \
-    siilihai/parserengine.h \
-    siilihai/forumparser.h \
     siilihai/patternmatcher.h \
     siilihai/usersettings.h \
-    siilihai/forumdataitem.h \
-    siilihai/updateableitem.h \
-    siilihai/forumdatabasexml.h \
     siilihai/xmlserialization.h \
-    siilihai/parsermanager.h \
     siilihai/clientlogic.h \
     siilihai/messageformatting.h \
     siilihai/credentialsrequest.h
+headers.path = $$[QT_INSTALL_PREFIX]/include/siilihai
+
+parser.files += siilihai/parser/parserreport.h \
+    siilihai/parser/parserdatabase.h \
+    siilihai/parser/parserengine.h \
+    siilihai/parser/forumparser.h \
+    siilihai/parser/parsermanager.h
+
+parser.path += $$headers.path/parser
+
+forumdata.files += siilihai/forumdata/forummessage.h \
+    siilihai/forumdata/forumthread.h \
+    siilihai/forumdata/forumgroup.h \
+    siilihai/forumdata/forumsubscription.h \
+    siilihai/forumdata/forumdataitem.h \
+    siilihai/forumdata/updateableitem.h
+forumdata.path += $$headers.path/forumdata
+
+forumdatabase.files += siilihai/forumdatabase/forumdatabase.h \
+    siilihai/forumdatabase/forumdatabasexml.h
+forumdatabase.path = $$headers.path/forumdatabase
+
+HEADERS += $$parser.files $$forumdata.files $$forumdatabase.files $$headers.files
+
 
 SOURCES += siilihai/syncmaster.cpp \
-    siilihai/parserreport.cpp \
+    siilihai/parser/parserreport.cpp \
     siilihai/forumrequest.cpp \
-    siilihai/forummessage.cpp \
-    siilihai/forumthread.cpp \
-    siilihai/forumgroup.cpp \
+    siilihai/forumdata/forummessage.cpp \
+    siilihai/forumdata/forumthread.cpp \
+    siilihai/forumdata/forumgroup.cpp \
     siilihai/httppost.cpp \
     siilihai/forumsession.cpp \
-    siilihai/forumsubscription.cpp \
-    siilihai/forumdatabase.cpp \
-    siilihai/parserdatabase.cpp \
+    siilihai/forumdata/forumsubscription.cpp \
+    siilihai/forumdatabase/forumdatabase.cpp \
+    siilihai/parser/parserdatabase.cpp \
     siilihai/siilihaiprotocol.cpp \
-    siilihai/parserengine.cpp \
-    siilihai/forumparser.cpp \
+    siilihai/parser/parserengine.cpp \
+    siilihai/parser/forumparser.cpp \
     siilihai/patternmatcher.cpp \
     siilihai/usersettings.cpp \
-    siilihai/forumdataitem.cpp \
-    siilihai/updateableitem.cpp \
-    siilihai/forumdatabasexml.cpp \
+    siilihai/forumdata/forumdataitem.cpp \
+    siilihai/forumdata/updateableitem.cpp \
+    siilihai/forumdatabase/forumdatabasexml.cpp \
     siilihai/xmlserialization.cpp \
-    siilihai/parsermanager.cpp \
+    siilihai/parser/parsermanager.cpp \
     siilihai/clientlogic.cpp \
     siilihai/messageformatting.cpp \
     siilihai/credentialsrequest.cpp
 
-headers.path = $$[QT_INSTALL_PREFIX]/include/siilihai
-headers.files = $$HEADERS
-INSTALLS += headers
+INSTALLS += headers parser forumdata forumdatabase

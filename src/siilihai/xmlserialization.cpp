@@ -1,9 +1,9 @@
 #include "xmlserialization.h"
-#include "forumsubscription.h"
-#include "forumgroup.h"
-#include "forumthread.h"
-#include "forummessage.h"
-#include "forumparser.h"
+#include "forumdata/forumsubscription.h"
+#include "forumdata/forumgroup.h"
+#include "forumdata/forumthread.h"
+#include "forumdata/forummessage.h"
+#include "parser/forumparser.h"
 #include "forumrequest.h"
 
 void XmlSerialization::serialize(ForumSubscription *sub, QDomElement &parent, QDomDocument &doc) {

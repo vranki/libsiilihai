@@ -1,8 +1,8 @@
 #include "forumdatabase.h"
-#include "forumsubscription.h"
-#include "forumgroup.h"
-#include "forumthread.h"
-#include "forummessage.h"
+#include "../forumdata/forumsubscription.h"
+#include "../forumdata/forumgroup.h"
+#include "../forumdata/forumthread.h"
+#include "../forumdata/forummessage.h"
 
 ForumDatabase::ForumDatabase(QObject *parent) : QObject(parent) {}
 

@@ -1,6 +1,6 @@
 #include "parsermanager.h"
 #include "parserdatabase.h"
-#include "siilihaiprotocol.h"
+#include "../siilihaiprotocol.h"
 
 ParserManager::ParserManager(QObject *parent, SiilihaiProtocol *pro) : QObject(parent), protocol(pro) {
     parserDatabase = new ParserDatabase(this);

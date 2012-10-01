@@ -13,7 +13,7 @@
     You should have received a copy of the GNU Lesser General Public License
     along with libSiilihai.  If not, see <http://www.gnu.org/licenses/>. */
 #include "parserdatabase.h"
-#include "xmlserialization.h"
+#include "../xmlserialization.h"
 #include <QDomDocument>
 
 ParserDatabase::ParserDatabase(QObject *parent) :

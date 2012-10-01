@@ -13,13 +13,13 @@
     You should have received a copy of the GNU Lesser General Public License
     along with libSiilihai.  If not, see <http://www.gnu.org/licenses/>. */
 #include "forumsession.h"
-#include "forumparser.h"
-#include "forumsubscription.h"
+#include "parser/forumparser.h"
+#include "forumdata/forumsubscription.h"
 #include "httppost.h"
 #include "patternmatcher.h"
-#include "forumgroup.h"
-#include "forumthread.h"
-#include "forummessage.h"
+#include "forumdata/forumgroup.h"
+#include "forumdata/forumthread.h"
+#include "forumdata/forummessage.h"
 
 static const QString operationNames[] = {"(null)", "NoOp", "Login", "FetchCookie", "ListGroups", "ListThreads", "ListMessages" };
 

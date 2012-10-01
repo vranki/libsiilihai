@@ -5,8 +5,8 @@
 #include <QSettings>
 #include <QQueue>
 
-#include "parserengine.h"
-#include "forumdatabasexml.h"
+#include "parser/parserengine.h"
+#include "forumdatabase/forumdatabasexml.h"
 #include "syncmaster.h"
 #include "usersettings.h"
 #include "credentialsrequest.h"

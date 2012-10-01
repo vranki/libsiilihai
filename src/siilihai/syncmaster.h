@@ -18,7 +18,7 @@
 #include <QList>
 #include <QMap>
 #include <QQueue>
-#include "forumdatabase.h"
+#include "forumdatabase/forumdatabase.h"
 #include "siilihaiprotocol.h"
 
 class ForumSubscription;

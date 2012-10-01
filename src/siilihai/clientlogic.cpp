@@ -2,12 +2,12 @@
 #include <time.h>
 #include <QDir>
 #include <QNetworkProxy>
-#include "parsermanager.h"
-#include "forumsubscription.h"
-#include "forumgroup.h"
-#include "forumthread.h"
+#include "parser/parsermanager.h"
+#include "forumdata/forumsubscription.h"
+#include "forumdata/forumgroup.h"
+#include "forumdata/forumthread.h"
 #include "credentialsrequest.h"
-#include "forumparser.h"
+#include "parser/forumparser.h"
 
 ClientLogic::ClientLogic(QObject *parent) : QObject(parent), forumDatabase(this), syncmaster(this, forumDatabase, protocol),
     settings(0), parserManager(0), currentCredentialsRequest(0)

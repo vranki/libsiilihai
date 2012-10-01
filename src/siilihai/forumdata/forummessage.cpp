@@ -16,7 +16,7 @@
 #include "forumgroup.h"
 #include "forumthread.h"
 #include "forumsubscription.h"
-#include "messageformatting.h"
+#include "../messageformatting.h"
 
 ForumMessage::~ForumMessage() {
 }

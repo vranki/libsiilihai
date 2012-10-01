@@ -1,5 +1,5 @@
 #include "forumdataitem.h"
-#include "messageformatting.h"
+#include "../messageformatting.h"
 
 ForumDataItem::ForumDataItem(QObject * parent) : QObject(parent), UpdateableItem()
 {

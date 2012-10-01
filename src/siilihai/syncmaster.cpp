@@ -13,11 +13,11 @@
     You should have received a copy of the GNU Lesser General Public License
     along with libSiilihai.  If not, see <http://www.gnu.org/licenses/>. */
 #include "syncmaster.h"
-#include "forumsubscription.h"
-#include "forumgroup.h"
-#include "forumthread.h"
-#include "forummessage.h"
-#include "forumsubscription.h"
+#include "forumdata/forumsubscription.h"
+#include "forumdata/forumgroup.h"
+#include "forumdata/forumthread.h"
+#include "forumdata/forummessage.h"
+#include "forumdata/forumsubscription.h"
 
 SyncMaster::SyncMaster(QObject *parent, ForumDatabase &fd, SiilihaiProtocol &prot) :
     QObject(parent), fdb(fd), protocol(prot) {

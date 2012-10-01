@@ -14,16 +14,15 @@
     along with libSiilihai.  If not, see <http://www.gnu.org/licenses/>. */
 #include "siilihaiprotocol.h"
 #include "xmlserialization.h"
-#include "forumparser.h"
+#include "parser/forumparser.h"
 #include "forumrequest.h"
-#include "forumsubscription.h"
-#include "forumgroup.h"
-#include "forumthread.h"
-#include "forummessage.h"
+#include "forumdata/forumsubscription.h"
+#include "forumdata/forumgroup.h"
+#include "forumdata/forumthread.h"
+#include "forumdata/forummessage.h"
 #include "httppost.h"
-#include "parserreport.h"
+#include "parser/parserreport.h"
 #include "usersettings.h"
-#include "parserreport.h"
 
 SiilihaiProtocol::SiilihaiProtocol(QObject *parent) : QObject(parent) {
     operationInProgress = SPONoOp;

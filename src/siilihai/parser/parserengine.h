@@ -18,7 +18,7 @@
 #include <QQueue>
 #include <QNetworkAccessManager>
 #include <QAuthenticator>
-#include "forumsession.h"
+#include "../forumsession.h"
 #include "forumparser.h"
 
 class ForumSubscription;

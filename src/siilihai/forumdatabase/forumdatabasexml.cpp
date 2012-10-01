@@ -1,11 +1,11 @@
 #include <QDomDocument>
 
 #include "forumdatabasexml.h"
-#include "forumsubscription.h"
-#include "xmlserialization.h"
+#include "../forumdata/forumsubscription.h"
+#include "../xmlserialization.h"
 
 #ifdef SANITY_CHECKS
-#include "forumgroup.h"
+#include "../forumdata/forumgroup.h"
 #endif
 
 ForumDatabaseXml::ForumDatabaseXml(QObject *parent) :
