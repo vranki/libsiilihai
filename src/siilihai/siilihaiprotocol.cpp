@@ -630,6 +630,7 @@ void SiilihaiProtocol::replyDownsync(QNetworkReply *reply) {
                         }
                     }
                 }
+                emit downsyncFinishedForForum(&forum);
             }
         }
     } else {

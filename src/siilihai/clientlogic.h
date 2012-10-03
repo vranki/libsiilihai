@@ -81,6 +81,7 @@ protected slots:
     void moreMessagesRequested(ForumThread* thread);
     void unsubscribeGroup(ForumGroup *group);
     virtual void unregisterSiilihai();
+    void updateForum(ForumSubscription *sub);
     virtual void updateThread(ForumThread* thread, bool force=false);
 private slots:
     virtual void subscribeForum()=0;
@@ -93,7 +94,7 @@ private slots:
     void subscribeForumFinished(ForumSubscription *sub, bool success);
     void userSettingsReceived(bool success, UserSettings *newSettings);
     void updateFailure(ForumSubscription* sub, QString msg);
-    void forumUpdateNeeded(ForumSubscription *sub);
+    void forumUpdateNeeded(ForumSubscription *sub); // wat?
     void databaseStored();
     void forumLoginFinished(ForumSubscription *sub, bool success);
     void credentialsEntered(bool store); // from CredentialsRequest
@@ -103,6 +104,7 @@ protected:
 private:
     void tryLogin();
     void showNextCredentialsDialog();
+    int busyForumCount();
     QHash <ForumSubscription*, ParserEngine*> engines;
     QList<ForumSubscription*> subscriptionsToUpdateLeft;
     QSet<ParserEngine*> busyParserEngines;

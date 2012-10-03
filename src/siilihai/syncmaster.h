@@ -55,8 +55,10 @@ public slots:
     void serverMessageData(ForumMessage *message);
     void getThreadDataFinished(bool success, QString message);
     void subscribeGroupsFinished(bool success);
+    void downsyncFinishedForForum(ForumSubscription *fs);
 signals:
     void syncFinished(bool success, QString message);
+    void syncFinishedFor(ForumSubscription *fs);
     void syncProgress(float progress, QString message);
 private:
     void processSubscriptions();

@@ -107,7 +107,7 @@ void ForumSession::listGroups() {
     if(prepareForUse()) return;
 
     QNetworkRequest req(QUrl(fpar->forum_url));
-    setRequesetAttributes(req, FSOListGroups);
+    setRequestAttributes(req, FSOListGroups);
     nam->post(req, emptyData);
 }
 
@@ -165,7 +165,7 @@ void ForumSession::loginToForum() {
     if (fpar->login_type == ForumParser::LoginTypeHttpPost) {
         QNetworkRequest req;
         req.setUrl(loginUrl);
-        setRequesetAttributes(req, FSOLogin);
+        setRequestAttributes(req, FSOLogin);
         QHash<QString, QString> params;
         QStringList loginParamPairs = fpar->login_parameters.split(",", QString::SkipEmptyParts);
         foreach(QString paramPair, loginParamPairs) {
@@ -227,7 +227,7 @@ void ForumSession::fetchCookie() {
     if (operationInProgress == FSONoOp)
         return;
     QNetworkRequest req(QUrl(fpar->forum_url));
-    setRequesetAttributes(req, FSOFetchCookie);
+    setRequestAttributes(req, FSOFetchCookie);
     nam->post(req, emptyData);
 }
 
@@ -265,7 +265,7 @@ void ForumSession::listThreadsOnNextPage() {
     QString urlString = getThreadListUrl(currentGroup, currentListPage);
     QNetworkRequest req;
     req.setUrl(QUrl(urlString));
-    setRequesetAttributes(req, FSOListThreads);
+    setRequestAttributes(req, FSOListThreads);
     nam->post(req, emptyData);
 }
 
@@ -356,7 +356,7 @@ void ForumSession::listMessagesOnNextPage() {
 
     QNetworkRequest req;
     req.setUrl(QUrl(urlString));
-    setRequesetAttributes(req, FSOListMessages);
+    setRequestAttributes(req, FSOListMessages);
     nam->post(req, emptyData);
 }
 
@@ -680,9 +680,10 @@ void ForumSession::cookieExpired() {
     cookieFetched = false;
 }
 
-void ForumSession::setRequesetAttributes(QNetworkRequest &req, ForumSessionOperation op) {
+void ForumSession::setRequestAttributes(QNetworkRequest &req, ForumSessionOperation op) {
     req.setAttribute(QNetworkRequest::User, op);
     req.setAttribute(FORUMID_ATTRIBUTE, fsub->parser());
+    req.setHeader(QNetworkRequest::ContentTypeHeader, QString("application/x-www-form-urlencoded"));
     // @todo Make this configurable
     req.setRawHeader("User-Agent", "Mozilla/5.0 (X11; Linux i686; rv:6.0) Gecko/20100101 Firefox/6.0");
 }

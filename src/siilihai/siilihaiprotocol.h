@@ -115,7 +115,7 @@ signals:
     void serverThreadData(ForumThread *thread); // Temporary object, don't store!
     void serverMessageData(ForumMessage *message); // Temporary object, don't store!
     void getThreadDataFinished(bool success, QString message);
-
+    void downsyncFinishedForForum(ForumSubscription *fs); // Temporary object, don't store!
 private:
     QString clientKey;
     QNetworkAccessManager nam;

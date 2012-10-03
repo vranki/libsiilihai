@@ -95,7 +95,7 @@ private:
     void fetchCookie();
     void listThreadsOnNextPage();
     void listMessagesOnNextPage();
-    void setRequesetAttributes(QNetworkRequest &req, ForumSessionOperation op);
+    void setRequestAttributes(QNetworkRequest &req, ForumSessionOperation op);
 
     QString convertCharset(const QByteArray &src);
     QString statusReport();

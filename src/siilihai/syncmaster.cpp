@@ -31,7 +31,7 @@ SyncMaster::SyncMaster(QObject *parent, ForumDatabase &fd, SiilihaiProtocol &pro
     connect(&protocol, SIGNAL(getThreadDataFinished(bool, QString)), this,
             SLOT(getThreadDataFinished(bool, QString)));
     connect(&protocol, SIGNAL(subscribeGroupsFinished(bool)), this, SLOT(subscribeGroupsFinished(bool)));
-
+    connect(&protocol, SIGNAL(downsyncFinishedForForum(ForumSubscription*)), this, SLOT(downsyncFinishedForForum(ForumSubscription*)));
     canceled = true;
     errorCount = 0;
 }
@@ -56,6 +56,7 @@ void SyncMaster::endSync() {
         if(fsub->hasGroupListChanged()) {
             forumsToUpload.append(fsub);
             fsub->setGroupListChanged(false);
+            fsub->setBeingSynced(true);
         }
         foreach(ForumGroup *grp, fsub->values()) {
             if(grp->isSubscribed()) totalGroups++;
@@ -166,6 +167,7 @@ void SyncMaster::processGroups() {
     // Do the uploading
     if(!groupsToUpload.isEmpty()) {
         ForumGroup *g = groupsToUpload.takeFirst();
+        g->subscription()->setBeingSynced(true);
         g->setChangeset(rand());
         foreach(ForumThread *thread, g->values()) {
             Q_ASSERT(thread);
@@ -177,10 +179,14 @@ void SyncMaster::processGroups() {
         g->commitChanges();
         messagesToUpload.clear();
         emit syncProgress(0, "Synchronizing " + g->name() + " in " + g->subscription()->alias() + "..");
+        g->subscription()->setBeingSynced(false);
     }
 
     // Download groups
     if(!groupsToDownload.isEmpty()) {
+        foreach(ForumGroup *group, groupsToDownload)
+            group->subscription()->setBeingSynced(true);
+
         protocol.downsync(groupsToDownload);
     }
     fdb.checkSanity();
@@ -297,6 +303,17 @@ void SyncMaster::getThreadDataFinished(bool success, QString message){
     }
 }
 
+// Warning: fs is a temp object
+void SyncMaster::downsyncFinishedForForum(ForumSubscription *fs)
+{
+    Q_ASSERT(fs && fs->parser() > 0);
+    qDebug() << Q_FUNC_INFO << fs->parser();
+    ForumSubscription *dbSubscription = fdb.value(fs->parser());
+    dbSubscription->setBeingSynced(false);
+    emit syncFinishedFor(dbSubscription);
+}
+
+
 void SyncMaster::threadChanged(ForumThread *thread) {
 }
 
@@ -329,6 +346,7 @@ void SyncMaster::subscribeGroupsFinished(bool success) {
         emit syncFinished(false, "Updating group subscriptions to server failed");
     }
 }
+
 
 void SyncMaster::endSyncSingleGroup(ForumGroup *group) {
     qDebug() << Q_FUNC_INFO << group->toString() << " has changed: " << group->hasChanged();

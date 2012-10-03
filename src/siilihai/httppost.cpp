@@ -38,7 +38,7 @@ void HttpPost::encodeParam(QString &p) {
 QByteArray HttpPost::setPostParameters(QNetworkRequest *req, const
 		QHash<QString, QString> &params) {
 	req->setHeader(QNetworkRequest::ContentTypeHeader, QString(
-			"application/x-www-form-urlencoded"));
+                        "application/x-www-form-urlencoded"));
 	QString resultData;
 	QUrl paramsUrl("");
 	QHashIterator<QString, QString> i(params);

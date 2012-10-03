@@ -95,7 +95,6 @@ void ClientLogic::haltSiilihai() {
     if(usettings.syncEnabled() && !endSyncDone && currentState == SH_READY) {
         qDebug() << "Sync enabled - running end sync";
         changeState(SH_ENDSYNC);
-        syncmaster.endSync();
     } else {
         if(currentState != SH_STOREDB && !dbStored) {
             changeState(SH_STOREDB);
@@ -150,11 +149,17 @@ void ClientLogic::changeState(siilihai_states newState) {
         showStatusMessage("Logging in..");
     } else if(newState==SH_STARTSYNCING) {
         qDebug() << Q_FUNC_INFO << "Startsync";
-        if(usettings.syncEnabled())
+        if(usettings.syncEnabled()) {
+            if(settings->value("preferences/update_automatically", true).toBool()) {
+                connect(&syncmaster, SIGNAL(syncFinishedFor(ForumSubscription*)), this, SLOT(updateForum(ForumSubscription*)));
+            }
             syncmaster.startSync();
+        }
     } else if(newState==SH_ENDSYNC) {
         qDebug() << Q_FUNC_INFO << "Endsync";
         showStatusMessage("Synchronizing with server..");
+        disconnect(&syncmaster, SIGNAL(syncFinishedFor(ForumSubscription*)), this, SLOT(updateForum(ForumSubscription*)));
+        syncmaster.endSync();
     } else if(newState==SH_STOREDB) {
         qDebug() << Q_FUNC_INFO << "Storedb";
         if(!forumDatabase.storeDatabase()) {
@@ -163,7 +168,7 @@ void ClientLogic::changeState(siilihai_states newState) {
         dbStored = true;
     } else if(newState==SH_READY) {
         qDebug() << Q_FUNC_INFO << "Ready";
-        if(settings->value("preferences/update_automatically", true).toBool())
+        if(!usettings.syncEnabled() && settings->value("preferences/update_automatically", true).toBool())
             updateClicked();
 
         if (forumDatabase.isEmpty()) { // Display subscribe dialog if none subscribed
@@ -174,17 +179,22 @@ void ClientLogic::changeState(siilihai_states newState) {
 
 void ClientLogic::updateClicked() {
     if(currentState != SH_READY) return;
-    int parsersUpdating = 0;
     foreach(ParserEngine* engine, engines.values()) {
-        if(parsersUpdating <= MAX_CONCURRENT_UPDATES) {
-            if(engine->state()==ParserEngine::PES_IDLE) {
-                engine->updateForum();
-                parsersUpdating++;
-            }
-        } else {
-            subscriptionsToUpdateLeft.append(engine->subscription());
-        }
+        updateForum(engine->subscription());
     }
+}
+
+void ClientLogic::updateForum(ForumSubscription *sub) {
+    Q_ASSERT(engines.contains(sub));
+    qDebug() << Q_FUNC_INFO << sub->toString();
+    if(subscriptionsToUpdateLeft.contains(sub))
+        return;
+
+    subscriptionsToUpdateLeft.append(sub);
+
+    int busyForums = busyForumCount();
+    if(busyForums < MAX_CONCURRENT_UPDATES)
+        engines.value(sub)->updateForum();
 }
 
 void ClientLogic::updateClicked(ForumSubscription* sub , bool force) {
@@ -199,6 +209,17 @@ void ClientLogic::updateClicked(ForumSubscription* sub , bool force) {
 void ClientLogic::cancelClicked() {
     foreach(ParserEngine* engine, engines.values())
         engine->cancelOperation();
+}
+
+
+int ClientLogic::busyForumCount() {
+    int busyForums = 0;
+    foreach(ForumSubscription *sub, forumDatabase.values()) {
+        if(sub->parserEngine()->state()==ParserEngine::PES_UPDATING) {
+            busyForums++;
+        }
+    }
+    return busyForums;
 }
 
 void ClientLogic::syncFinished(bool success, QString message){
@@ -299,12 +320,8 @@ void ClientLogic::subscriptionDeleted(QObject* subobj) {
 }
 
 void ClientLogic::forumUpdated(ForumSubscription* forum) {
-    int busyForums = 0;
-    foreach(ForumSubscription *sub, forumDatabase.values()) {
-        if(sub->parserEngine()->state()==ParserEngine::PES_UPDATING) {
-            busyForums++;
-        }
-    }
+    int busyForums = busyForumCount();
+
 
     subscriptionsToUpdateLeft.removeAll(forum);
     ForumSubscription *nextSub = 0;
@@ -381,6 +398,7 @@ void ClientLogic::unregisterSiilihai() {
     errorDialog("Siilihai has been unregistered and will now quit.");
     haltSiilihai();
 }
+
 void ClientLogic::databaseStored() {
     if(currentState==SH_STOREDB)
         haltSiilihai();
@@ -509,6 +527,7 @@ void ClientLogic::showNextCredentialsDialog() {
     connect(currentCredentialsRequest, SIGNAL(credentialsEntered(bool)), this, SLOT(credentialsEntered(bool)));
     showCredentialsDialog(currentCredentialsRequest);
 }
+
 
 void ClientLogic::credentialsEntered(bool store) {
     CredentialsRequest *cr = qobject_cast<CredentialsRequest*>(sender());
