@@ -72,10 +72,12 @@ void ParserEngine::setSubscription(ForumSubscription *fs) {
 }
 
 void ParserEngine::updateForum(bool force) {
+    qDebug() << Q_FUNC_INFO;
     if(!currentParser->isSane()) {
         qDebug() << Q_FUNC_INFO << "Warning: Parser not sane!";
     }
     Q_ASSERT(fsubscription);
+    Q_ASSERT(!fsubscription->beingSynced());
     forceUpdate = force;
     setState(PES_UPDATING);
 }

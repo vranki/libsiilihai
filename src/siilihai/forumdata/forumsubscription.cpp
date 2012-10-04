@@ -26,7 +26,7 @@ ForumSubscription::ForumSubscription(QObject *parent, bool temp) : QObject(paren
     _temp = temp;
     _engine = 0;
     _groupListChanged = false;
-    _beingUpdated = _beingSynced = false;
+    _beingUpdated = _beingSynced = _scheduledForUpdate = false;
 }
 
 void ForumSubscription::copyFrom(ForumSubscription * other) {
@@ -177,19 +177,32 @@ void ForumSubscription::markRead(bool read) {
     }
 }
 void ForumSubscription::setBeingUpdated(bool bu) {
+    Q_ASSERT(!_beingSynced);
+    Q_ASSERT(!_scheduledForUpdate);
     _beingUpdated = bu;
     emit changed();
 }
 
 void ForumSubscription::setBeingSynced(bool bs) {
+    Q_ASSERT(!_beingUpdated);
     _beingSynced = bs;
     emit changed();
 }
 
-bool ForumSubscription::beingUpdated(){
+void ForumSubscription::setScheduledForUpdate(bool su) {
+    Q_ASSERT(!_beingUpdated);
+    _scheduledForUpdate = su;
+    emit changed();
+}
+
+bool ForumSubscription::beingUpdated() const {
     return _beingUpdated;
 }
 
-bool ForumSubscription::beingSynced() {
+bool ForumSubscription::beingSynced() const {
     return _beingSynced;
+}
+
+bool ForumSubscription::scheduledForUpdate() const {
+    return _scheduledForUpdate;
 }

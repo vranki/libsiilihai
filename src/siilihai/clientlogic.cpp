@@ -71,14 +71,6 @@ void ClientLogic::launchSiilihai() {
     settings->setValue("forum_database_schema", forumDatabase.schemaVersion());
     settings->sync();
 
-#ifdef Q_WS_HILDON
-    if(firstRun) {
-        errorDialog("This is beta software\nMaemo version can't connect\n"
-                    "to the Internet, so please do it manually before continuing.\n"
-                    "The UI is also work in progress. Go to www.siilihai.com for details.");
-        settings->setValue("firstrun", false);
-    }
-#endif
     if (settings->value("account/username", "").toString().isEmpty() && !noAccount()) {
         showLoginWizard();
     } else {
@@ -151,6 +143,9 @@ void ClientLogic::changeState(siilihai_states newState) {
         qDebug() << Q_FUNC_INFO << "Startsync";
         if(usettings.syncEnabled()) {
             if(settings->value("preferences/update_automatically", true).toBool()) {
+                foreach(ForumSubscription *sub, forumDatabase.values()) {
+                    sub->setScheduledForUpdate(true);
+                }
                 connect(&syncmaster, SIGNAL(syncFinishedFor(ForumSubscription*)), this, SLOT(updateForum(ForumSubscription*)));
             }
             syncmaster.startSync();
@@ -187,23 +182,36 @@ void ClientLogic::updateClicked() {
 void ClientLogic::updateForum(ForumSubscription *sub) {
     Q_ASSERT(engines.contains(sub));
     qDebug() << Q_FUNC_INFO << sub->toString();
-    if(subscriptionsToUpdateLeft.contains(sub))
-        return;
-
-    subscriptionsToUpdateLeft.append(sub);
+    subscriptionsNotUpdated.remove(sub);
+    sub->setScheduledForUpdate(true);
 
     int busyForums = busyForumCount();
-    if(busyForums < MAX_CONCURRENT_UPDATES)
+    qDebug() << Q_FUNC_INFO << "Busy forums :" << busyForums << " max " << MAX_CONCURRENT_UPDATES;
+    if(busyForums < MAX_CONCURRENT_UPDATES) {
+        qDebug() << Q_FUNC_INFO << "Updating " << sub->toString();
+        sub->setScheduledForUpdate(false);
+        subscriptionsToUpdateLeft.removeAll(sub);
+        Q_ASSERT(!sub->beingSynced());
         engines.value(sub)->updateForum();
+    } else {
+        Q_ASSERT(!sub->beingSynced());
+        if(!subscriptionsToUpdateLeft.contains(sub)) subscriptionsToUpdateLeft.append(sub);
+    }
 }
 
 void ClientLogic::updateClicked(ForumSubscription* sub , bool force) {
     if(currentState != SH_READY) return;
 
     Q_ASSERT(engines.contains(sub));
+
     ParserEngine *engine = engines.value(sub);
-    if(engine && engine->state()==ParserEngine::PES_IDLE && currentState != SH_OFFLINE && currentState != SH_STARTED)
+    if(engine && engine->state()==ParserEngine::PES_IDLE && currentState != SH_OFFLINE && currentState != SH_STARTED) {
+        sub->setScheduledForUpdate(false);
+        subscriptionsToUpdateLeft.removeAll(sub);
+        subscriptionsNotUpdated.remove(sub);
+        Q_ASSERT(!engine->subscription()->beingSynced());
         engine->updateForum(force);
+    }
 }
 
 void ClientLogic::cancelClicked() {
@@ -228,6 +236,9 @@ void ClientLogic::syncFinished(bool success, QString message){
         errorDialog(QString("Syncing status to server failed.\n\n%1").arg(message));
     }
     if(currentState == SH_STARTSYNCING) {
+        foreach(ForumSubscription *sub, subscriptionsNotUpdated) {
+            updateForum(sub);
+        }
         changeState(SH_READY);
     } else if(currentState == SH_ENDSYNC) {
         endSyncDone = true;
@@ -317,18 +328,21 @@ void ClientLogic::subscriptionDeleted(QObject* subobj) {
     engines[sub]->cancelOperation();
     engines[sub]->deleteLater();
     engines.remove(sub);
+    subscriptionsNotUpdated.remove(sub);
 }
 
 void ClientLogic::forumUpdated(ForumSubscription* forum) {
     int busyForums = busyForumCount();
 
-
+    subscriptionsNotUpdated.remove(forum);
     subscriptionsToUpdateLeft.removeAll(forum);
     ForumSubscription *nextSub = 0;
     while(!nextSub && !subscriptionsToUpdateLeft.isEmpty()
           && busyForums <= MAX_CONCURRENT_UPDATES) {
         nextSub = subscriptionsToUpdateLeft.takeFirst();
         if(forumDatabase.values().contains(nextSub)) {
+            nextSub->setScheduledForUpdate(false);
+            Q_ASSERT(!nextSub->beingSynced());
             nextSub->parserEngine()->updateForum();
             busyForums++;
         }
@@ -438,6 +452,8 @@ bool ClientLogic::noAccount() {
 
 void ClientLogic::subscriptionFound(ForumSubscription *sub) {
     connect(sub, SIGNAL(destroyed(QObject*)), this, SLOT(subscriptionDeleted(QObject*)));
+    subscriptionsNotUpdated.insert(sub);
+
     ParserEngine *pe = engines.value(sub);
     if(!pe) {
         pe = new ParserEngine(&forumDatabase, this, parserManager, nam);
@@ -460,7 +476,7 @@ void ClientLogic::subscriptionFound(ForumSubscription *sub) {
 void ClientLogic::updateGroupSubscriptions(ForumSubscription *sub) {
     if(!noAccount())
         protocol.subscribeGroups(sub);
-    engines.value(sub)->updateForum();
+    updateForum(sub);
 }
 
 void ClientLogic::updateThread(ForumThread* thread, bool force) {

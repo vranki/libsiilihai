@@ -76,11 +76,11 @@ protected slots:
     virtual void subscriptionDeleted(QObject* subobj);
     virtual void getHttpAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator);
     virtual void getForumAuthentication(ForumSubscription *fsub);
-    void forumAdded(ForumSubscription *fs);
     virtual void showSubscribeGroup(ForumSubscription* forum) {};
+    virtual void unregisterSiilihai();
+    void forumAdded(ForumSubscription *fs);
     void moreMessagesRequested(ForumThread* thread);
     void unsubscribeGroup(ForumGroup *group);
-    virtual void unregisterSiilihai();
     void updateForum(ForumSubscription *sub);
     virtual void updateThread(ForumThread* thread, bool force=false);
 private slots:
@@ -108,6 +108,7 @@ private:
     QHash <ForumSubscription*, ParserEngine*> engines;
     QList<ForumSubscription*> subscriptionsToUpdateLeft;
     QSet<ParserEngine*> busyParserEngines;
+    QSet<ForumSubscription*> subscriptionsNotUpdated; // Subs that never have been updated
     UserSettings usettings;
     bool dbStored;
     QNetworkAccessManager nam;

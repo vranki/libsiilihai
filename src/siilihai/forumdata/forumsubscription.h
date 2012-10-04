@@ -25,8 +25,7 @@ class ForumGroup;
 class ParserEngine;
 
 /**
-  * Represents a subscription to a forum. Contains a list of
-  * groups.
+  * Represents a subscription to a forum. Contains a list of groups.
   *
   * @see ForumGroup
   */
@@ -37,6 +36,7 @@ class ForumSubscription : public QObject, public QMap<QString, ForumGroup*>, pub
     Q_PROPERTY(int unreadCount READ unreadCount NOTIFY unreadCountChanged)
     Q_PROPERTY(bool beingUpdated READ beingUpdated WRITE setBeingUpdated NOTIFY changed)
     Q_PROPERTY(bool beingSynced READ beingSynced WRITE setBeingSynced NOTIFY changed)
+    Q_PROPERTY(bool scheduledForUpdate READ scheduledForUpdate WRITE setScheduledForUpdate NOTIFY changed)
 public:
     ForumSubscription(QObject *parent=0, bool temp=true);
     void copyFrom(ForumSubscription * o);
@@ -70,8 +70,10 @@ public:
     void markRead(bool read=true);
     void setBeingUpdated(bool bu);
     void setBeingSynced(bool bs);
-    bool beingUpdated();
-    bool beingSynced();
+    void setScheduledForUpdate(bool su);
+    bool beingUpdated() const;
+    bool beingSynced() const;
+    bool scheduledForUpdate() const;
  signals:
     void changed();
     void unreadCountChanged();
@@ -92,7 +94,7 @@ private:
     bool _temp, _groupListChanged;
     ParserEngine *_engine;
     // Just for status display
-    bool _beingUpdated, _beingSynced;
+    bool _scheduledForUpdate, _beingUpdated, _beingSynced;
 };
 
 #endif /* FORUMSUBSCRIPTION_H_ */

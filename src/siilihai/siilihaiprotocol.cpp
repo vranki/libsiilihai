@@ -598,7 +598,7 @@ void SiilihaiProtocol::replyDownsync(QNetworkReply *reply) {
                 int forumid = forumElement.attribute("id").toInt();
                 ForumSubscription forum(0, true);
                 forum.setParser(forumid);
-                qDebug() << Q_FUNC_INFO << "got forum " + forumid;
+                qDebug() << Q_FUNC_INFO << " got forum " + forumid;
                 for (int k = 0; k < forumElement.childNodes().size(); k++) {
                     QDomElement groupElement = forumElement.childNodes().at(k).toElement();
                     QString groupid = groupElement.attribute("id");

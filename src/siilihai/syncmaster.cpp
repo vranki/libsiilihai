@@ -205,6 +205,7 @@ void SyncMaster::sendThreadDataFinished(bool success, QString message) {
 }
 
 void SyncMaster::serverThreadData(ForumThread *tempThread) { // Thread is temporary object!
+    qDebug() << Q_FUNC_INFO << "Received thread " << tempThread->toString();
     if(canceled) return;
     if (tempThread->isSane()) {
         static ForumGroup *lastGroupBeingSynced=0;
