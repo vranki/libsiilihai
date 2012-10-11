@@ -24,7 +24,7 @@ void ForumDatabaseXml::resetDatabase(){
 }
 
 int ForumDatabaseXml::schemaVersion(){
-    return 10;
+    return 11;
 }
 
 bool ForumDatabaseXml::openDatabase(QString filename) {
@@ -42,11 +42,12 @@ bool ForumDatabaseXml::openDatabase(QIODevice *source) {
     if(!doc.setContent(source)) return false;
     QDomElement docElem = doc.documentElement();
     if(docElem.tagName() != "forumdatabase") return false;
+
     QDomElement subscriptionElement = docElem.firstChildElement(SUB_SUBSCRIPTION);
     while(!subscriptionElement.isNull()) {
         ForumSubscription *sub = XmlSerialization::readSubscription(subscriptionElement, this);
         if(sub) {
-            insert(sub->parser(), sub);
+            insert(sub->forumId(), sub);
             emit subscriptionFound(sub);
         }
         subscriptionElement = subscriptionElement.nextSiblingElement(SUB_SUBSCRIPTION);
@@ -61,7 +62,7 @@ bool ForumDatabaseXml::isStored(){
 }
 
 bool ForumDatabaseXml::addSubscription(ForumSubscription *fs){
-    insert(fs->parser(), fs);
+    insert(fs->forumId(), fs);
     emit subscriptionFound(fs);
     checkSanity();
 #ifdef SANITY_CHECKS
@@ -72,7 +73,7 @@ bool ForumDatabaseXml::addSubscription(ForumSubscription *fs){
 }
 
 void ForumDatabaseXml::deleteSubscription(ForumSubscription *sub){
-    remove(sub->parser());
+    remove(sub->forumId());
     emit subscriptionRemoved(sub);
     sub->deleteLater();
 }

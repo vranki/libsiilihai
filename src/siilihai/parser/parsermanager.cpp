@@ -46,12 +46,12 @@ void ParserManager::storeOrUpdateParser(ForumParser* parser) {
 void ParserManager::updateParser(int id) {
     if(parsersToUpdate.contains(id)) return; // Already queued!
 
-    if(protocol->isLoggedIn()) {
+//    if(protocol->isLoggedIn()) {
         protocol->getParser(id);
-    } else {
+/*    } else {
         qDebug() << Q_FUNC_INFO << "Not logged in, queuing parser " << id;
         parsersToUpdate.append(id);
-    }
+    }*/
 }
 
 void ParserManager::loginFinished(bool success) {

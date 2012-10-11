@@ -22,6 +22,7 @@
 #include "forumdata/forummessage.h"
 #include "httppost.h"
 #include "parser/parserreport.h"
+#include "parser/forumsubscriptionparsed.h"
 #include "usersettings.h"
 
 SiilihaiProtocol::SiilihaiProtocol(QObject *parent) : QObject(parent) {
@@ -282,7 +283,9 @@ void SiilihaiProtocol::replyGetParser(QNetworkReply *reply) {
 void SiilihaiProtocol::subscribeForum(ForumSubscription *fs, bool unsubscribe) {
     QNetworkRequest req(subscribeForumUrl);
     QHash<QString, QString> params;
-    params.insert("parser_id", QString().number(fs->parser()));
+    params.insert("forum_id", QString().number(fs->forumId()));
+    if(fs->isParsed())
+        params.insert("parser_id", QString().number(qobject_cast<ForumSubscriptionParsed*>(fs)->parser()));
     if (unsubscribe) {
         params.insert("unsubscribe", "yes");
     } else {
@@ -323,7 +326,7 @@ void SiilihaiProtocol::subscribeGroups(ForumSubscription *fs) {
     QDomElement forumTag = doc.createElement("forum");
     root.appendChild(forumTag);
 
-    QDomText t = doc.createTextNode(QString().number(fs->parser()));
+    QDomText t = doc.createTextNode(QString().number(fs->forumId()));
     forumTag.appendChild(t);
 
     foreach(ForumGroup *g, fs->values()) {
@@ -498,7 +501,7 @@ void SiilihaiProtocol::sendThreadData(ForumGroup *grp, QList<ForumMessage*> &fms
     QDomElement forumTag = doc.createElement("forum");
     root.appendChild(forumTag);
 
-    QDomText t = doc.createTextNode(QString().number(grp->subscription()->parser()));
+    QDomText t = doc.createTextNode(QString().number(grp->subscription()->forumId()));
     forumTag.appendChild(t);
 
     QDomElement groupTag = doc.createElement("group");
@@ -566,7 +569,7 @@ void SiilihaiProtocol::downsync(QList<ForumGroup*> &groups) {
     }
     foreach(ForumSubscription* sub, groupMap.keys()) {
         QDomElement forumTag = doc.createElement("forum");
-        forumTag.setAttribute("id", sub->parser());
+        forumTag.setAttribute("id", sub->forumId());
         root.appendChild(forumTag);
 
         foreach(ForumGroup *grp, groupMap.value(sub)) {
@@ -596,13 +599,20 @@ void SiilihaiProtocol::replyDownsync(QNetworkReply *reply) {
             QDomElement forumElement = re.childNodes().at(j).toElement();
             if(forumElement.tagName()=="forum") {
                 int forumid = forumElement.attribute("id").toInt();
-                ForumSubscription forum(0, true);
-                forum.setParser(forumid);
+                ForumSubscription *forum = 0;
+                int forumProvider = forumElement.attribute("provider").toInt();
+                if(forumProvider==ForumSubscription::FP_PARSER) {
+                    ForumSubscriptionParsed *forumParsed = new ForumSubscriptionParsed(0, true);
+                    forum = forumParsed;
+                    int forumparser = forumElement.attribute("id").toInt();
+                    forumParsed->setParser(forumparser);
+                }
+                forum->setForumId(forumid);
                 qDebug() << Q_FUNC_INFO << " got forum " + forumid;
                 for (int k = 0; k < forumElement.childNodes().size(); k++) {
                     QDomElement groupElement = forumElement.childNodes().at(k).toElement();
                     QString groupid = groupElement.attribute("id");
-                    ForumGroup group(&forum, true);
+                    ForumGroup group(forum, true);
                     group.setId(groupid);
                     for (int l = 0; l < groupElement.childNodes().size(); l++) {
                         QDomElement threadElement = groupElement.childNodes().at(l).toElement();
@@ -630,7 +640,8 @@ void SiilihaiProtocol::replyDownsync(QNetworkReply *reply) {
                         }
                     }
                 }
-                emit downsyncFinishedForForum(&forum);
+                emit downsyncFinishedForForum(forum);
+                delete forum;
             }
         }
     } else {
@@ -663,26 +674,32 @@ void SiilihaiProtocol::replyGetSyncSummary(QNetworkReply *reply) {
         for (int i = 0; i < re.childNodes().size(); i++) {
             QDomElement forumElement = re.childNodes().at(i).toElement();
             int forumid = forumElement.attribute("id").toInt();
-            if(forumid > 0) {
-                ForumSubscription *sub = new ForumSubscription(this);
-                sub->setParser(forumid);
-                sub->setAlias(forumElement.attribute("alias"));
-                sub->setLatestThreads(forumElement.attribute("latest_threads").toInt());
-                sub->setLatestMessages(forumElement.attribute("latest_messages").toInt());
-                sub->setAuthenticated(forumElement.hasAttribute("authenticated"));
-                for (int j = 0; j < forumElement.childNodes().size(); j++) {
-                    QDomElement groupElement = forumElement.childNodes().at(j).toElement();
-                    QString groupid = groupElement.attribute("id");
-                    int changeset = groupElement.text().toInt();
-                    ForumGroup *g = new ForumGroup(sub); // I hope qobject's memory management will delete this
-                    g->setId(groupid);
-                    g->setChangeset(changeset);
-                    g->setSubscribed(true);
-                    grps.append(g);
-                    sub->addGroup(g);
-                }
-                subs.append(sub);
+            int forumprovider = forumElement.attribute("provider").toInt();
+
+            ForumSubscription *sub = 0;
+            if(forumprovider==ForumSubscription::FP_PARSER) {
+                ForumSubscriptionParsed *forumParsed = new ForumSubscriptionParsed(this, true);
+                int forumparser = forumElement.attribute("parser").toInt();
+                forumParsed->setParser(forumparser);
+                sub = forumParsed;
             }
+            sub->setForumId(forumid);
+            sub->setAlias(forumElement.attribute("alias"));
+            sub->setLatestThreads(forumElement.attribute("latest_threads").toInt());
+            sub->setLatestMessages(forumElement.attribute("latest_messages").toInt());
+            sub->setAuthenticated(forumElement.hasAttribute("authenticated"));
+            for (int j = 0; j < forumElement.childNodes().size(); j++) {
+                QDomElement groupElement = forumElement.childNodes().at(j).toElement();
+                QString groupid = groupElement.attribute("id");
+                int changeset = groupElement.text().toInt();
+                ForumGroup *g = new ForumGroup(sub); // I hope qobject's memory management will delete this
+                g->setId(groupid);
+                g->setChangeset(changeset);
+                g->setSubscribed(true);
+                grps.append(g);
+                sub->addGroup(g);
+            }
+            subs.append(sub);
         }
         emit serverGroupStatus(subs);
     } else {

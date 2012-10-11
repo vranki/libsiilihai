@@ -14,9 +14,11 @@
     along with libSiilihai.  If not, see <http://www.gnu.org/licenses/>. */
 #include "forumsubscription.h"
 #include "forumgroup.h"
+#include "../parser/forumsubscriptionparsed.h"
+#include "../tapatalk/forumsubscriptiontapatalk.h"
 
-ForumSubscription::ForumSubscription(QObject *parent, bool temp) : QObject(parent) {
-    _parser = -1;
+ForumSubscription::ForumSubscription(QObject *parent, bool temp, ForumProvider p) : QObject(parent),
+    _provider(p) {
     _alias = QString::null;
     _latestThreads = 0;
     _latestMessages = 0;
@@ -24,13 +26,14 @@ ForumSubscription::ForumSubscription(QObject *parent, bool temp) : QObject(paren
     _unreadCount = 0;
     _username = _password = QString::null;
     _temp = temp;
-    _engine = 0;
     _groupListChanged = false;
     _beingUpdated = _beingSynced = _scheduledForUpdate = false;
+    _forumId = 0;
+    _engine = 0;
 }
 
 void ForumSubscription::copyFrom(ForumSubscription * other) {
-    setParser(other->parser());
+    setForumId(other->forumId());
     setAlias(other->alias());
     setUsername(other->username());
     setPassword(other->password());
@@ -62,15 +65,11 @@ void ForumSubscription::removeGroup(ForumGroup* grp, bool affectsSync) {
 }
 
 bool ForumSubscription::isSane() const {
-    return (_parser > 0 && _alias.length() > 0 && _latestMessages > 0 && _latestThreads > 0);
+    return (_alias.length() > 0 && _latestMessages > 0 && _latestThreads > 0);
 }
 
 QString ForumSubscription::toString() const {
-    return QString("Subscription to ") + QString().number(_parser) + " (" + _alias + ")";
-}
-
-int ForumSubscription::parser() const {
-    return _parser;
+    return QString("Subscription to ") + QString().number(_forumId) + " (" + _alias + ")";
 }
 
 QString ForumSubscription::alias() const {
@@ -97,11 +96,6 @@ bool ForumSubscription::authenticated() const {
     return _authenticated;
 }
 
-void ForumSubscription::setParser(int parser) {
-    if(parser==_parser) return;
-    _parser = parser;
-    emit changed();
-}
 
 void ForumSubscription::setAlias(QString name) {
     if(_alias==name) return;
@@ -154,12 +148,7 @@ bool ForumSubscription::isTemp() const {
     return _temp;
 }
 
-void ForumSubscription::setParserEngine(ParserEngine *eng) {
-    _engine = eng;
-    emit changed();
-}
-
-ParserEngine *ForumSubscription::parserEngine() const {
+UpdateEngine *ForumSubscription::updateEngine() const {
     return _engine;
 }
 
@@ -169,6 +158,16 @@ bool ForumSubscription::hasGroupListChanged() const {
 
 void ForumSubscription::setGroupListChanged(bool changed) {
     _groupListChanged = changed;
+}
+
+int ForumSubscription::forumId() const
+{
+    return _forumId;
+}
+
+void ForumSubscription::setForumId(int newId)
+{
+    _forumId = newId;
 }
 
 void ForumSubscription::markRead(bool read) {
@@ -205,4 +204,28 @@ bool ForumSubscription::beingSynced() const {
 
 bool ForumSubscription::scheduledForUpdate() const {
     return _scheduledForUpdate;
+}
+
+ForumSubscription::ForumProvider ForumSubscription::provider() const
+{
+    return _provider;
+}
+
+bool ForumSubscription::isParsed() const
+{
+    return _provider == FP_PARSER;
+}
+
+bool ForumSubscription::isTapaTalk() const
+{
+    return _provider == FP_TAPATALK;
+}
+
+ForumSubscription *ForumSubscription::newForProvider(ForumSubscription::ForumProvider fp, QObject *parent, bool temp) {
+    if(fp==ForumSubscription::FP_PARSER)
+        return new ForumSubscriptionParsed(parent, temp);
+    if(fp==ForumSubscription::FP_TAPATALK)
+        return new ForumSubscriptionTapaTalk(parent, temp);
+    Q_ASSERT(false);
+    return 0;
 }

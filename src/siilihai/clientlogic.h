@@ -5,7 +5,7 @@
 #include <QSettings>
 #include <QQueue>
 
-#include "parser/parserengine.h"
+#include "updateengine.h"
 #include "forumdatabase/forumdatabasexml.h"
 #include "syncmaster.h"
 #include "usersettings.h"
@@ -22,6 +22,8 @@
 //             offline ------------------------>----------'
 //
 // @todo switch to Qt's state machine
+
+class ParserManager;
 
 class ClientLogic : public QObject
 {
@@ -86,8 +88,8 @@ protected slots:
 private slots:
     virtual void subscribeForum()=0;
     virtual void showStatusMessage(QString message)=0;
-    virtual void parserEngineStateChanged(ParserEngine *engine, ParserEngine::ParserEngineState newState,
-                                          ParserEngine::ParserEngineState oldState);
+    virtual void parserEngineStateChanged(UpdateEngine::UpdateEngineState newState,
+                                          UpdateEngine::UpdateEngineState oldState);
     void syncProgress(float progress, QString message);
     void listSubscriptionsFinished(QList<int> subscriptions);
     void forumUpdated(ForumSubscription* forumid);
@@ -105,9 +107,10 @@ private:
     void tryLogin();
     void showNextCredentialsDialog();
     int busyForumCount();
-    QHash <ForumSubscription*, ParserEngine*> engines;
+    void createEngineForSubscription(ForumSubscription *newFs);
+    QHash <ForumSubscription*, UpdateEngine*> engines;
     QList<ForumSubscription*> subscriptionsToUpdateLeft;
-    QSet<ParserEngine*> busyParserEngines;
+    QSet<UpdateEngine*> busyParserEngines;
     QSet<ForumSubscription*> subscriptionsNotUpdated; // Subs that never have been updated
     UserSettings usettings;
     bool dbStored;

@@ -58,7 +58,7 @@ void ForumSession::initialize(ForumParser *fop, ForumSubscription *fos, PatternM
 void ForumSession::networkReply(QNetworkReply *reply) {
     int operationAttribute = reply->request().attribute(QNetworkRequest::User).toInt();
     int forumId = reply->request().attribute(FORUMID_ATTRIBUTE).toInt();
-    if(forumId != fsub->parser()) return;
+    if(forumId != fsub->forumId()) return;
     if(!operationAttribute) {
         qDebug( ) << Q_FUNC_INFO << "Reply " << operationAttribute << " not for me";
         return;
@@ -619,7 +619,7 @@ void ForumSession::authenticationRequired(QNetworkReply * reply, QAuthenticator 
     Q_UNUSED(reply);
     if(operationInProgress == FSONoOp) return;
     int forumId = reply->request().attribute(FORUMID_ATTRIBUTE).toInt();
-    if(forumId != fsub->parser()) return;
+    if(forumId != fsub->forumId()) return;
 
     qDebug() << Q_FUNC_INFO << reply << authenticator;
     if(waitingForAuthentication) {
@@ -682,7 +682,7 @@ void ForumSession::cookieExpired() {
 
 void ForumSession::setRequestAttributes(QNetworkRequest &req, ForumSessionOperation op) {
     req.setAttribute(QNetworkRequest::User, op);
-    req.setAttribute(FORUMID_ATTRIBUTE, fsub->parser());
+    req.setAttribute(FORUMID_ATTRIBUTE, fsub->forumId());
     req.setHeader(QNetworkRequest::ContentTypeHeader, QString("application/x-www-form-urlencoded"));
     // @todo Make this configurable
     req.setRawHeader("User-Agent", "Mozilla/5.0 (X11; Linux i686; rv:6.0) Gecko/20100101 Firefox/6.0");
@@ -693,11 +693,4 @@ void ForumSession::authenticationReceived() {
     qDebug() << Q_FUNC_INFO;
     statusReport();
     waitingForAuthentication = false;
-    /*
-    if(cookieFetched) {
-        nextOperation(); // Is this ok?
-    } else {
-        fetchCookie();
-    }
-    */
 }

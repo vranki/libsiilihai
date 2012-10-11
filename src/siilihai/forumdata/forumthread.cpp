@@ -51,7 +51,7 @@ QString ForumThread::toString() const {
     if(group()) {
         tgroup = group()->id();
         if(group()->subscription())
-            tparser = QString().number(group()->subscription()->parser());
+            tparser = QString().number(group()->subscription()->forumId());
     }
     return tparser + "/" + tgroup + "/" + id() + ": " + name();
 }

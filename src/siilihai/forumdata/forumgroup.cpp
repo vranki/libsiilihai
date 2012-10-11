@@ -64,7 +64,7 @@ void ForumGroup::removeThread(ForumThread* thr, bool affectsSync) {
 QString ForumGroup::toString() const {
     QString parser = "Unknown";
     if(subscription())
-        parser = QString().number(subscription()->parser());
+        parser = QString().number(subscription()->forumId());
     return parser + "/" + id() + ": " + name();
 }
 

@@ -18,13 +18,12 @@
 #include "../forumdata/forummessage.h"
 #include "../forumdatabase/forumdatabase.h"
 #include "../forumdata/forumsubscription.h"
-#include "parsermanager.h"
 #include "../credentialsrequest.h"
+#include "parsermanager.h"
 
-static const QString stateNames[] = {"Unknown", "Missing Parser", "Idle", "Updating", "Error", "Updating parser" };
 
-ParserEngine::ParserEngine(ForumDatabase *fd, QObject *parent, ParserManager *pm, QNetworkAccessManager &n) :
-    QObject(parent), nam(n), session(this, &nam), parserManager(pm) {
+ParserEngine::ParserEngine(ForumDatabase *fd, QObject *parent, ParserManager *pm) :
+    UpdateEngine(parent, fd), session(this, &nam), parserManager(pm) {
     connect(&session, SIGNAL(listGroupsFinished(QList<ForumGroup*>&)), this, SLOT(listGroupsFinished(QList<ForumGroup*>&)));
     connect(&session, SIGNAL(listThreadsFinished(QList<ForumThread*>&, ForumGroup*)), this, SLOT(listThreadsFinished(QList<ForumThread*>&, ForumGroup*)));
     connect(&session, SIGNAL(listMessagesFinished(QList<ForumMessage*>&, ForumThread*, bool)),
@@ -33,454 +32,107 @@ ParserEngine::ParserEngine(ForumDatabase *fd, QObject *parent, ParserManager *pm
     connect(&session, SIGNAL(getHttpAuthentication(ForumSubscription*, QAuthenticator*)), this, SIGNAL(getHttpAuthentication(ForumSubscription*,QAuthenticator*)));
     connect(&session, SIGNAL(loginFinished(ForumSubscription *,bool)), this, SLOT(loginFinishedSlot(ForumSubscription *,bool)));
     connect(parserManager, SIGNAL(parserUpdated(ForumParser*)), this, SLOT(parserUpdated(ForumParser*)));
-    fdb = fd;
-    updateAll = false;
-    forceUpdate = false;
-    sessionInitialized = false;
-    fsubscription = 0;
     currentParser = 0;
-    currentState = PES_MISSING_PARSER;
-    requestingCredentials = false;
+    sessionInitialized = false;
+    updatingParser = false;
 }
 
 ParserEngine::~ParserEngine() {
-    if(fsubscription)
-        fsubscription->setParserEngine(0);
 }
 
 void ParserEngine::setParser(ForumParser *fp) {
     currentParser = fp;
     if(fp) {
-        if(fsubscription && (currentState==PES_MISSING_PARSER || currentState==PES_UPDATING_PARSER)) setState(PES_IDLE);
+        if(subscription() && !updatingParser && state()==PES_ENGINE_NOT_READY)  {
+            setState(PES_IDLE);
+        }
     } else {
-        if(currentState != PES_UPDATING_PARSER) setState(PES_MISSING_PARSER);
+        if(!updatingParser)
+            setState(PES_ENGINE_NOT_READY);
     }
 }
 
 void ParserEngine::setSubscription(ForumSubscription *fs) {
-    Q_ASSERT(!fsubscription); // Don't reuse this class, plz!
-    Q_ASSERT(fs);
-    fsubscription = fs;
-    connect(fsubscription, SIGNAL(destroyed()), this, SLOT(subscriptionDeleted()));
-    fsubscription->setParserEngine(this);
+    Q_ASSERT(!fs || qobject_cast<ForumSubscriptionParsed*>(fs));
+    UpdateEngine::setSubscription(fs);
+    if(!fs) return;
+    subscriptionParsed()->setParserEngine(this);
     if(!currentParser) {
-        parserManager->updateParser(fsubscription->parser());
-        setState(PES_UPDATING_PARSER);
+        parserManager->updateParser(subscriptionParsed()->parser());
+        updatingParser = true;
+        setState(PES_ENGINE_NOT_READY);
     } else {
         setState(PES_IDLE);
     }
 }
 
-void ParserEngine::updateForum(bool force) {
-    qDebug() << Q_FUNC_INFO;
-    if(!currentParser->isSane()) {
-        qDebug() << Q_FUNC_INFO << "Warning: Parser not sane!";
-    }
-    Q_ASSERT(fsubscription);
-    Q_ASSERT(!fsubscription->beingSynced());
-    forceUpdate = force;
-    setState(PES_UPDATING);
-}
-
-void ParserEngine::updateGroupList() {
-    if(!currentParser->isSane()) qDebug() << Q_FUNC_INFO << "Warning: Parser not sane!";
-    updateAll = false;
-    if (!sessionInitialized) {
-        session.initialize(currentParser, fsubscription);
-        sessionInitialized = true;
-    }
-
-    session.listGroups();
-    setState(PES_UPDATING);
-}
-
-void ParserEngine::updateThread(ForumThread *thread, bool force) {
-    Q_ASSERT(fsubscription);
-    Q_ASSERT(thread);
-    if(!currentParser->isSane()) qDebug() << Q_FUNC_INFO << "Warning: Parser not sane!";
-
-    forceUpdate = false;
-    updateAll = false;
-
-    if (!sessionInitialized) {
-        session.initialize(currentParser, fsubscription);
-        sessionInitialized = true;
-    }
-    if(force) {
-        thread->setLastPage(0);
-        thread->markToBeUpdated();
-    }
-    session.listMessages(thread);
-    setState(PES_UPDATING);
-}
-
-void ParserEngine::networkFailure(QString message) {
-    emit updateFailure(fsubscription, "Updating " + fsubscription->alias() + " failed due to network error:\n\n" + message);
-    setState(PES_ERROR);
-}
-
-
-void ParserEngine::updateNextChangedGroup() {
-    Q_ASSERT(updateAll);
-
-    if (groupsToUpdateQueue.size() > 0) {
-        ForumGroup *grp=groupsToUpdateQueue.dequeue();
-        Q_ASSERT(grp);
-        Q_ASSERT(grp->isSubscribed());
-        session.listThreads(grp);
-    } else {
-        //  qDebug() << Q_FUNC_INFO << "No more changed groups - end of update.";
-        updateAll = false;
-        Q_ASSERT(groupsToUpdateQueue.isEmpty() &&threadsToUpdateQueue.isEmpty());
-        setState(PES_IDLE);
-        emit forumUpdated(fsubscription);
-    }
-    updateCurrentProgress();
-}
-
-void ParserEngine::updateNextChangedThread() {
-    if (!threadsToUpdateQueue.isEmpty()) {
-        ForumThread *thread = threadsToUpdateQueue.dequeue();
-        if(forceUpdate)
-            thread->setLastPage(0);
-        session.listMessages(thread);
-    } else {
-        updateNextChangedGroup();
-    }
-    updateCurrentProgress();
-}
-
-void ParserEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups) {
-    if(!fsubscription) return;
-    bool dbGroupsWasEmpty = fsubscription->isEmpty();
-    groupsToUpdateQueue.clear();
-    fsubscription->markToBeUpdated(false);
-    if (tempGroups.size() == 0 && fsubscription->size() > 0) {
-        emit updateFailure(fsubscription, "Updating group list for " + currentParser->name()
-                           + " failed. \nCheck your network connection.");
-        setState(PES_ERROR);
-        return;
-    }
-    // Diff the group list
-    bool groupsChanged = false;
-    foreach(ForumGroup *tempGroup, tempGroups) {
-        bool foundInDb = false;
-
-        foreach(ForumGroup *dbGroup, fsubscription->values()) {
-            if (dbGroup->id() == tempGroup->id()) {
-                foundInDb = true;
-                if((dbGroup->isSubscribed() &&
-                    ((dbGroup->lastchange() != tempGroup->lastchange()) || forceUpdate ||
-                     dbGroup->isEmpty() || dbGroup->needsToBeUpdated()))) {
-                    dbGroup->markToBeUpdated();
-                    groupsToUpdateQueue.enqueue(dbGroup);
-                    qDebug() << Q_FUNC_INFO << "Group " << dbGroup->toString() << " shall be updated";
-                    // Store the updated version to database
-                    tempGroup->setSubscribed(true);
-                    Q_ASSERT(tempGroup->subscription() == dbGroup->subscription());
-                    dbGroup->copyFrom(tempGroup);
-                    dbGroup->commitChanges();
-                } else {
-                    //         qDebug() << "Group" << dbgroup->toString()
-                    //                << " hasn't changed or is not subscribed - not reloading.";
-                }
-            }
-        }
-        if (!foundInDb) {
-            // qDebug() << "Group " << grp->toString() << " not found in db - adding.";
-            groupsChanged = true;
-            ForumGroup *newGroup = new ForumGroup(fsubscription, false);
-            newGroup->copyFrom(tempGroup);
-            newGroup->setChangeset(rand());
-            // DON'T set lastchange when only updating group list.
-            if(!updateAll) {
-                newGroup->markToBeUpdated();
-            }
-            fsubscription->addGroup(newGroup);
-        }
-    }
-
-    // check for DELETED groups
-    foreach(ForumGroup *dbGroup, fsubscription->values()) {
-        bool groupFound = false;
-        foreach(ForumGroup *grp, tempGroups) {
-            if (dbGroup->id() == grp->id()) {
-                groupFound = true;
-            }
-        }
-        if (!groupFound) {
-            groupsChanged = true;
-            qDebug() << Q_FUNC_INFO << "Group " << dbGroup->toString() << " has been deleted!";
-            fsubscription->removeGroup(dbGroup);
-        }
-    }
-
-    if (updateAll) {
-        updateNextChangedGroup();
-    } else {
-        setState(PES_IDLE);
-    }
-    if (groupsChanged && dbGroupsWasEmpty) {
-        emit(groupListChanged(fsubscription));
-    }
-
-    fdb->checkSanity();
-}
-
-void ParserEngine::listThreadsFinished(QList<ForumThread*> &tempThreads, ForumGroup *group) {
-    Q_ASSERT(group);
-    Q_ASSERT(group->isSubscribed());
-    Q_ASSERT(!group->isTemp());
-    Q_ASSERT(group->isSane());
-    threadsToUpdateQueue.clear();
-    group->markToBeUpdated(false);
-    if (tempThreads.isEmpty() && !group->isEmpty()) {
-        QString errorMsg = "Found no threads in group " + group->toString() + ".\n Broken parser?";
-        emit updateFailure(fsubscription, errorMsg);
-        group->markToBeUpdated();
-        setState(PES_ERROR);
-        return;
-    }
-
-    // Diff the group list
-    foreach(ForumThread *serverThread, tempThreads) {
-        ForumThread *dbThread = fdb->getThread(group->subscription()->parser(), group->id(), serverThread->id());
-        if (dbThread) {
-            dbThread->setName(serverThread->name());
-            if ((dbThread->lastchange() != serverThread->lastchange()) || forceUpdate ||
-                    dbThread->isEmpty() || dbThread->needsToBeUpdated()) {
-                Q_ASSERT(dbThread->group() == serverThread->group());
-
-                // Don't update some fields to new values
-                int oldGetMessagesCount = dbThread->getMessagesCount();
-                bool oldHasMoreMessages =  dbThread->hasMoreMessages();
-                dbThread->setLastchange(serverThread->lastchange());
-                dbThread->setOrdernum(serverThread->ordernum());
-                dbThread->setChangeset(serverThread->changeset());
-                dbThread->setGetMessagesCount(oldGetMessagesCount);
-                dbThread->setHasMoreMessages(oldHasMoreMessages);
-                dbThread->commitChanges();
-//                qDebug() << Q_FUNC_INFO << "Thread " << dbThread->toString() << " shall be updated";
-                dbThread->markToBeUpdated();
-                threadsToUpdateQueue.enqueue(dbThread);
-            }
-        } else {
-            ForumThread *newThread = new ForumThread(group, false);
-            newThread->copyFrom(serverThread);
-            newThread->setChangeset(-1);
-            group->addThread(newThread, false);
-            threadsToUpdateQueue.enqueue(newThread);
-        }
-    }
-    QSet<ForumThread*> deletedThreads;
-    // check for DELETED threads
-    foreach (ForumThread *dbThread, group->values()) { // Iterate all db threads and find if any is missing
-        bool threadFound = false;
-        foreach(ForumThread *tempThread, tempThreads) {
-            if (dbThread->group()->subscription()->parser() == tempThread->group()->subscription()->parser() &&
-                    dbThread->group()->id() == tempThread->group()->id() &&
-                    dbThread->id() == tempThread->id()) {
-                threadFound = true;
-            }
-        }
-        if (!threadFound) {
-            deletedThreads.insert(dbThread);
-//            qDebug() << "Thread " << dbThread->toString() << " has been deleted!";
-        }
-    }
-    foreach(ForumThread *thr, deletedThreads.values())
-        thr->group()->removeThread(thr);
-
-    if(updateAll)
-        updateNextChangedThread();
-
-    fdb->checkSanity();
-}
-
-void ParserEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages, ForumThread *dbThread, bool moreAvailable) {
-    Q_ASSERT(dbThread);
-    Q_ASSERT(dbThread->isSane());
-    Q_ASSERT(!dbThread->isTemp());
-    Q_ASSERT(dbThread->group()->isSubscribed());
-    dbThread->markToBeUpdated(false);
-    if(tempMessages.size()==0) qDebug() << Q_FUNC_INFO << "got 0 messages in thread " << dbThread->toString();
-    bool messagesChanged = false;
-    foreach (ForumMessage *tempMessage, tempMessages) {
-        bool foundInDb = false;
-        foreach (ForumMessage *dbMessage, dbThread->values()) {
-            if (dbMessage->id() == tempMessage->id()) {
-                foundInDb = true;
-                Q_ASSERT(tempMessage->thread() == dbMessage->thread());
-                bool wasRead = dbMessage->isRead();
-                dbMessage->copyFrom(tempMessage);
-                if(wasRead) dbMessage->setRead(true, false);
-                dbMessage->markToBeUpdated(false);
-                dbMessage->commitChanges();
-            }
-        }
-        if (!foundInDb) {
-            messagesChanged = true;
-            ForumMessage *newMessage = new ForumMessage(dbThread, false);
-            newMessage->copyFrom(tempMessage);
-            newMessage->markToBeUpdated(false);
-            dbThread->addMessage(newMessage);
-        }
-    }
-
-    // check for DELETED threads
-    foreach (ForumMessage *dbmessage, dbThread->values()) {
-        bool messageFound = false;
-        foreach (ForumMessage *msg, tempMessages) {
-            if (dbThread->group()->subscription()->parser() == msg->thread()->group()->subscription()->parser() &&
-                    dbThread->group()->id() == msg->thread()->group()->id() &&
-                    dbThread->id() == msg->thread()->id() &&
-                    dbmessage->id() == msg->id()) {
-                messageFound = true;
-            }
-        }
-        if (!messageFound) { // @todo don't delete, if tempMessages doesn't start from first page!!
-            // @todo are ordernums ok then? This is probably causing a bug.
-            messagesChanged = true;
-            dbThread->removeMessage(dbmessage);
-        }
-    }
-    // update thread
-    dbThread->setHasMoreMessages(moreAvailable);
-    dbThread->commitChanges();
-    if(updateAll) {
-        updateNextChangedThread();
-    } else {
-        setState(PES_IDLE);
-        emit forumUpdated(fsubscription);
-    }
-    fdb->checkSanity();
-}
-
-void ParserEngine::updateCurrentProgress() {
-    float progress = -1;
-    emit statusChanged(fsubscription, progress);
-}
-
-void ParserEngine::cancelOperation() {
-    if(currentState==PES_IDLE || currentState==PES_ERROR) return;
-    updateAll = false;
-    session.cancelOperation();
-    groupsToUpdateQueue.clear();
-    threadsToUpdateQueue.clear();
-    if(currentState==PES_UPDATING)
-        setState(PES_IDLE);
-}
-
-void ParserEngine::loginFinishedSlot(ForumSubscription *sub, bool success) {
-    if(!success) {
-        setState(PES_ERROR);
-        cancelOperation();
-    }
-    emit loginFinished(sub, success);
-}
-
-ForumSubscription* ParserEngine::subscription() {
-    return fsubscription;
-}
-
-void ParserEngine::subscriptionDeleted() {
-    //cancelOperation(); causes trouble
-    fsubscription = 0;
-    setState(PES_MISSING_PARSER);
-}
-
-QNetworkAccessManager * ParserEngine::networkAccessManager() {
-    return &nam;
-}
-
-void ParserEngine::setState(ParserEngineState newState) {
-    if(newState == currentState) return;
-    ParserEngineState oldState = currentState;
-    currentState = newState;
-
-    // Caution: subscriotion may be null!
-    if(subscription())
-        qDebug() << Q_FUNC_INFO << subscription()->alias() << stateNames[oldState] << " -> " << stateNames[newState];
-    //
-    if(newState==PES_UPDATING) {
-        Q_ASSERT(oldState==PES_IDLE || oldState==PES_ERROR);
-        Q_ASSERT(subscription() && parser());
-        if(subscription() && subscription()->authenticated()
-                && subscription()->username().isEmpty()
-                && !requestingCredentials) {
-            qDebug() << Q_FUNC_INFO << "Parser " << subscription()->alias() << "requires authentication. Asking for it. U:"
-                     << subscription()->username() << " lt " << parser()->login_type;
-            requestingCredentials = true;
-            if(parser()->login_type==ForumParser::LoginTypeHttpPost) {
-                emit getForumAuthentication(subscription());
-            } else if(parser()->login_type==ForumParser::LoginTypeHttpAuth) {
-                emit getHttpAuthentication(subscription(), 0);
-            }
-        }
-
-        updateAll = true;
-        if (!sessionInitialized) {
-            session.initialize(currentParser, fsubscription);
-            sessionInitialized = true;
-        }
-        if(requestingCredentials) {
-            qDebug() << Q_FUNC_INFO << "Requesting credentials - NOT updating!";
-        } else {
-            session.listGroups();
-        }
-        subscription()->setBeingUpdated(true);
-    }
-    if(newState==PES_IDLE) {
-        subscription()->setBeingUpdated(false);
-    }
-    if(newState==PES_UPDATING_PARSER) {
-        Q_ASSERT(oldState==PES_IDLE || oldState==PES_MISSING_PARSER);
-    }
-    if(newState==PES_ERROR) {
-        cancelOperation();
-    }
-    /*
-    if(newState==PES_REQUESTING_CREDENTIALS) {
-        if(!subscription()->authenticated() || subscription()->username().length()>0) {
-            setState(PES_IDLE);
-            // @todo is parser updated now?
-        } // Else state changes to requesting, and Siilihai tries to provide creds.
-    }
-    */
-
-    emit stateChanged(this, currentState, oldState);
-}
-
-ParserEngine::ParserEngineState ParserEngine::state() {
-    return currentState;
-}
-
-ForumParser *ParserEngine::parser() {
+ForumParser *ParserEngine::parser() const {
     return currentParser;
 }
 
 void ParserEngine::parserUpdated(ForumParser *p) {
     Q_ASSERT(p);
-    if(subscription()->parser() == p->id()) {
+    if(subscriptionParsed()->parser() == p->id()) {
         qDebug() << Q_FUNC_INFO;
+        updatingParser = false;
         setParser(p);
     }
 }
 
-void ParserEngine::credentialsEntered(CredentialsRequest* cr) {
-    requestingCredentials = false;
-    if(cr->authenticator.user().length() > 0) {
-        subscription()->setUsername(cr->authenticator.user());
-        subscription()->setPassword(cr->authenticator.password());
-    } else {
-        subscription()->setAuthenticated(false);
+void ParserEngine::updateThread(ForumThread *thread, bool force) {
+    initSession();
+    UpdateEngine::updateThread(thread, force);
+    session.listMessages(thread);
+}
+
+
+void ParserEngine::cancelOperation() {
+    session.cancelOperation();
+    UpdateEngine::cancelOperation();
+}
+
+void ParserEngine::requestCredentials() {
+    UpdateEngine::requestCredentials();
+    if(parser()->login_type==ForumParser::LoginTypeHttpPost) {
+        emit getForumAuthentication(subscription());
+    } else if(parser()->login_type==ForumParser::LoginTypeHttpAuth) {
+        emit getHttpAuthentication(subscription(), 0);
     }
+}
+
+void ParserEngine::credentialsEntered(CredentialsRequest* cr) {
     if(cr->credentialType==CredentialsRequest::SH_CREDENTIAL_HTTP) {
         session.authenticationReceived();
     }
-    // Start updating when credentials entered
-    if(currentState==PES_UPDATING) {
-        qDebug() << Q_FUNC_INFO << "resuming update now";
-        session.listGroups();
+    UpdateEngine::credentialsEntered(cr);
+}
+
+
+void ParserEngine::doUpdateGroup(ForumGroup *group) {
+    session.listThreads(group);
+}
+
+void ParserEngine::doUpdateForum()
+{
+    initSession();
+    session.listGroups();
+}
+
+void ParserEngine::doUpdateThread(ForumThread *thread)
+{
+    initSession();
+    session.listMessages(thread);
+}
+
+void ParserEngine::initSession()
+{
+    if (!sessionInitialized) {
+        session.initialize(currentParser, subscription());
+        sessionInitialized = true;
     }
+}
+
+ForumSubscriptionParsed *ParserEngine::subscriptionParsed() const
+{
+    return qobject_cast<ForumSubscriptionParsed*>(subscription());
 }

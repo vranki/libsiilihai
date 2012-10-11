@@ -19,10 +19,11 @@
 #include <QMap>
 #include <QList>
 #include <QDebug>
+#include <QUrl>
 #include "updateableitem.h"
 
 class ForumGroup;
-class ParserEngine;
+class UpdateEngine;
 
 /**
   * Represents a subscription to a forum. Contains a list of groups.
@@ -32,18 +33,22 @@ class ParserEngine;
 class ForumSubscription : public QObject, public QMap<QString, ForumGroup*>, public UpdateableItem  {
     Q_OBJECT
     Q_PROPERTY(QString alias READ alias WRITE setAlias NOTIFY changed)
-    Q_PROPERTY(int parser READ parser WRITE setParser NOTIFY changed)
     Q_PROPERTY(int unreadCount READ unreadCount NOTIFY unreadCountChanged)
     Q_PROPERTY(bool beingUpdated READ beingUpdated WRITE setBeingUpdated NOTIFY changed)
     Q_PROPERTY(bool beingSynced READ beingSynced WRITE setBeingSynced NOTIFY changed)
     Q_PROPERTY(bool scheduledForUpdate READ scheduledForUpdate WRITE setScheduledForUpdate NOTIFY changed)
 public:
-    ForumSubscription(QObject *parent=0, bool temp=true);
-    void copyFrom(ForumSubscription * o);
+    enum ForumProvider {
+        FP_NONE=0, // Error in practice..
+        FP_PARSER,
+        FP_TAPATALK
+    };
+
+    ForumSubscription(QObject *parent, bool temp, ForumProvider p);
+    virtual void copyFrom(ForumSubscription * o);
     virtual ~ForumSubscription();
-    bool isSane() const;
+    virtual bool isSane() const;
     QString toString() const;
-    void setParser(int parser);
     void setAlias(QString alias);
     void setUsername(QString username);
     void setPassword(QString password);
@@ -54,8 +59,8 @@ public:
     void addGroup(ForumGroup* grp, bool affectsSync=true, bool incrementUnreads = true);
     void removeGroup(ForumGroup* grp, bool affectsSync=true);
     void setGroupListChanged(bool changed=true); // To trigger sending group list update
-
-    int parser() const;
+    int forumId() const;
+    void setForumId(int newId);
     QString alias() const;
     QString username() const;
     QString password() const;
@@ -64,8 +69,7 @@ public:
     bool authenticated() const; // True if username & password should be set
     int unreadCount() const;
     bool isTemp() const;
-    void setParserEngine(ParserEngine *eng);
-    ParserEngine *parserEngine() const;
+    UpdateEngine *updateEngine() const;
     bool hasGroupListChanged() const;
     void markRead(bool read=true);
     void setBeingUpdated(bool bu);
@@ -74,16 +78,23 @@ public:
     bool beingUpdated() const;
     bool beingSynced() const;
     bool scheduledForUpdate() const;
- signals:
+    ForumProvider provider() const;
+    bool isParsed() const; // Just helpers
+    bool isTapaTalk() const;
+    static ForumSubscription *newForProvider(ForumProvider fp, QObject *parent, bool temp);
+    virtual QUrl forumUrl() const=0;
+signals:
     void changed();
     void unreadCountChanged();
     void groupRemoved(ForumGroup *grp);
     void groupAdded(ForumGroup *grp);
     void aliasChanged(QString alias);
+protected:
+    UpdateEngine *_engine;
+
 private:
     Q_DISABLE_COPY(ForumSubscription)
-
-    int _parser;
+    int _forumId; // != parser
     QString _alias;
     QString _username;
     QString _password;
@@ -92,9 +103,9 @@ private:
     bool _authenticated;
     int _unreadCount;
     bool _temp, _groupListChanged;
-    ParserEngine *_engine;
     // Just for status display
     bool _scheduledForUpdate, _beingUpdated, _beingSynced;
+    ForumProvider _provider;
 };
 
 #endif /* FORUMSUBSCRIPTION_H_ */

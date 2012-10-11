@@ -2,15 +2,20 @@
 #include <time.h>
 #include <QDir>
 #include <QNetworkProxy>
+#include <QTimer>
 #include "parser/parsermanager.h"
 #include "forumdata/forumsubscription.h"
 #include "forumdata/forumgroup.h"
 #include "forumdata/forumthread.h"
 #include "credentialsrequest.h"
 #include "parser/forumparser.h"
+#include "parser/forumsubscriptionparsed.h"
+#include "parser/parserengine.h"
+#include "tapatalk/forumsubscriptiontapatalk.h"
+#include "tapatalk/tapatalkengine.h"
 
-ClientLogic::ClientLogic(QObject *parent) : QObject(parent), forumDatabase(this), syncmaster(this, forumDatabase, protocol),
-    settings(0), parserManager(0), currentCredentialsRequest(0)
+ClientLogic::ClientLogic(QObject *parent) : QObject(parent), settings(0), forumDatabase(this), syncmaster(this, forumDatabase, protocol),
+    parserManager(0), currentCredentialsRequest(0)
 {
     endSyncDone = false;
     firstRun = true;
@@ -81,7 +86,7 @@ void ClientLogic::launchSiilihai() {
 
 void ClientLogic::haltSiilihai() {
     cancelClicked();
-    foreach(ParserEngine *engine, engines.values())
+    foreach(UpdateEngine *engine, engines.values())
         engine->deleteLater();
     engines.clear();
     if(usettings.syncEnabled() && !endSyncDone && currentState == SH_READY) {
@@ -174,7 +179,7 @@ void ClientLogic::changeState(siilihai_states newState) {
 
 void ClientLogic::updateClicked() {
     if(currentState != SH_READY) return;
-    foreach(ParserEngine* engine, engines.values()) {
+    foreach(UpdateEngine* engine, engines.values()) {
         updateForum(engine->subscription());
     }
 }
@@ -183,7 +188,13 @@ void ClientLogic::updateForum(ForumSubscription *sub) {
     Q_ASSERT(engines.contains(sub));
     qDebug() << Q_FUNC_INFO << sub->toString();
     subscriptionsNotUpdated.remove(sub);
-    sub->setScheduledForUpdate(true);
+
+    if(sub->beingUpdated())
+        return;
+
+    // Don't update if already updating
+    if(!sub->scheduledForUpdate())
+        sub->setScheduledForUpdate(true);
 
     int busyForums = busyForumCount();
     qDebug() << Q_FUNC_INFO << "Busy forums :" << busyForums << " max " << MAX_CONCURRENT_UPDATES;
@@ -204,8 +215,8 @@ void ClientLogic::updateClicked(ForumSubscription* sub , bool force) {
 
     Q_ASSERT(engines.contains(sub));
 
-    ParserEngine *engine = engines.value(sub);
-    if(engine && engine->state()==ParserEngine::PES_IDLE && currentState != SH_OFFLINE && currentState != SH_STARTED) {
+    UpdateEngine *engine = engines.value(sub);
+    if(engine && engine->state()==UpdateEngine::PES_IDLE && currentState != SH_OFFLINE && currentState != SH_STARTED) {
         sub->setScheduledForUpdate(false);
         subscriptionsToUpdateLeft.removeAll(sub);
         subscriptionsNotUpdated.remove(sub);
@@ -215,7 +226,7 @@ void ClientLogic::updateClicked(ForumSubscription* sub , bool force) {
 }
 
 void ClientLogic::cancelClicked() {
-    foreach(ParserEngine* engine, engines.values())
+    foreach(UpdateEngine* engine, engines.values())
         engine->cancelOperation();
 }
 
@@ -223,7 +234,7 @@ void ClientLogic::cancelClicked() {
 int ClientLogic::busyForumCount() {
     int busyForums = 0;
     foreach(ForumSubscription *sub, forumDatabase.values()) {
-        if(sub->parserEngine()->state()==ParserEngine::PES_UPDATING) {
+        if(sub->updateEngine()->state()==UpdateEngine::PES_UPDATING) {
             busyForums++;
         }
     }
@@ -261,16 +272,20 @@ void ClientLogic::listSubscriptionsFinished(QList<int> serversSubscriptions) {
     QList<ForumSubscription*> unsubscribedForums;
     foreach(ForumSubscription* sub, forumDatabase.values()) {
         bool found = false;
-        foreach(int serverSubscriptionId, serversSubscriptions) {
-            if (serverSubscriptionId == sub->parser())
-                found = true;
-        }
-        if (!found) {
-            unsubscribedForums.append(sub);
+        if(sub->provider() == ForumSubscription::FP_PARSER) {
+            foreach(int serverSubscriptionId, serversSubscriptions) {
+                if(serverSubscriptionId == qobject_cast<ForumSubscriptionParsed*>(sub)->parser())
+                    found = true;
+            }
+            if (!found) {
+                unsubscribedForums.append(sub);
+            }
         }
     }
     foreach (ForumSubscription *sub, unsubscribedForums) {
-        parserManager->deleteParser(sub->parser());
+        if(sub->isParsed()) {
+            parserManager->deleteParser(qobject_cast<ForumSubscriptionParsed*>(sub)->parser());
+        }
         forumDatabase.deleteSubscription(sub);
     }
 }
@@ -298,34 +313,65 @@ void ClientLogic::loginFinished(bool success, QString motd, bool sync) {
 }
 
 void ClientLogic::forumAdded(ForumSubscription *fs) {
-    if(forumDatabase.contains(fs->parser())) {
+    Q_ASSERT(fs->forumId());
+    if(forumDatabase.contains(fs->forumId())) {
         errorDialog("You have already subscribed to " + fs->alias());
     } else {
-        ForumSubscription *newFs = new ForumSubscription(&forumDatabase, false);
-        newFs->copyFrom(fs);
-        fs = 0;
-        Q_ASSERT(parserManager->getParser(newFs->parser())); // Should already be there!
-        ParserEngine *newEngine = new ParserEngine(&forumDatabase, this, parserManager, nam);
-        newEngine->setParser(parserManager->getParser(newFs->parser()));
-        newEngine->setSubscription(newFs);
-        Q_ASSERT(!engines.contains(newFs));
-        engines[newFs] = newEngine;
+        ForumSubscription *newFs = ForumSubscription::newForProvider(fs->provider(), &forumDatabase, false);
 
+        Q_ASSERT(newFs);
+        newFs->copyFrom(fs);
         if(!forumDatabase.addSubscription(newFs)) { // Emits subscriptionFound
             errorDialog("Error: Unable to subscribe to forum. Check the log.");
-        } else {
-            newEngine->updateGroupList();
-            if(!noAccount())
-                protocol.subscribeForum(newFs);
+            return;
         }
+        fs = 0;
+        createEngineForSubscription(newFs);
+        Q_ASSERT(engines.value(newFs));
+        engines.value(newFs)->updateGroupList();
+        if(!noAccount())
+            protocol.subscribeForum(newFs);
+
     }
+}
+
+void ClientLogic::createEngineForSubscription(ForumSubscription *newFs) {
+    Q_ASSERT(!newFs->isTemp());
+    if(engines.contains(newFs)) return;
+    UpdateEngine *ue = 0;
+    if(newFs->isParsed()) {
+        ForumSubscriptionParsed *newFsParsed = qobject_cast<ForumSubscriptionParsed*>(newFs);
+//        Q_ASSERT(parserManager->getParser(newFsParsed->parser())); // Should already be there!
+        ParserEngine *pe = new ParserEngine(&forumDatabase, this, parserManager);
+        ue = pe;
+        pe->setParser(parserManager->getParser(newFsParsed->parser()));
+        if(!pe->parser()) pe->setParser(parserManager->getParser(newFsParsed->parser())); // Load the (possibly old) parser
+    } else if(newFs->isTapaTalk()) {
+        ForumSubscriptionTapaTalk *newFsTt = qobject_cast<ForumSubscriptionTapaTalk*>(newFs);
+        TapaTalkEngine *tte = new TapaTalkEngine(&forumDatabase, this);
+        ue = tte;
+    }
+    Q_ASSERT(ue);
+    Q_ASSERT(!engines.contains(newFs));
+    engines.insert(newFs, ue);
+    ue->setSubscription(newFs);
+    connect(ue, SIGNAL(groupListChanged(ForumSubscription*)), this, SLOT(showSubscribeGroup(ForumSubscription*)));
+    connect(ue, SIGNAL(forumUpdated(ForumSubscription*)), this, SLOT(forumUpdated(ForumSubscription*)));
+    connect(ue, SIGNAL(updateFailure(ForumSubscription*, QString)), this, SLOT(updateFailure(ForumSubscription*, QString)));
+    connect(ue, SIGNAL(getHttpAuthentication(ForumSubscription*, QAuthenticator*)), this, SLOT(getHttpAuthentication(ForumSubscription*,QAuthenticator*)));
+    connect(ue, SIGNAL(getForumAuthentication(ForumSubscription*)), this, SLOT(getForumAuthentication(ForumSubscription*)));
+    connect(ue, SIGNAL(loginFinished(ForumSubscription*,bool)), this, SLOT(forumLoginFinished(ForumSubscription*,bool)));
+    connect(ue, SIGNAL(stateChanged(UpdateEngine::UpdateEngineState, UpdateEngine::UpdateEngineState)),
+            this, SLOT(parserEngineStateChanged(UpdateEngine::UpdateEngineState, UpdateEngine::UpdateEngineState)));
+    connect(ue, SIGNAL(updateForumSubscription(ForumSubscription *)), &protocol, SLOT(subscribeForum(ForumSubscription *)));
 }
 
 void ClientLogic::subscriptionDeleted(QObject* subobj) {
     ForumSubscription *sub = static_cast<ForumSubscription*> (subobj);
     if(!engines.contains(sub)) return; // Possible when quitting
     busyParserEngines.remove(engines[sub]);
-    engines[sub]->cancelOperation();
+    // engines[sub]->cancelOperation(); Don't do this
+    engines[sub]->setSubscription(0);
     engines[sub]->deleteLater();
     engines.remove(sub);
     subscriptionsNotUpdated.remove(sub);
@@ -343,7 +389,7 @@ void ClientLogic::forumUpdated(ForumSubscription* forum) {
         if(forumDatabase.values().contains(nextSub)) {
             nextSub->setScheduledForUpdate(false);
             Q_ASSERT(!nextSub->beingSynced());
-            nextSub->parserEngine()->updateForum();
+            nextSub->updateEngine()->updateForum();
             busyForums++;
         }
     }
@@ -354,7 +400,7 @@ void ClientLogic::forumUpdated(ForumSubscription* forum) {
 void ClientLogic::subscribeForumFinished(ForumSubscription *sub, bool success) {
     if (!success) {
         errorDialog("Subscribing to forum failed. Please check network connection.");
-        if(forumDatabase.value(sub->parser()))
+        if(forumDatabase.value(sub->forumId()))
             forumDatabase.deleteSubscription(sub);
     }
 }
@@ -371,15 +417,15 @@ void ClientLogic::userSettingsReceived(bool success, UserSettings *newSettings) 
 }
 
 void ClientLogic::updateFailure(ForumSubscription* sub, QString msg) {
-    settings->setValue(QString("authentication/%1/failed").arg(sub->parser()), "true");
+    settings->setValue(QString("authentication/%1/failed").arg(sub->forumId()), "true");
     errorDialog(sub->alias() + "\n" + msg);
 }
 
 void ClientLogic::moreMessagesRequested(ForumThread* thread) {
     Q_ASSERT(thread);
-    ParserEngine *engine = engines[thread->group()->subscription()];
+    UpdateEngine *engine = engines.value(thread->group()->subscription());
     Q_ASSERT(engine);
-    if(engine->state() == ParserEngine::PES_UPDATING) return;
+    if(engine->state() == UpdateEngine::PES_UPDATING) return;
 
     thread->setGetMessagesCount(thread->getMessagesCount() + settings->value("preferences/show_more_count", 30).toInt());
     thread->commitChanges();
@@ -419,8 +465,9 @@ void ClientLogic::databaseStored() {
 }
 
 // Caution - engine->subscription() may be null (when deleted)!
-void ClientLogic::parserEngineStateChanged(ParserEngine *engine, ParserEngine::ParserEngineState newState, ParserEngine::ParserEngineState oldState) {
-    if (newState==ParserEngine::PES_UPDATING) {
+void ClientLogic::parserEngineStateChanged(UpdateEngine::UpdateEngineState newState, UpdateEngine::UpdateEngineState oldState) {
+    ParserEngine *engine = qobject_cast<ParserEngine*>(sender());
+    if (newState==UpdateEngine::PES_UPDATING) {
         busyParserEngines.insert(engine);
     } else {
         busyParserEngines.remove(engine);
@@ -430,7 +477,7 @@ void ClientLogic::parserEngineStateChanged(ParserEngine *engine, ParserEngine::P
     } else {
         showStatusMessage("Forums updated");
     }
-    if(currentState==SH_READY && newState == ParserEngine::PES_IDLE && oldState != ParserEngine::PES_UPDATING) {
+    if(currentState==SH_READY && newState == UpdateEngine::PES_IDLE && oldState != UpdateEngine::PES_UPDATING) {
         if (settings->value("preferences/update_automatically", true).toBool())
             updateClicked(engine->subscription());
     }
@@ -453,24 +500,7 @@ bool ClientLogic::noAccount() {
 void ClientLogic::subscriptionFound(ForumSubscription *sub) {
     connect(sub, SIGNAL(destroyed(QObject*)), this, SLOT(subscriptionDeleted(QObject*)));
     subscriptionsNotUpdated.insert(sub);
-
-    ParserEngine *pe = engines.value(sub);
-    if(!pe) {
-        pe = new ParserEngine(&forumDatabase, this, parserManager, nam);
-        pe->setSubscription(sub);
-        engines[sub] = pe;
-    }
-    connect(pe, SIGNAL(groupListChanged(ForumSubscription*)), this, SLOT(showSubscribeGroup(ForumSubscription*)));
-    connect(pe, SIGNAL(forumUpdated(ForumSubscription*)), this, SLOT(forumUpdated(ForumSubscription*)));
-    connect(pe, SIGNAL(updateFailure(ForumSubscription*, QString)), this, SLOT(updateFailure(ForumSubscription*, QString)));
-    connect(pe, SIGNAL(getHttpAuthentication(ForumSubscription*, QAuthenticator*)), this, SLOT(getHttpAuthentication(ForumSubscription*,QAuthenticator*)));
-    connect(pe, SIGNAL(getForumAuthentication(ForumSubscription*)), this, SLOT(getForumAuthentication(ForumSubscription*)));
-    connect(pe, SIGNAL(loginFinished(ForumSubscription*,bool)), this, SLOT(forumLoginFinished(ForumSubscription*,bool)));
-    connect(pe, SIGNAL(stateChanged(ParserEngine *, ParserEngine::ParserEngineState, ParserEngine::ParserEngineState)),
-            this, SLOT(parserEngineStateChanged(ParserEngine *, ParserEngine::ParserEngineState, ParserEngine::ParserEngineState)));
-    connect(pe, SIGNAL(updateForumSubscription(ForumSubscription *)), &protocol, SLOT(subscribeForum(ForumSubscription *)));
-    if(!pe->parser()) pe->setParser(parserManager->getParser(sub->parser())); // Load the (possibly old) parser
-    Q_ASSERT(sub->parserEngine());
+    createEngineForSubscription(sub);
 }
 
 void ClientLogic::updateGroupSubscriptions(ForumSubscription *sub) {
@@ -496,14 +526,15 @@ void ClientLogic::unsubscribeForum(ForumSubscription* fs) {
     if(!noAccount())
         protocol.subscribeForum(fs, true);
     forumDatabase.deleteSubscription(fs);
-    parserManager->deleteParser(fs->parser());
+    if(fs->isParsed())
+        parserManager->deleteParser(qobject_cast<ForumSubscriptionParsed*>(fs)->parser());
 }
 
 // Authenticator can be null!
 void ClientLogic::getHttpAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator) {
     qDebug() << Q_FUNC_INFO << fsub->alias();
     bool failed = false;
-    QString gname = QString().number(fsub->parser());
+    QString gname = QString().number(fsub->forumId());
     settings->beginGroup("authentication");
     if(settings->contains(QString("%1/username").arg(gname))) {
         qDebug() << Q_FUNC_INFO << "reading u/p from settings";
@@ -551,11 +582,11 @@ void ClientLogic::credentialsEntered(bool store) {
     Q_ASSERT(engines.value(currentCredentialsRequest->subscription));
     qDebug() << Q_FUNC_INFO << store << currentCredentialsRequest->authenticator.user();
     if(store) {
-        ForumParser::ForumLoginType loginType = parserManager->getParser(currentCredentialsRequest->subscription->parser())->login_type;
+        //        ForumParser::ForumLoginType loginType = parserManager->getParser(currentCredentialsRequest->subscription->parser())->login_type;
         if(cr->credentialType == CredentialsRequest::SH_CREDENTIAL_HTTP) {
             qDebug() << Q_FUNC_INFO << "storing into settings";
             settings->beginGroup("authentication");
-            settings->beginGroup(QString::number(currentCredentialsRequest->subscription->parser()));
+            settings->beginGroup(QString::number(currentCredentialsRequest->subscription->forumId()));
             settings->setValue("username", currentCredentialsRequest->authenticator.user());
             settings->setValue("password", currentCredentialsRequest->authenticator.password());
             settings->setValue("failed", "false");
@@ -568,7 +599,7 @@ void ClientLogic::credentialsEntered(bool store) {
             currentCredentialsRequest->subscription->setPassword(currentCredentialsRequest->authenticator.password());
         }
     }
-    ParserEngine *engine = engines.value(currentCredentialsRequest->subscription);
+    UpdateEngine *engine = engines.value(currentCredentialsRequest->subscription);
     engine->credentialsEntered(currentCredentialsRequest);
     currentCredentialsRequest->deleteLater();
     currentCredentialsRequest=0;

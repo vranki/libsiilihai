@@ -49,7 +49,7 @@ bool ForumMessage::isSane() const {
 }
 
 QString ForumMessage::toString() const {
-    QString parser = "Unknown";
+    QString forumid = "Unknown";
     QString group = "Unknown";
     QString thread = "Unknown";
     if(_thread) {
@@ -57,11 +57,11 @@ QString ForumMessage::toString() const {
         if(_thread->group()) {
             group = _thread->group()->id();
             if(_thread->group()->subscription())
-                parser = QString().number(_thread->group()->subscription()->parser());
+                forumid = QString().number(_thread->group()->subscription()->forumId());
         }
     }
 
-    return QString().number(_thread->group()->subscription()->parser()) + "/" +
+    return QString().number(_thread->group()->subscription()->forumId()) + "/" +
             _thread->group()->id() + "/" + _thread->id() + "/" + id() + ": " + name() + "/ Read:" + QString().number(_read);
 }
 

@@ -4,16 +4,25 @@
 #include "forumdata/forumthread.h"
 #include "forumdata/forummessage.h"
 #include "parser/forumparser.h"
+#include "parser/forumsubscriptionparsed.h"
+#include "tapatalk/forumsubscriptiontapatalk.h"
 #include "forumrequest.h"
 
 void XmlSerialization::serialize(ForumSubscription *sub, QDomElement &parent, QDomDocument &doc) {
     QDomElement subElement = doc.createElement(SUB_SUBSCRIPTION);
-    appendValue(SUB_PARSER, QString::number(sub->parser()), subElement, doc);
+
+    appendValue(SUB_FORUMID, QString::number(sub->forumId()), subElement, doc);
+    appendValue(SUB_PROVIDER, QString::number(sub->provider()), subElement, doc);
     appendValue(SUB_ALIAS, sub->alias(), subElement, doc);
     appendValue(SUB_USERNAME, sub->username(), subElement, doc);
     appendValue(SUB_PASSWORD, sub->password(), subElement, doc);
     appendValue(SUB_LATEST_THREADS, QString::number(sub->latestThreads()), subElement, doc);
     appendValue(SUB_LATEST_MESSAGES, QString::number(sub->latestMessages()), subElement, doc);
+
+    if(sub->isParsed())
+        appendValue(SUB_PARSER, QString::number(qobject_cast<ForumSubscriptionParsed*>(sub)->parser()), subElement, doc);
+    if(sub->isTapaTalk())
+        appendValue(SUB_FORUMURL, qobject_cast<ForumSubscriptionTapaTalk*>(sub)->forumUrl().toString(), subElement, doc);
 
     foreach(ForumGroup *grp, sub->values())
         serialize(grp, subElement, doc);
@@ -81,13 +90,26 @@ void XmlSerialization::appendValue(QString name, QString value, QDomElement &par
 
 
 ForumSubscription* XmlSerialization::readSubscription(QDomElement &element, QObject *parent) {
+    ForumSubscription *sub = 0;
     if(element.tagName() != SUB_SUBSCRIPTION) return 0;
     bool ok = false;
-    int parser = QString(element.firstChildElement(SUB_PARSER).text()).toInt(&ok);
-    if(!ok || parser <=0) return 0;
+    int provider = QString(element.firstChildElement(SUB_PROVIDER).text()).toInt(&ok);
+    if(!ok || provider <=0) return 0;
+    sub = ForumSubscription::newForProvider((ForumSubscription::ForumProvider) provider, parent, false);
+    if(provider == ForumSubscription::FP_PARSER) {
+        int parser = QString(element.firstChildElement(SUB_PARSER).text()).toInt(&ok);
+        if(!ok || parser <= 0) return 0;
+        ForumSubscriptionParsed *subParsed = qobject_cast<ForumSubscriptionParsed*>(sub);
+        subParsed->setParser(parser);
+    } else if(provider == ForumSubscription::FP_TAPATALK) {
+        QUrl forumUrl = QUrl(element.firstChildElement(SUB_FORUMURL).text());
+        ForumSubscriptionTapaTalk *subTt = qobject_cast<ForumSubscriptionTapaTalk*>(sub);
+        Q_ASSERT(forumUrl.isValid());
+        subTt->setForumUrl(forumUrl);
+    }
+    if(!sub) return 0;
 
-    ForumSubscription *sub = new ForumSubscription(parent, false);
-    sub->setParser(parser);
+    sub->setForumId(QString(element.firstChildElement(SUB_FORUMID).text()).toInt());
     sub->setAlias(element.firstChildElement(SUB_ALIAS).text());
     sub->setUsername(element.firstChildElement(SUB_USERNAME).text());
     sub->setPassword(element.firstChildElement(SUB_PASSWORD).text());
