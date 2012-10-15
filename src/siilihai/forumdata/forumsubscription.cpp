@@ -16,6 +16,7 @@
 #include "forumgroup.h"
 #include "../parser/forumsubscriptionparsed.h"
 #include "../tapatalk/forumsubscriptiontapatalk.h"
+#include "../xmlserialization.h"
 
 ForumSubscription::ForumSubscription(QObject *parent, bool temp, ForumProvider p) : QObject(parent),
     _provider(p) {
@@ -228,4 +229,43 @@ ForumSubscription *ForumSubscription::newForProvider(ForumSubscription::ForumPro
         return new ForumSubscriptionTapaTalk(parent, temp);
     Q_ASSERT(false);
     return 0;
+}
+
+QDomElement ForumSubscription::serialize(QDomElement &parent, QDomDocument &doc) {
+    QDomElement subElement = doc.createElement(SUB_SUBSCRIPTION);
+
+    XmlSerialization::appendValue(SUB_FORUMID, QString::number(forumId()), subElement, doc);
+    XmlSerialization::appendValue(SUB_PROVIDER, QString::number(provider()), subElement, doc);
+    XmlSerialization::appendValue(SUB_ALIAS, alias(), subElement, doc);
+    XmlSerialization::appendValue(SUB_USERNAME, username(), subElement, doc);
+    XmlSerialization::appendValue(SUB_PASSWORD, password(), subElement, doc);
+    XmlSerialization::appendValue(SUB_LATEST_THREADS, QString::number(latestThreads()), subElement, doc);
+    XmlSerialization::appendValue(SUB_LATEST_MESSAGES, QString::number(latestMessages()), subElement, doc);
+
+    parent.appendChild(subElement);
+
+    return subElement;
+}
+
+ForumSubscription* ForumSubscription::readSubscription(QDomElement &element, QObject *parent) {
+    ForumSubscription *sub = 0;
+    if(element.tagName() != SUB_SUBSCRIPTION) return 0;
+    bool ok = false;
+    int provider = QString(element.firstChildElement(SUB_PROVIDER).text()).toInt(&ok);
+    if(!ok || provider <=0) return 0;
+    sub = ForumSubscription::newForProvider((ForumSubscription::ForumProvider) provider, parent, false);
+    if(!sub) return 0;
+    sub->readSubscriptionXml(element);
+    return sub;
+}
+
+void ForumSubscription::readSubscriptionXml(QDomElement &element)
+{
+    setForumId(QString(element.firstChildElement(SUB_FORUMID).text()).toInt());
+    setAlias(element.firstChildElement(SUB_ALIAS).text());
+    setUsername(element.firstChildElement(SUB_USERNAME).text());
+    setPassword(element.firstChildElement(SUB_PASSWORD).text());
+    setLatestThreads(QString(element.firstChildElement(SUB_LATEST_THREADS).text()).toInt());
+    setLatestMessages(QString(element.firstChildElement(SUB_LATEST_MESSAGES).text()).toInt());
+    setAuthenticated(username().length() > 0);
 }

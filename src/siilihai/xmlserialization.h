@@ -19,17 +19,6 @@ class ForumRequest;
 #define COMMON_CHANGESET "changeset"
 #define COMMON_ORDERNUM "ordernum"
 
-#define SUB_SUBSCRIPTION "subscription"
-#define SUB_PROVIDER "provider"
-#define SUB_FORUMID "forumid"
-#define SUB_ALIAS "alias"
-#define SUB_USERNAME "username"
-#define SUB_PASSWORD "password"
-#define SUB_LATEST_THREADS "latest_threads"
-#define SUB_LATEST_MESSAGES "latest_messages"
-
-#define SUB_PARSER "parser"
-#define SUB_FORUMURL "forumurl"
 
 #define GRP_GROUP "group"
 #define GRP_SUBSCRIBED "subscribed"
@@ -64,8 +53,8 @@ public:
     static ForumParser *readParser(QDomElement &element, QObject *parent);
 
     static ForumRequest *readForumRequest(QDomElement &element, QObject *parent);
-private:
     static void appendValue(QString name, QString value, QDomElement &parent, QDomDocument &doc);
+private:
     static void appendForumDataItemValues(ForumDataItem *item, QDomElement &parent, QDomDocument &doc);
     static void readForumDataItemValues(ForumDataItem *item, QDomElement &element);
 };

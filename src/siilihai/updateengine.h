@@ -73,8 +73,9 @@ protected:
     virtual void doUpdateGroup(ForumGroup *group)=0;
     virtual void doUpdateThread(ForumThread *thread)=0;
 protected:
-    bool updateAll;
+    bool updateAll; // Set to false to just get group list
     bool forceUpdate; // Update even if no changes
+    bool updateOnlyThread;
     bool requestingCredentials;
     ForumDatabase *fdb;
     QQueue<ForumThread*> threadsToUpdateQueue;

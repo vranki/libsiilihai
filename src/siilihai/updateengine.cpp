@@ -17,6 +17,7 @@ UpdateEngine::UpdateEngine(QObject *parent, ForumDatabase *fd) :
     currentState = PES_ENGINE_NOT_READY;
     requestingCredentials = false;
     updateWhenEngineReady = false;
+    updateOnlyThread = false;
 }
 
 UpdateEngine::~UpdateEngine() {
@@ -190,7 +191,6 @@ void UpdateEngine::listThreadsFinished(QList<ForumThread*> &tempThreads, ForumGr
     Q_ASSERT(!group->isTemp());
     Q_ASSERT(group->isSane());
     threadsToUpdateQueue.clear();
-    group->markToBeUpdated(false);
 
     if (tempThreads.isEmpty() && !group->isEmpty()) {
         QString errorMsg = "Found no threads in group " + group->toString() + ".\n Broken parser?";
@@ -218,7 +218,7 @@ void UpdateEngine::listThreadsFinished(QList<ForumThread*> &tempThreads, ForumGr
                 dbThread->setGetMessagesCount(oldGetMessagesCount);
                 dbThread->setHasMoreMessages(oldHasMoreMessages);
                 dbThread->commitChanges();
-//                qDebug() << Q_FUNC_INFO << "Thread " << dbThread->toString() << " shall be updated";
+                //                qDebug() << Q_FUNC_INFO << "Thread " << dbThread->toString() << " shall be updated";
                 dbThread->markToBeUpdated();
                 threadsToUpdateQueue.enqueue(dbThread);
             }
@@ -244,11 +244,13 @@ void UpdateEngine::listThreadsFinished(QList<ForumThread*> &tempThreads, ForumGr
         }
         if (!threadFound) {
             deletedThreads.insert(dbThread);
-//            qDebug() << "Thread " << dbThread->toString() << " has been deleted!";
+            //            qDebug() << "Thread " << dbThread->toString() << " has been deleted!";
         }
     }
     foreach(ForumThread *thr, deletedThreads.values())
         thr->group()->removeThread(thr);
+
+    group->markToBeUpdated(false);
 
     if(updateAll)
         updateNextChangedThread();
@@ -260,13 +262,16 @@ void UpdateEngine::updateThread(ForumThread *thread, bool force) {
     Q_ASSERT(fsubscription);
     Q_ASSERT(thread);
 
-    forceUpdate = false;
-    updateAll = false;
+    forceUpdate = force;
+    updateAll = true;
+    updateOnlyThread = true;
 
     if(force) {
         thread->setLastPage(0);
         thread->markToBeUpdated();
     }
+    if(!threadsToUpdateQueue.contains(thread))
+        threadsToUpdateQueue.enqueue(thread);
     setState(PES_UPDATING);
 }
 
@@ -285,14 +290,14 @@ void UpdateEngine::loginFinishedSlot(ForumSubscription *sub, bool success) {
 
 void UpdateEngine::updateNextChangedGroup() {
     Q_ASSERT(updateAll);
-
-    foreach(ForumGroup *group, subscription()->values()) {
-        if(group->needsToBeUpdated()) {
-            doUpdateGroup(group);
-            return;
+    if(!updateOnlyThread) {
+        foreach(ForumGroup *group, subscription()->values()) {
+            if(group->needsToBeUpdated()) {
+                doUpdateGroup(group);
+                return;
+            }
         }
     }
-
     //  qDebug() << Q_FUNC_INFO << "No more changed groups - end of update.";
     updateAll = false;
     Q_ASSERT(threadsToUpdateQueue.isEmpty());
@@ -306,6 +311,7 @@ void UpdateEngine::updateNextChangedThread() {
         ForumThread *thread = threadsToUpdateQueue.dequeue();
         if(forceUpdate)
             thread->setLastPage(0);
+        qDebug() << Q_FUNC_INFO << threadsToUpdateQueue.size() << " threads to update in queue";
         doUpdateThread(thread);
     } else {
         updateNextChangedGroup();
@@ -353,7 +359,11 @@ void UpdateEngine::setState(UpdateEngineState newState) {
         if(requestingCredentials) {
             qDebug() << Q_FUNC_INFO << "Requesting credentials - NOT updating!";
         } else {
-            doUpdateForum();
+            if(updateOnlyThread) {
+                updateNextChangedThread();
+            } else {
+                doUpdateForum();
+            }
         }
     }
     if(newState==PES_IDLE) {
@@ -406,6 +416,7 @@ void UpdateEngine::updateForum(bool force) {
     Q_ASSERT(fsubscription);
     Q_ASSERT(!fsubscription->beingSynced());
     forceUpdate = force;
+    updateOnlyThread = false;
     updateAll = true; // Update whole forum
     if(state()==PES_ENGINE_NOT_READY) {
         updateWhenEngineReady = true;
@@ -416,6 +427,7 @@ void UpdateEngine::updateForum(bool force) {
 
 void UpdateEngine::updateGroupList() {
     updateAll = false; // Just the group list
+    updateOnlyThread = false;
     if(state()==PES_ENGINE_NOT_READY) {
         updateWhenEngineReady = true;
     } else {

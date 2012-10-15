@@ -10,6 +10,7 @@
 #include <QDomDocument>
 #include <QString>
 #include <QByteArray>
+#include <QRegExp>
 
 TapaTalkEngine::TapaTalkEngine(ForumDatabase *fd, QObject *parent) :
     UpdateEngine(parent, fd)
@@ -32,6 +33,35 @@ void TapaTalkEngine::setSubscription(ForumSubscription *fs) {
 ForumSubscriptionTapaTalk *TapaTalkEngine::subscriptionTapaTalk() const
 {
     return qobject_cast<ForumSubscriptionTapaTalk*>(subscription());
+}
+
+void TapaTalkEngine::convertBodyToHtml(ForumMessage *msg)
+{
+    // @todo: this is probably quite stupid way to do this. Use Regexp or something?
+    //    QString origBody = msg->body(); // testing
+    QString newBody = msg->body();
+    newBody = newBody.replace("[/url]", "</a>");
+    newBody = newBody.replace("[IMG]", "[img]");
+    newBody = newBody.replace("[img]", "<br/><img src=\"");
+    newBody = newBody.replace("[/IMG]", "[/img]");
+    newBody = newBody.replace("[/img]", "\"><br/>");
+    newBody = newBody.replace("[quote]", "<div class=\"quote\">");
+    newBody = newBody.replace("[/quote]", "</div><br/>");
+    newBody = newBody.replace("\n\n", "<br/>");
+    int urlPosition = -1;
+    do {
+        urlPosition = newBody.indexOf("[url=");
+        if(urlPosition >= 0) {
+            newBody = newBody.replace(urlPosition, 4, "<a href=\"");
+            int closetag = newBody.indexOf("]", urlPosition);
+            if(closetag >= 0) {
+                newBody = newBody.replace(closetag, 1, "\">");
+            }
+        }
+    } while(urlPosition >= 0);
+
+    //    newBody.append("-----" + origBody);
+    msg->setBody(newBody);
 }
 
 void TapaTalkEngine::doUpdateForum() {
@@ -187,7 +217,7 @@ void TapaTalkEngine::replyUpdateThread(QNetworkReply *reply)
     QString docs = QString().fromUtf8(reply->readAll());
     QDomDocument doc;
     doc.setContent(docs);
-//    qDebug() << Q_FUNC_INFO << doc.toString();
+    //    qDebug() << Q_FUNC_INFO << doc.toString();
     QDomElement paramValueElement = doc.firstChildElement("methodResponse").firstChildElement("params").firstChildElement("param").firstChildElement("value");
     getMessages(paramValueElement, &messages);
     ForumThread *updatedThread = threadBeingUpdated;
@@ -211,6 +241,7 @@ void TapaTalkEngine::getMessages(QDomElement dataValueElement, QList<ForumMessag
             newMessage->setBody(getValueFromStruct(arrayDataValueElement, "post_content"));
             newMessage->setLastchange(getValueFromStruct(arrayDataValueElement, "post_time"));
             newMessage->setOrdernum(messages->size());
+            convertBodyToHtml(newMessage);
             qDebug( ) << Q_FUNC_INFO << "Got message " << newMessage->toString();
             messages->append(newMessage);
         }

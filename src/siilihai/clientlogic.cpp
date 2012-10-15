@@ -286,7 +286,8 @@ void ClientLogic::listSubscriptionsFinished(QList<int> serversSubscriptions) {
         if(sub->isParsed()) {
             parserManager->deleteParser(qobject_cast<ForumSubscriptionParsed*>(sub)->parser());
         }
-        forumDatabase.deleteSubscription(sub);
+        if(sub->isParsed()) // @todo not tapatalk yet!
+            forumDatabase.deleteSubscription(sub);
     }
 }
 

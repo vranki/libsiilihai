@@ -4,7 +4,7 @@
 #include "../forumdata/forumsubscription.h"
 
 class ParserEngine;
-
+#define SUB_PARSER "parser"
 class ForumSubscriptionParsed : public ForumSubscription
 {
     Q_OBJECT
@@ -19,6 +19,8 @@ public:
     ParserEngine *parserEngine() const;
     virtual bool isSane() const;
     virtual QUrl forumUrl() const;
+    virtual QDomElement serialize(QDomElement &parent, QDomDocument &doc);
+    virtual void readSubscriptionXml(QDomElement &element);
 
 private:
     int _parser;

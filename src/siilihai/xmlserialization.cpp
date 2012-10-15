@@ -9,27 +9,10 @@
 #include "forumrequest.h"
 
 void XmlSerialization::serialize(ForumSubscription *sub, QDomElement &parent, QDomDocument &doc) {
-    QDomElement subElement = doc.createElement(SUB_SUBSCRIPTION);
-
-    appendValue(SUB_FORUMID, QString::number(sub->forumId()), subElement, doc);
-    appendValue(SUB_PROVIDER, QString::number(sub->provider()), subElement, doc);
-    appendValue(SUB_ALIAS, sub->alias(), subElement, doc);
-    appendValue(SUB_USERNAME, sub->username(), subElement, doc);
-    appendValue(SUB_PASSWORD, sub->password(), subElement, doc);
-    appendValue(SUB_LATEST_THREADS, QString::number(sub->latestThreads()), subElement, doc);
-    appendValue(SUB_LATEST_MESSAGES, QString::number(sub->latestMessages()), subElement, doc);
-
-    if(sub->isParsed())
-        appendValue(SUB_PARSER, QString::number(qobject_cast<ForumSubscriptionParsed*>(sub)->parser()), subElement, doc);
-    if(sub->isTapaTalk())
-        appendValue(SUB_FORUMURL, qobject_cast<ForumSubscriptionTapaTalk*>(sub)->forumUrl().toString(), subElement, doc);
-
+    QDomElement subElement = sub->serialize(parent, doc);
     foreach(ForumGroup *grp, sub->values())
         serialize(grp, subElement, doc);
-
-    parent.appendChild(subElement);
 }
-
 
 void XmlSerialization::serialize(ForumGroup *grp, QDomElement &parent, QDomDocument &doc) {
     QDomElement newElement = doc.createElement(GRP_GROUP);
@@ -75,6 +58,18 @@ void XmlSerialization::serialize(ForumMessage *msg, QDomElement &parent, QDomDoc
     parent.appendChild(newElement);
 }
 
+ForumSubscription *XmlSerialization::readSubscription(QDomElement &element, QObject *parent)
+{
+    ForumSubscription *sub = ForumSubscription::readSubscription(element, parent);
+    QDomElement groupElement = element.firstChildElement(GRP_GROUP);
+    while(!groupElement.isNull()) {
+        ForumGroup *grp = readGroup(groupElement, sub);
+        if(grp) sub->addGroup(grp, false, false);
+        groupElement = groupElement.nextSiblingElement(GRP_GROUP);
+    }
+    return sub;
+}
+
 void XmlSerialization::appendForumDataItemValues(ForumDataItem *item, QDomElement &parent, QDomDocument &doc) {
     parent.setAttribute(COMMON_ID, item->id());
     appendValue(COMMON_NAME, item->name(), parent, doc);
@@ -88,44 +83,6 @@ void XmlSerialization::appendValue(QString name, QString value, QDomElement &par
     parent.appendChild(valueElement);
 }
 
-
-ForumSubscription* XmlSerialization::readSubscription(QDomElement &element, QObject *parent) {
-    ForumSubscription *sub = 0;
-    if(element.tagName() != SUB_SUBSCRIPTION) return 0;
-    bool ok = false;
-    int provider = QString(element.firstChildElement(SUB_PROVIDER).text()).toInt(&ok);
-    if(!ok || provider <=0) return 0;
-    sub = ForumSubscription::newForProvider((ForumSubscription::ForumProvider) provider, parent, false);
-    if(provider == ForumSubscription::FP_PARSER) {
-        int parser = QString(element.firstChildElement(SUB_PARSER).text()).toInt(&ok);
-        if(!ok || parser <= 0) return 0;
-        ForumSubscriptionParsed *subParsed = qobject_cast<ForumSubscriptionParsed*>(sub);
-        subParsed->setParser(parser);
-    } else if(provider == ForumSubscription::FP_TAPATALK) {
-        QUrl forumUrl = QUrl(element.firstChildElement(SUB_FORUMURL).text());
-        ForumSubscriptionTapaTalk *subTt = qobject_cast<ForumSubscriptionTapaTalk*>(sub);
-        Q_ASSERT(forumUrl.isValid());
-        subTt->setForumUrl(forumUrl);
-    }
-    if(!sub) return 0;
-
-    sub->setForumId(QString(element.firstChildElement(SUB_FORUMID).text()).toInt());
-    sub->setAlias(element.firstChildElement(SUB_ALIAS).text());
-    sub->setUsername(element.firstChildElement(SUB_USERNAME).text());
-    sub->setPassword(element.firstChildElement(SUB_PASSWORD).text());
-    sub->setLatestThreads(QString(element.firstChildElement(SUB_LATEST_THREADS).text()).toInt());
-    sub->setLatestMessages(QString(element.firstChildElement(SUB_LATEST_MESSAGES).text()).toInt());
-    sub->setAuthenticated(sub->username().length() > 0);
-
-    QDomElement groupElement = element.firstChildElement(GRP_GROUP);
-    while(!groupElement.isNull()) {
-        ForumGroup *grp = readGroup(groupElement, sub);
-        if(grp) sub->addGroup(grp, false, false);
-        groupElement = groupElement.nextSiblingElement(GRP_GROUP);
-    }
-
-    return sub;
-}
 
 ForumGroup* XmlSerialization::readGroup(QDomElement &element, ForumSubscription *parent) {
     if(element.tagName() != GRP_GROUP) return 0;

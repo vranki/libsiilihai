@@ -1,5 +1,6 @@
 #include "forumsubscriptionparsed.h"
 #include "parserengine.h"
+#include "../xmlserialization.h"
 
 ForumSubscriptionParsed::ForumSubscriptionParsed(QObject *parent, bool temp) :
     ForumSubscription(parent, temp, FP_PARSER)
@@ -43,4 +44,18 @@ QUrl ForumSubscriptionParsed::forumUrl() const {
         return QUrl(parserEngine()->parser()->forum_url);
     // Ok, no parser loaded (yet)
     return QUrl();
+}
+
+QDomElement ForumSubscriptionParsed::serialize(QDomElement &parent, QDomDocument &doc) {
+    QDomElement subElement = ForumSubscription::serialize(parent, doc);
+    XmlSerialization::appendValue(SUB_PARSER, QString::number(parser()), subElement, doc);
+    return subElement;
+}
+
+void ForumSubscriptionParsed::readSubscriptionXml(QDomElement &element)
+{
+    ForumSubscription::readSubscriptionXml(element);
+    bool ok = false;
+    int parser = QString(element.firstChildElement(SUB_PARSER).text()).toInt(&ok);
+    setParser(parser);
 }

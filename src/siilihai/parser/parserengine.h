@@ -14,8 +14,8 @@
     along with libSiilihai.  If not, see <http://www.gnu.org/licenses/>. */
 #ifndef PARSERENGINE_H_
 #define PARSERENGINE_H_
-#include "../forumsession.h"
 #include "../updateengine.h"
+#include "forumsession.h"
 #include "forumparser.h"
 #include "forumsubscriptionparsed.h"
 

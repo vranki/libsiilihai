@@ -20,10 +20,22 @@
 #include <QList>
 #include <QDebug>
 #include <QUrl>
+#include <QDomElement>
+#include <QDomDocument>
+
 #include "updateableitem.h"
 
 class ForumGroup;
 class UpdateEngine;
+
+#define SUB_SUBSCRIPTION "subscription"
+#define SUB_PROVIDER "provider"
+#define SUB_FORUMID "forumid"
+#define SUB_ALIAS "alias"
+#define SUB_USERNAME "username"
+#define SUB_PASSWORD "password"
+#define SUB_LATEST_THREADS "latest_threads"
+#define SUB_LATEST_MESSAGES "latest_messages"
 
 /**
   * Represents a subscription to a forum. Contains a list of groups.
@@ -83,6 +95,10 @@ public:
     bool isTapaTalk() const;
     static ForumSubscription *newForProvider(ForumProvider fp, QObject *parent, bool temp);
     virtual QUrl forumUrl() const=0;
+    virtual QDomElement serialize(QDomElement &parent, QDomDocument &doc);
+    static ForumSubscription* readSubscription(QDomElement &element, QObject *parent);
+    virtual void readSubscriptionXml(QDomElement &element);
+
 signals:
     void changed();
     void unreadCountChanged();

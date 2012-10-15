@@ -281,6 +281,8 @@ void SiilihaiProtocol::replyGetParser(QNetworkReply *reply) {
 }
 
 void SiilihaiProtocol::subscribeForum(ForumSubscription *fs, bool unsubscribe) {
+    if(fs->isTapaTalk()) return; // @todo not yet supported
+
     QNetworkRequest req(subscribeForumUrl);
     QHash<QString, QString> params;
     params.insert("forum_id", QString().number(fs->forumId()));

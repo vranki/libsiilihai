@@ -38,6 +38,8 @@ private:
     void getMessages(QDomElement dataValueElement, QList<ForumMessage *> *messages);
     QDomElement findMemberValueElement(QDomElement dataValueElement, QString memberName);
     ForumSubscriptionTapaTalk *subscriptionTapaTalk() const;
+    void convertBodyToHtml(ForumMessage *msg); // convert [url=][/url] etc to real html
+
     QString connectorUrl;
     ForumGroup *groupBeingUpdated;
     ForumThread *threadBeingUpdated;

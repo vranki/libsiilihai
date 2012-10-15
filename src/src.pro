@@ -30,9 +30,7 @@ headers.files += \
     siilihai/syncmaster.h \
     siilihai/forumrequest.h \
     siilihai/httppost.h \
-    siilihai/forumsession.h \
     siilihai/siilihaiprotocol.h \
-    siilihai/patternmatcher.h \
     siilihai/usersettings.h \
     siilihai/xmlserialization.h \
     siilihai/clientlogic.h \
@@ -46,7 +44,9 @@ parser.files += siilihai/parser/parserreport.h \
     siilihai/parser/parserengine.h \
     siilihai/parser/forumparser.h \
     siilihai/parser/forumsubscriptionparsed.h \
-    siilihai/parser/parsermanager.h
+    siilihai/parser/parsermanager.h \
+    siilihai/parser/patternmatcher.h \
+    siilihai/parser/forumsession.h
 
 parser.path += $$headers.path/parser
 
@@ -76,25 +76,25 @@ SOURCES += siilihai/syncmaster.cpp \
     siilihai/forumdata/forumthread.cpp \
     siilihai/forumdata/forumgroup.cpp \
     siilihai/httppost.cpp \
-    siilihai/forumsession.cpp \
     siilihai/forumdata/forumsubscription.cpp \
     siilihai/forumdatabase/forumdatabase.cpp \
     siilihai/parser/parserdatabase.cpp \
     siilihai/siilihaiprotocol.cpp \
-    siilihai/parser/parserengine.cpp \
-    siilihai/parser/forumparser.cpp \
-    siilihai/patternmatcher.cpp \
     siilihai/usersettings.cpp \
     siilihai/forumdata/forumdataitem.cpp \
     siilihai/forumdata/updateableitem.cpp \
     siilihai/forumdatabase/forumdatabasexml.cpp \
     siilihai/xmlserialization.cpp \
-    siilihai/parser/parsermanager.cpp \
     siilihai/clientlogic.cpp \
     siilihai/messageformatting.cpp \
     siilihai/credentialsrequest.cpp \
     siilihai/updateengine.cpp \
     siilihai/parser/forumsubscriptionparsed.cpp \
+    siilihai/parser/parsermanager.cpp \
+    siilihai/parser/forumsession.cpp \
+    siilihai/parser/parserengine.cpp \
+    siilihai/parser/forumparser.cpp \
+    siilihai/parser/patternmatcher.cpp \
     siilihai/tapatalk/forumsubscriptiontapatalk.cpp \
     siilihai/tapatalk/tapatalkengine.cpp
 
