@@ -150,7 +150,7 @@ void UpdateEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups) {
             newGroup->copyFrom(tempGroup);
             newGroup->setChangeset(rand());
             // DON'T set lastchange when only updating group list.
-            if(!updateAll) {
+            if(updateAll && newGroup->isSubscribed()) {
                 newGroup->markToBeUpdated();
             }
             fsubscription->addGroup(newGroup);

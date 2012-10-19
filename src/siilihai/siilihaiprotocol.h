@@ -40,6 +40,11 @@ class ForumMessage;
 /**
   * Implements communication protocol between siilihai.com server and the client.
   *
+  * Normal sequence:
+  *
+  * - login -> loginFinished
+  * - listSubscriptions -> listSubscriptionsFinished
+  * - getSyncSummary -> serverGroupStatus
   * @todo https
   */
 class SiilihaiProtocol: public QObject {

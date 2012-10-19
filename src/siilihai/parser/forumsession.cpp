@@ -361,6 +361,7 @@ void ForumSession::listMessagesOnNextPage() {
 }
 
 void ForumSession::listThreads(ForumGroup *group) {
+    Q_ASSERT(group->isSubscribed());
     if (operationInProgress != FSONoOp && operationInProgress != FSOListThreads) {
         //statusReport();
         qDebug() << Q_FUNC_INFO << "Operation " << operationNames[operationInProgress] << " in progress!! Don't command me yet!";

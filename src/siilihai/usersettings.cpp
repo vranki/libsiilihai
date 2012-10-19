@@ -20,9 +20,9 @@ UserSettings::UserSettings()
 }
 
 void UserSettings::setSyncEnabled(bool en) {
-_syncEnabled = en;
+    _syncEnabled = en;
 }
 
 bool UserSettings::syncEnabled() {
-return _syncEnabled;
+    return _syncEnabled;
 }

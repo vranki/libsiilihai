@@ -237,11 +237,16 @@ void SiilihaiProtocol::replyListSubscriptions(QNetworkReply *reply) {
     if (reply->error() == QNetworkReply::NoError) {
         QDomDocument doc;
         doc.setContent(docs);
-        QDomNode n = doc.firstChild().firstChild();
-        while (!n.isNull()) {
-            int id = QString(n.toElement().text()).toInt();
-            subscriptions.append(id);
-            n = n.nextSibling();
+        QDomElement subscriptionsElement = doc.firstChildElement();
+        QDomElement subElement = subscriptionsElement.firstChildElement("forum_id");
+        while (!subElement.isNull() && subElement.tagName()=="forum_id") {
+            int id = QString(subElement.text()).toInt();
+            if(id > 0) {
+                subscriptions.append(id);
+            } else {
+                qDebug() << Q_FUNC_INFO << "ERROR: got zero forum id";
+            }
+            subElement = subElement.nextSiblingElement("forum_id");
         }
     } else {
         qDebug() << Q_FUNC_INFO << "Network error:" << reply->errorString();
@@ -281,16 +286,14 @@ void SiilihaiProtocol::replyGetParser(QNetworkReply *reply) {
 }
 
 void SiilihaiProtocol::subscribeForum(ForumSubscription *fs, bool unsubscribe) {
-    if(fs->isTapaTalk()) return; // @todo not yet supported
-
     QNetworkRequest req(subscribeForumUrl);
     QHash<QString, QString> params;
     params.insert("forum_id", QString().number(fs->forumId()));
-    if(fs->isParsed())
-        params.insert("parser_id", QString().number(qobject_cast<ForumSubscriptionParsed*>(fs)->parser()));
     if (unsubscribe) {
         params.insert("unsubscribe", "yes");
     } else {
+        params.insert("url", fs->forumUrl().toString());
+        params.insert("provider", QString().number(fs->provider()));
         params.insert("alias", fs->alias());
         params.insert("latest_threads", QString().number(fs->latestThreads()));
         params.insert("latest_messages", QString().number(fs->latestMessages()));
@@ -446,7 +449,7 @@ void SiilihaiProtocol::replyGetUserSettings(QNetworkReply *reply) {
     if (reply->error() == QNetworkReply::NoError) {
         QDomDocument doc;
         doc.setContent(docs);
-        QString syncEnabledStr = doc.firstChildElement("sync_enabled").text();
+        QString syncEnabledStr = doc.firstChildElement("usersettings").firstChildElement("sync_enabled").text();
         usettings.setSyncEnabled(!syncEnabledStr.isNull());
     } else {
         qDebug() << Q_FUNC_INFO << "Network error:" << reply->errorString();
@@ -543,6 +546,8 @@ void SiilihaiProtocol::sendThreadData(ForumGroup *grp, QList<ForumMessage*> &fms
         root.appendChild(threadTag);
     }
     sendThreadDataData = doc.toByteArray();
+    qDebug() << Q_FUNC_INFO << "XML out:" << doc.toString();
+
     req.setAttribute(QNetworkRequest::User, SPOSendThreadData);
     nam.post(req, sendThreadDataData);
 }
@@ -601,11 +606,10 @@ void SiilihaiProtocol::replyDownsync(QNetworkReply *reply) {
             QDomElement forumElement = re.childNodes().at(j).toElement();
             if(forumElement.tagName()=="forum") {
                 int forumid = forumElement.attribute("id").toInt();
-                ForumSubscription *forum = 0;
                 int forumProvider = forumElement.attribute("provider").toInt();
-                if(forumProvider==ForumSubscription::FP_PARSER) {
-                    ForumSubscriptionParsed *forumParsed = new ForumSubscriptionParsed(0, true);
-                    forum = forumParsed;
+                ForumSubscription *forum = ForumSubscription::newForProvider((ForumSubscription::ForumProvider) forumProvider, 0, true);
+                if(forum->isParsed()) {
+                    ForumSubscriptionParsed *forumParsed = qobject_cast<ForumSubscriptionParsed*> (forum);
                     int forumparser = forumElement.attribute("id").toInt();
                     forumParsed->setParser(forumparser);
                 }
@@ -667,31 +671,33 @@ void SiilihaiProtocol::getSyncSummary() {
 
 void SiilihaiProtocol::replyGetSyncSummary(QNetworkReply *reply) {
     QString docs = QString().fromUtf8(reply->readAll());
+    qDebug() << Q_FUNC_INFO << docs;
     QList<ForumSubscription*> subs;
     QList<ForumGroup*> grps; // to keep groups in context
     if (reply->error() == QNetworkReply::NoError) {
         QDomDocument doc;
         doc.setContent(docs);
         QDomElement re = doc.firstChild().toElement();
-        for (int i = 0; i < re.childNodes().size(); i++) {
-            QDomElement forumElement = re.childNodes().at(i).toElement();
+        qDebug() << Q_FUNC_INFO << "root element: " << re.tagName();
+        QDomElement forumElement = re.firstChildElement("forum");
+        while(!forumElement.isNull()) {
+            qDebug() << Q_FUNC_INFO << "forum element: " << forumElement.tagName();
             int forumid = forumElement.attribute("id").toInt();
             int forumprovider = forumElement.attribute("provider").toInt();
 
-            ForumSubscription *sub = 0;
-            if(forumprovider==ForumSubscription::FP_PARSER) {
-                ForumSubscriptionParsed *forumParsed = new ForumSubscriptionParsed(this, true);
+            ForumSubscription *sub = ForumSubscription::newForProvider((ForumSubscription::ForumProvider) forumprovider, this, true);
+            if(sub->isParsed()) {
+                ForumSubscriptionParsed *forumParsed = qobject_cast<ForumSubscriptionParsed*>(sub);
                 int forumparser = forumElement.attribute("parser").toInt();
                 forumParsed->setParser(forumparser);
-                sub = forumParsed;
             }
             sub->setForumId(forumid);
             sub->setAlias(forumElement.attribute("alias"));
             sub->setLatestThreads(forumElement.attribute("latest_threads").toInt());
             sub->setLatestMessages(forumElement.attribute("latest_messages").toInt());
             sub->setAuthenticated(forumElement.hasAttribute("authenticated"));
-            for (int j = 0; j < forumElement.childNodes().size(); j++) {
-                QDomElement groupElement = forumElement.childNodes().at(j).toElement();
+            QDomElement groupElement = forumElement.firstChildElement("group");
+            while(!groupElement.isNull()) {
                 QString groupid = groupElement.attribute("id");
                 int changeset = groupElement.text().toInt();
                 ForumGroup *g = new ForumGroup(sub); // I hope qobject's memory management will delete this
@@ -700,8 +706,10 @@ void SiilihaiProtocol::replyGetSyncSummary(QNetworkReply *reply) {
                 g->setSubscribed(true);
                 grps.append(g);
                 sub->addGroup(g);
+                groupElement = groupElement.nextSiblingElement("group");
             }
             subs.append(sub);
+            forumElement = forumElement.nextSiblingElement("forum");
         }
         emit serverGroupStatus(subs);
     } else {

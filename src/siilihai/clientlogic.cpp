@@ -113,6 +113,13 @@ void ClientLogic::settingsChanged(bool byUser) {
         protocol.setUserSettings(&usettings);
     }
     settings->sync();
+    if(usettings.syncEnabled()) { // Force upsync of everything
+        foreach(ForumSubscription *sub, forumDatabase.values()) {
+            foreach(ForumGroup *group, sub->values()) {
+                group->setHasChanged(true);
+            }
+        }
+    }
 }
 
 void ClientLogic::tryLogin() {
@@ -342,7 +349,7 @@ void ClientLogic::createEngineForSubscription(ForumSubscription *newFs) {
     UpdateEngine *ue = 0;
     if(newFs->isParsed()) {
         ForumSubscriptionParsed *newFsParsed = qobject_cast<ForumSubscriptionParsed*>(newFs);
-//        Q_ASSERT(parserManager->getParser(newFsParsed->parser())); // Should already be there!
+        //        Q_ASSERT(parserManager->getParser(newFsParsed->parser())); // Should already be there!
         ParserEngine *pe = new ParserEngine(&forumDatabase, this, parserManager);
         ue = pe;
         pe->setParser(parserManager->getParser(newFsParsed->parser()));
