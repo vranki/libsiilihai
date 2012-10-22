@@ -52,7 +52,8 @@ class SiilihaiProtocol: public QObject {
 public:
     enum SiilihaiProtocolOperation { SPONoOp=1, SPOLogin, SPORegisterUser, SPOListParsers, SPOListRequests, SPOListSubscriptions,
                                    SPOGetParser, SPOSubscribeForum, SPOSubscribeGroups, SPOSaveParser, SPOSetUserSettings,
-                                   SPOGetUserSettings, SPOSendParserReport, SPOSendThreadData, SPOGetThreadData, SPOGetSyncSummary};
+                                   SPOGetUserSettings, SPOSendParserReport, SPOSendThreadData, SPOGetThreadData, SPOGetSyncSummary,
+                                   SPOAddForum };
 
     SiilihaiProtocol(QObject *parent = 0);
     virtual ~SiilihaiProtocol();
@@ -65,6 +66,8 @@ public:
     void getParser(const int id);
     void subscribeGroups(ForumSubscription *fs); // Sends groups in forum to server
     void saveParser(const ForumParser *parser);
+
+    void addForum(ForumSubscription *sub); // Add a new forum
 
     void setUserSettings(UserSettings *us);
     void getUserSettings();
@@ -99,7 +102,7 @@ private:
     void replyGetSyncSummary(QNetworkReply *reply);
     void replyDownsync(QNetworkReply *reply);
     void replyGetUserSettings(QNetworkReply *reply);
-
+    void replyAddForum(QNetworkReply *reply);
 
 signals:
     void loginFinished(bool success, QString motd, bool syncEnabled);
@@ -113,6 +116,8 @@ signals:
     void subscribeGroupsFinished(bool success);
 
     void userSettingsReceived(bool success, UserSettings *newSettings);
+
+    void forumAdded(ForumSubscription *sub); // Or null for fail. Temp object!
 
     // Sync stuff:
     void sendThreadDataFinished(bool success, QString message);
@@ -128,11 +133,11 @@ private:
     QByteArray loginData, listParsersData, saveParserData, getParserData,
     subscribeForumData, listRequestsData, registerData, listSubscriptionsData,
     sendParserReportData, subscribeGroupsData, sendThreadDataData, getThreadDataData,
-    syncSummaryData, userSettingsData;
+    syncSummaryData, userSettingsData, addForumData;
     QUrl listParsersUrl, loginUrl, getParserUrl, saveParserUrl,
     subscribeForumUrl, listRequestsUrl, registerUrl, listSubscriptionsUrl,
     sendParserReportUrl, subscribeGroupsUrl, sendThreadDataUrl, downsyncUrl, syncSummaryUrl,
-    userSettingsUrl;
+    userSettingsUrl, addForumUrl;
     ForumSubscription *forumBeingSubscribed;
     SiilihaiProtocolOperation operationInProgress;
 };

@@ -13,16 +13,6 @@ void ForumSubscriptionTapaTalk::copyFrom(ForumSubscription * other) {
         setForumUrl(qobject_cast<ForumSubscriptionTapaTalk*>(other)->forumUrl());
 }
 
-void ForumSubscriptionTapaTalk::setForumUrl(QUrl url)
-{
-    _forumUrl = url;
-    emit ForumSubscription::changed();
-}
-
-QUrl ForumSubscriptionTapaTalk::forumUrl() const
-{
-    return _forumUrl;
-}
 
 void ForumSubscriptionTapaTalk::setTapaTalkEngine(TapaTalkEngine *newEngine)
 {

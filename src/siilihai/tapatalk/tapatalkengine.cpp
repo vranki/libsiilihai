@@ -241,6 +241,7 @@ void TapaTalkEngine::getMessages(QDomElement dataValueElement, QList<ForumMessag
             newMessage->setBody(getValueFromStruct(arrayDataValueElement, "post_content"));
             newMessage->setLastchange(getValueFromStruct(arrayDataValueElement, "post_time"));
             newMessage->setOrdernum(messages->size());
+            newMessage->setRead(false, false);
             convertBodyToHtml(newMessage);
             qDebug( ) << Q_FUNC_INFO << "Got message " << newMessage->toString();
             messages->append(newMessage);

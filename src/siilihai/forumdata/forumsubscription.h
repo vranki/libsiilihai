@@ -94,11 +94,12 @@ public:
     bool isParsed() const; // Just helpers
     bool isTapaTalk() const;
     static ForumSubscription *newForProvider(ForumProvider fp, QObject *parent, bool temp);
-    virtual QUrl forumUrl() const=0;
     virtual QDomElement serialize(QDomElement &parent, QDomDocument &doc);
     static ForumSubscription* readSubscription(QDomElement &element, QObject *parent);
     virtual void readSubscriptionXml(QDomElement &element);
-
+    virtual QUrl forumUrl() const;
+    void setForumUrl(QUrl url);
+    void setProvider(ForumProvider provider); // Use with care!!
 signals:
     void changed();
     void unreadCountChanged();
@@ -122,6 +123,7 @@ private:
     // Just for status display
     bool _scheduledForUpdate, _beingUpdated, _beingSynced;
     ForumProvider _provider;
+    QUrl _forumUrl;
 };
 
 #endif /* FORUMSUBSCRIPTION_H_ */

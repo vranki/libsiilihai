@@ -18,10 +18,13 @@ void ForumSubscriptionParsed::setParser(int parser) {
     emit ForumSubscription::changed();
 }
 
-
 void ForumSubscriptionParsed::setParserEngine(ParserEngine *eng) {
     _engine = eng;
-    emit ForumSubscription::changed();
+    if(parserEngine() && parserEngine()->parser()) {
+        setForumUrl(parserEngine()->parser()->forum_url);
+    } else {
+        emit changed();
+    }
 }
 
 void ForumSubscriptionParsed::copyFrom(ForumSubscription * other) {
@@ -43,7 +46,7 @@ QUrl ForumSubscriptionParsed::forumUrl() const {
     if(parserEngine() && parserEngine()->parser())
         return QUrl(parserEngine()->parser()->forum_url);
     // Ok, no parser loaded (yet)
-    return QUrl();
+    return ForumSubscription::forumUrl();
 }
 
 QDomElement ForumSubscriptionParsed::serialize(QDomElement &parent, QDomDocument &doc) {

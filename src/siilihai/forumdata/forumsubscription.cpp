@@ -269,3 +269,20 @@ void ForumSubscription::readSubscriptionXml(QDomElement &element)
     setLatestMessages(QString(element.firstChildElement(SUB_LATEST_MESSAGES).text()).toInt());
     setAuthenticated(username().length() > 0);
 }
+
+void ForumSubscription::setForumUrl(QUrl url)
+{
+    _forumUrl = url;
+    emit changed();
+}
+
+void ForumSubscription::setProvider(ForumSubscription::ForumProvider provider)
+{
+    _provider = provider;
+    emit changed();
+}
+
+QUrl ForumSubscription::forumUrl() const
+{
+    return _forumUrl;
+}
