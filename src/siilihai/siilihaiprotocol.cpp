@@ -73,8 +73,8 @@ void SiilihaiProtocol::networkReply(QNetworkReply *reply) {
         replyDownsync(reply);
     } else if(operationAttribute==SPOGetSyncSummary) {
         replyGetSyncSummary(reply);
-    } else if(operationAttribute==SPOAddForum) {
-        replyAddForum(reply);
+    } else if(operationAttribute==SPOAddForum || operationAttribute==SPOGetForum ) {
+        replyGetForum(reply);
     } else {
         Q_ASSERT(false);
     }
@@ -101,9 +101,9 @@ void SiilihaiProtocol::setBaseURL(QString bu) {
     downsyncUrl = QUrl(baseUrl + "api/downsync.xml");
     userSettingsUrl = QUrl(baseUrl + "api/usersettings.xml");
     addForumUrl = QUrl(baseUrl + "api/addforum.xml");
+    getForumUrl = QUrl(baseUrl + "api/getforum.xml");
     nam.setProxy(QNetworkProxy::applicationProxy());
 }
-
 
 void SiilihaiProtocol::login(QString user, QString pass) {
     QNetworkRequest req(loginUrl);
@@ -428,6 +428,9 @@ void SiilihaiProtocol::replySaveParser(QNetworkReply *reply) {
 
 void SiilihaiProtocol::addForum(ForumSubscription *sub)
 {
+    Q_ASSERT(sub->forumId()==0);
+    Q_ASSERT(sub->alias().length()>0);
+    Q_ASSERT(sub->forumUrl().isValid());
     QNetworkRequest req(addForumUrl);
     QHash<QString, QString> params;
     params.insert("url", sub->forumUrl().toString());
@@ -441,7 +444,35 @@ void SiilihaiProtocol::addForum(ForumSubscription *sub)
     nam.post(req, addForumData);
 }
 
-void SiilihaiProtocol::replyAddForum(QNetworkReply *reply)
+void SiilihaiProtocol::getForum(QUrl url)
+{
+    Q_ASSERT(url.isValid());
+    QNetworkRequest req(getForumUrl);
+    QHash<QString, QString> params;
+    params.insert("url", url.toString());
+    if (!clientKey.isNull()) {
+        params.insert("client_key", clientKey);
+    }
+    req.setAttribute(QNetworkRequest::User, SPOGetForum);
+    getForumData = HttpPost::setPostParameters(&req, params);
+    nam.post(req, getForumData);
+}
+
+void SiilihaiProtocol::getForum(int forumid)
+{
+    Q_ASSERT(forumid > 0);
+    QNetworkRequest req(getForumUrl);
+    QHash<QString, QString> params;
+    params.insert("forumid", QString::number(forumid));
+    if (!clientKey.isNull()) {
+        params.insert("client_key", clientKey);
+    }
+    req.setAttribute(QNetworkRequest::User, SPOGetForum);
+    getForumData = HttpPost::setPostParameters(&req, params);
+    nam.post(req, getForumData);
+}
+
+void SiilihaiProtocol::replyGetForum(QNetworkReply *reply)
 {
     QString docs = QString().fromUtf8(reply->readAll());
     if (reply->error() == QNetworkReply::NoError) {
@@ -457,13 +488,13 @@ void SiilihaiProtocol::replyAddForum(QNetworkReply *reply)
             addedForum.setForumId(id);
             addedForum.setForumUrl(url);
             addedForum.setAlias(name);
-            emit forumAdded(&addedForum);
+            emit forumGot(&addedForum);
         } else {
-            emit forumAdded(0);
+            emit forumGot(0);
         }
     } else {
         qDebug() << Q_FUNC_INFO << "Network error: " << reply->errorString();
-        emit forumAdded(0);
+        emit forumGot(0);
     }
     reply->deleteLater();
 }

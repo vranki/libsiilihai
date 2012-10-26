@@ -18,8 +18,8 @@
 #include "../tapatalk/forumsubscriptiontapatalk.h"
 #include "../xmlserialization.h"
 
-ForumSubscription::ForumSubscription(QObject *parent, bool temp, ForumProvider p) : QObject(parent),
-    _provider(p) {
+ForumSubscription::ForumSubscription(QObject *parent, bool temp, ForumProvider p) : QObject(parent) {
+    _provider = p;
     _alias = QString::null;
     _latestThreads = 0;
     _latestMessages = 0;

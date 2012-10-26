@@ -10,15 +10,18 @@ class TapaTalkEngine : public UpdateEngine
     Q_OBJECT
 
     enum TapaTalkOperation {
-        TTO_None=0, TTO_ListGroups, TTO_UpdateGroup, TTO_UpdateThread
+        TTO_None=0, TTO_ListGroups, TTO_UpdateGroup, TTO_UpdateThread, TTO_Probe
     };
 
 public:
     explicit TapaTalkEngine(ForumDatabase *fd, QObject *parent);
     virtual void setSubscription(ForumSubscription *fs);
+    virtual void probeUrl(QUrl url);
+
 signals:
-    
+    void urlProbeResults(ForumSubscription *sub);
 public slots:
+
 protected:
     //    virtual void requestCredentials();
     virtual void doUpdateForum();
@@ -27,6 +30,7 @@ protected:
 private slots:
     void networkReply(QNetworkReply *reply);
 private:
+    void replyProbe(QNetworkReply *reply);
     void replyListGroups(QNetworkReply *reply);
     void replyUpdateGroup(QNetworkReply *reply);
     void replyUpdateThread(QNetworkReply *reply);

@@ -30,6 +30,7 @@ void TapaTalkEngine::setSubscription(ForumSubscription *fs) {
     setState(PES_IDLE);
 }
 
+
 ForumSubscriptionTapaTalk *TapaTalkEngine::subscriptionTapaTalk() const
 {
     return qobject_cast<ForumSubscriptionTapaTalk*>(subscription());
@@ -62,6 +63,46 @@ void TapaTalkEngine::convertBodyToHtml(ForumMessage *msg)
 
     //    newBody.append("-----" + origBody);
     msg->setBody(newBody);
+}
+
+void TapaTalkEngine::probeUrl(QUrl url)
+{
+    connectorUrl = url.toString() + "mobiquo/mobiquo.php";
+    qDebug() << Q_FUNC_INFO << "will now probe " << connectorUrl;
+    QNetworkRequest req(connectorUrl);
+    QDomDocument doc("");
+    QDomElement root = doc.createElement("methodCall");
+    doc.appendChild(root);
+
+    QDomElement methodTag = doc.createElement("methodName");
+    root.appendChild(methodTag);
+
+    QDomText t = doc.createTextNode("get_config");
+    methodTag.appendChild(t);
+
+    QByteArray requestData = doc.toByteArray();
+    req.setAttribute(QNetworkRequest::User, TTO_Probe);
+    nam.post(req, requestData);
+}
+
+void TapaTalkEngine::replyProbe(QNetworkReply *reply)
+{
+    qDebug() << Q_FUNC_INFO;
+    if (reply->error() != QNetworkReply::NoError) {
+        emit urlProbeResults(0);
+        return;
+    }
+    QString docs = QString().fromUtf8(reply->readAll());
+    // qDebug() << Q_FUNC_INFO << docs;
+    QDomDocument doc;
+    doc.setContent(docs);
+    QDomElement arrayDataElement = doc.firstChildElement("methodResponse");
+    if(!arrayDataElement.isNull()) {
+        ForumSubscription sub(0, true, ForumSubscription::FP_TAPATALK);
+        emit urlProbeResults(&sub);
+    } else {
+        emit urlProbeResults(0);
+    }
 }
 
 void TapaTalkEngine::doUpdateForum() {
@@ -265,8 +306,13 @@ void TapaTalkEngine::networkReply(QNetworkReply *reply)
         replyUpdateGroup(reply);
     } else if(operationAttribute==TTO_UpdateThread) {
         replyUpdateThread(reply);
+    } else if(operationAttribute==TTO_Probe) {
+        replyProbe(reply);
+    } else {
+        Q_ASSERT(false);
     }
 }
+
 
 void TapaTalkEngine::replyListGroups(QNetworkReply *reply)
 {

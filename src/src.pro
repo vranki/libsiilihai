@@ -36,6 +36,7 @@ headers.files += \
     siilihai/clientlogic.h \
     siilihai/messageformatting.h \
     siilihai/credentialsrequest.h \
+    siilihai/forumprobe.h \
     siilihai/updateengine.h
 headers.path = $$[QT_INSTALL_PREFIX]/include/siilihai
 
@@ -89,6 +90,7 @@ SOURCES += siilihai/syncmaster.cpp \
     siilihai/messageformatting.cpp \
     siilihai/credentialsrequest.cpp \
     siilihai/updateengine.cpp \
+    siilihai/forumprobe.cpp \
     siilihai/parser/forumsubscriptionparsed.cpp \
     siilihai/parser/parsermanager.cpp \
     siilihai/parser/forumsession.cpp \
