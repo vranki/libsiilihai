@@ -177,20 +177,20 @@ void ForumSubscription::markRead(bool read) {
     }
 }
 void ForumSubscription::setBeingUpdated(bool bu) {
-    Q_ASSERT(!_beingSynced);
-    Q_ASSERT(!_scheduledForUpdate);
+    Q_ASSERT(!(_beingSynced && bu));
+    Q_ASSERT(!(_scheduledForUpdate && bu));
     _beingUpdated = bu;
     emit changed();
 }
 
 void ForumSubscription::setBeingSynced(bool bs) {
-    Q_ASSERT(!_beingUpdated);
+    Q_ASSERT(!(_beingUpdated && bs));
     _beingSynced = bs;
     emit changed();
 }
 
 void ForumSubscription::setScheduledForUpdate(bool su) {
-    Q_ASSERT(!_beingUpdated);
+    Q_ASSERT(!(_beingUpdated && su));
     _scheduledForUpdate = su;
     emit changed();
 }

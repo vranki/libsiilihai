@@ -24,11 +24,13 @@ void ForumProbe::forumGot(ForumSubscription *sub) {
     disconnect(&protocol, SIGNAL(forumGot(ForumSubscription*)), this, SLOT(forumGot(ForumSubscription*)));
     if(!sub) { // Unknown forum - get title Need to add it to DB!
         // Test for TapaTalk
+        qDebug() << Q_FUNC_INFO << "unknown, checking for tapatalk";
         TapaTalkEngine *tte = new TapaTalkEngine(0, 0); // Deleted in engineProbeResults
         connect(tte, SIGNAL(urlProbeResults(ForumSubscription*)), this, SLOT(engineProbeResults(ForumSubscription*)));
         tte->probeUrl(url);
         currentEngine = tte;
     } else { // Forum found from server - just use it
+        qDebug() << Q_FUNC_INFO << "known forum " << sub->toString();
         emit probeResults(sub);
     }
 }
@@ -36,10 +38,12 @@ void ForumProbe::forumGot(ForumSubscription *sub) {
 void ForumProbe::engineProbeResults(ForumSubscription *sub) {
     qDebug() << Q_FUNC_INFO << url.toString() << sub;
 
-    if(sub)
+    if(sub) {
         probedSub.setProvider(ForumSubscription::FP_TAPATALK);
-
+        qDebug() << Q_FUNC_INFO << sub->toString();
+    }
     if(sub && sub->alias().isNull()) {
+        qDebug() << Q_FUNC_INFO << "Getting title";
         // Dang, we need to figure out a name for the forum
         nam.get(QNetworkRequest(url));
     } else {
