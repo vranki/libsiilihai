@@ -62,7 +62,7 @@ public:
     QString baseURL();
     void listParsers(); // REALLY: listForums
     void listRequests();
-    void listSubscriptions();
+    // void listSubscriptions(); // not used anywhere??
     void getParser(const int id);
     void subscribeGroups(ForumSubscription *fs); // Sends groups in forum to server
     void saveParser(const ForumParser *parser);
@@ -97,7 +97,7 @@ private:
     void replyGetParser(QNetworkReply *reply);
     void replySaveParser(QNetworkReply *reply);
     void replySubscribeForum(QNetworkReply *reply);
-    void replyListSubscriptions(QNetworkReply *reply);
+    // void replyListSubscriptions(QNetworkReply *reply);
     void replySendParserReport(QNetworkReply *reply);
     void replySubscribeGroups(QNetworkReply *reply);
     void replySendThreadData(QNetworkReply *reply);
@@ -133,11 +133,11 @@ private:
     QNetworkAccessManager nam;
     QString baseUrl;
     QByteArray loginData, listParsersData, saveParserData, getParserData,
-    subscribeForumData, listRequestsData, registerData, listSubscriptionsData,
+    subscribeForumData, listRequestsData, registerData,/*listSubscriptionsData,*/
     sendParserReportData, subscribeGroupsData, sendThreadDataData, getThreadDataData,
     syncSummaryData, userSettingsData, addForumData, getForumData;
     QUrl listParsersUrl, loginUrl, getParserUrl, saveParserUrl,
-    subscribeForumUrl, listRequestsUrl, registerUrl, listSubscriptionsUrl,
+    subscribeForumUrl, listRequestsUrl, registerUrl, /*listSubscriptionsUrl,*/
     sendParserReportUrl, subscribeGroupsUrl, sendThreadDataUrl, downsyncUrl, syncSummaryUrl,
     userSettingsUrl, addForumUrl, getForumUrl;
     ForumSubscription *forumBeingSubscribed;
