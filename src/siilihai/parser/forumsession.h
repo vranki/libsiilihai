@@ -110,8 +110,11 @@ private:
     int currentListPage;
     ForumGroup *currentGroup;
     ForumThread *currentThread;
+
+    // @todo consider changing to QVectors
     QList<ForumThread*> threads; // Threads in currentGroup
     QList<ForumMessage*> messages; // Represents messages in thread listMessages
+
     bool moreMessagesAvailable; // True if thread would have more messages but limit stops search
     QString currentMessagesUrl;
     QTimer cookieExpiredTimer;

@@ -357,6 +357,7 @@ void ForumSession::listMessagesOnNextPage() {
     QNetworkRequest req;
     req.setUrl(QUrl(urlString));
     setRequestAttributes(req, FSOListMessages);
+    qDebug() << Q_FUNC_INFO << "Listing messages on page " << urlString;
     nam->post(req, emptyData);
 }
 
@@ -432,7 +433,7 @@ void ForumSession::listMessagesReply(QNetworkReply *reply) {
 void ForumSession::performListMessages(QString &html) {
     // Parser maker may need this
     if(operationInProgress == FSONoOp) operationInProgress = FSOListMessages;
-
+    qDebug() << Q_FUNC_INFO << html;
     QList<ForumMessage*> newMessages;
     Q_ASSERT(currentThread->isSane());
     emit receivedHtml(html);
@@ -440,6 +441,9 @@ void ForumSession::performListMessages(QString &html) {
     pm->setPattern(fpar->message_list_pattern);
     QList<QHash<QString, QString> > matches = pm->findMatches(html);
     QHash<QString, QString> match;
+    // @todo WTF. sometimes exactly same html is downloaded for both pages although URL
+    // is different. WTF.
+    qDebug() << Q_FUNC_INFO << matches.size() << " matches from " << currentMessagesUrl << " html size " << html.size();
     foreach(match, matches){
         // This will be deleted or added to messages
         ForumMessage *fm = new ForumMessage(currentThread);
@@ -467,13 +471,15 @@ void ForumSession::performListMessages(QString &html) {
     while(!newMessages.isEmpty()) {
         ForumMessage *newMessage = newMessages.takeFirst();
         bool messageFound = false;
-        foreach (ForumMessage *message, messages) {
+        for(int idx=0;idx < messages.size() && !messageFound;idx++) {
+            ForumMessage *message = messages.value(idx);
             if (newMessage->id() == message->id()) {
                 messageFound = true;
             }
         }
         if (messageFound) {
             // Message already in messages - discard it
+            qDebug() << Q_FUNC_INFO << "message " << newMessage->toString() << " was already in messages - discard.";
             delete newMessage;
             newMessage = 0;
         } else {
@@ -482,6 +488,7 @@ void ForumSession::performListMessages(QString &html) {
             newMessage->setOrdernum(messages.size());
             // Check if message limit has reached
             if (messages.size() < currentThread->getMessagesCount()) {
+                qDebug() << Q_FUNC_INFO << "message " << newMessage->toString() << " is new, num" << newMessage->ordernum() << " max " << currentThread->getMessagesCount();
                 messages.append(newMessage);
                 newMessage = 0;
             } else {
