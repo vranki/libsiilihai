@@ -8,7 +8,7 @@ Upstream Author(s):
 
 Copyright:
 
-    Copyright (C) 2009 Ville Ranki
+    Copyright (C) 2009-2013 Ville Ranki
 
 License:
 
@@ -34,4 +34,3 @@ The Debian packaging is:
     Copyright C) 2009, Ville Ranki <ville.ranki@iki.fi>
 
 and is licensed under the LGPL, see above.
-

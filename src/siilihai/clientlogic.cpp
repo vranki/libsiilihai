@@ -519,10 +519,11 @@ void ClientLogic::updateGroupSubscriptions(ForumSubscription *sub) {
 
 void ClientLogic::updateThread(ForumThread* thread, bool force) {
     if(currentState != SH_READY) return;
+    qDebug() << Q_FUNC_INFO << thread->toString() << force;
     ForumSubscription *sub = thread->group()->subscription();
     Q_ASSERT(sub);
     Q_ASSERT(engines.contains(sub));
-    engines[sub]->updateThread(thread, force);
+    engines.value(sub)->updateThread(thread, force);
 }
 
 void ClientLogic::forumLoginFinished(ForumSubscription *sub, bool success) {

@@ -6,27 +6,25 @@ Build-Depends: debhelper (>= 7.4.17), libqt4-dev, cdbs (>= 0.4.87~)
 Standards-Version: 3.8.0
 Homepage: http://www.siilihai.com/
 
-Package: libsiilihai1
+Package: libsiilihai2
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, libqt4-xml
 Pre-Depends: ${misc:Pre-Depends}
-Replaces: libsiilihai (<= 1.1.0)
-Breaks: libsiilihai (<< 1.1.1)
+Replaces: libsiilihai, libsiilihai1
 Description: Siilihai forum reader support library
  Contains library for creating Siilihai web forum reader UI:s.
 
-Package: libsiilihai1-dbg
+Package: libsiilihai2-dbg
 Architecture: any
-Depends: libsiilihai1
-Replaces: libsiilihai-dbg (<= 1.1.0)
-Breaks: libsiilihai-dbg (<< 1.1.1)
+Depends: libsiilihai2
+Replaces: libsiilihai-dbg
 Pre-Depends: ${misc:Pre-Depends}
 Description: Debug symbols for Siilihai forum reader support library
  Contains debug symbols for libsiilihai.
 
-Package: libsiilihai1-dev
+Package: libsiilihai2-dev
 Architecture: all
-Depends: libsiilihai1, libqt4-dev
+Depends: libsiilihai2, libqt4-dev
 Pre-Depends: ${misc:Pre-Depends}
 Description: Development files for libsiilihai
  Contains headers for libsiilihai.

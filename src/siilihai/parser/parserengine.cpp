@@ -82,9 +82,7 @@ void ParserEngine::parserUpdated(ForumParser *p) {
 void ParserEngine::updateThread(ForumThread *thread, bool force) {
     initSession();
     UpdateEngine::updateThread(thread, force);
-    session.listMessages(thread);
 }
-
 
 void ParserEngine::cancelOperation() {
     updateAll = false;

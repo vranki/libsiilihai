@@ -334,7 +334,6 @@ void UpdateEngine::updateCurrentProgress() {
     emit statusChanged(fsubscription, progress);
 }
 
-
 void UpdateEngine::setState(UpdateEngineState newState) {
     if(newState == currentState) return;
     UpdateEngineState oldState = currentState;

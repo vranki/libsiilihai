@@ -211,7 +211,6 @@ void TapaTalkEngine::getThreads(QDomElement arrayDataElement, QList<ForumThread 
 
 void TapaTalkEngine::doUpdateThread(ForumThread *thread)
 {
-    qDebug() << Q_FUNC_INFO << "will now update " << thread->toString();
     Q_ASSERT(!threadBeingUpdated);
     threadBeingUpdated = thread;
 
@@ -258,7 +257,6 @@ void TapaTalkEngine::replyUpdateThread(QNetworkReply *reply)
     QString docs = QString().fromUtf8(reply->readAll());
     QDomDocument doc;
     doc.setContent(docs);
-    //    qDebug() << Q_FUNC_INFO << doc.toString();
     QDomElement paramValueElement = doc.firstChildElement("methodResponse").firstChildElement("params").firstChildElement("param").firstChildElement("value");
     getMessages(paramValueElement, &messages);
     ForumThread *updatedThread = threadBeingUpdated;

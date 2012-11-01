@@ -393,7 +393,7 @@ void ForumSession::listThreadsReply(QNetworkReply *reply) {
 
 void ForumSession::listMessages(ForumThread *thread) {
     Q_ASSERT(thread->isSane());
-    if (operationInProgress != FSONoOp && operationInProgress != FSOListMessages) {
+    if (operationInProgress != FSONoOp /*&& operationInProgress != FSOListMessages*/) {
         qDebug() << Q_FUNC_INFO << "Operation " << operationNames[operationInProgress] << " in progress!! Don't command me yet!";
         Q_ASSERT(false);
         return;
@@ -420,12 +420,13 @@ void ForumSession::listMessages(ForumThread *thread) {
 void ForumSession::listMessagesReply(QNetworkReply *reply) {
     if(operationInProgress == FSONoOp) return;
     Q_ASSERT(operationInProgress == FSOListMessages);
-    Q_ASSERT(reply->request().attribute(QNetworkRequest::User).toInt() ==FSOListMessages);
+    Q_ASSERT(reply->request().attribute(QNetworkRequest::User).toInt() == FSOListMessages);
     if (reply->error() != QNetworkReply::NoError) {
         emit(networkFailure(reply->errorString()));
         cancelOperation();
         return;
     }
+    qDebug() << Q_FUNC_INFO << reply->request().url();
     QString data = convertCharset(reply->readAll());
     performListMessages(data);
 }
@@ -433,7 +434,7 @@ void ForumSession::listMessagesReply(QNetworkReply *reply) {
 void ForumSession::performListMessages(QString &html) {
     // Parser maker may need this
     if(operationInProgress == FSONoOp) operationInProgress = FSOListMessages;
-    qDebug() << Q_FUNC_INFO << html;
+//    qDebug() << Q_FUNC_INFO << html;
     QList<ForumMessage*> newMessages;
     Q_ASSERT(currentThread->isSane());
     emit receivedHtml(html);

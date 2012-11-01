@@ -1,3 +1,9 @@
+libsiilihai (2.0.0) precise; urgency=low
+
+  * Major refactoring & TapaTalk support
+
+ -- Ville Ranki <ville.ranki@iki.fi>  Fri, 05 Oct 2012 12:34:56 +0300
+
 libsiilihai (1.3.0) precise; urgency=low
 
   * Even more sync optimizations

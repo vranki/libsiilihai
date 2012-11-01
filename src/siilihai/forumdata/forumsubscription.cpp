@@ -97,7 +97,6 @@ bool ForumSubscription::authenticated() const {
     return _authenticated;
 }
 
-
 void ForumSubscription::setAlias(QString name) {
     if(_alias==name) return;
     _alias = name;
@@ -176,6 +175,7 @@ void ForumSubscription::markRead(bool read) {
         group->markRead(read);
     }
 }
+
 void ForumSubscription::setBeingUpdated(bool bu) {
     Q_ASSERT(!(_beingSynced && bu));
     Q_ASSERT(!(_scheduledForUpdate && bu));

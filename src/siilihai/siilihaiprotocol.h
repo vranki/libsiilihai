@@ -35,7 +35,7 @@ class ForumGroup;
 class ForumThread;
 class ForumMessage;
 
-#define CLIENT_VERSION "1.0.0"
+#define CLIENT_VERSION "2.0.0"
 
 /**
   * Implements communication protocol between siilihai.com server and the client.

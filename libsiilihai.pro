@@ -1,7 +1,7 @@
 TEMPLATE = subdirs
-SUBDIRS = src #src/test
+SUBDIRS = src
 OTHER_FILES = debian/control debian/rules debian/changelog debian/copyright\
-    debian/libsiilihai-dbg.install debian/libsiilihai1.install debian/libsiilihai1-dev.install\
+    debian/libsiilihai2.install debian/libsiilihai2-dev.install\
     qtc_packaging/debian_harmattan/rules \
     qtc_packaging/debian_harmattan/README \
     qtc_packaging/debian_harmattan/manifest.aegis \
@@ -43,5 +43,5 @@ OTHER_FILES = debian/control debian/rules debian/changelog debian/copyright\
     android/res/values/libs.xml \
     android/res/drawable-hdpi/icon.png
 
-QMAKE_DISTCLEAN += src/*.o debian/*.log -r debian/tmp debian/libsiilihai1 debian/libsiilihai1-dbg debian/libsiilihai1-dev debian/libsiilihai
+QMAKE_DISTCLEAN += src/*.o debian/*.log -r debian/tmp debian/libsiilihai2 debian/libsiilihai2-dbg debian/libsiilihai2-dev debian/libsiilihai
 

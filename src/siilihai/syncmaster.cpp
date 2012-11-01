@@ -351,6 +351,11 @@ void SyncMaster::subscribeGroupsFinished(bool success) {
 
 void SyncMaster::endSyncSingleGroup(ForumGroup *group) {
     qDebug() << Q_FUNC_INFO << group->toString() << " has changed: " << group->hasChanged();
+
+    // This can happen if user reads stuff during update
+    if(group->subscription()->beingUpdated())
+        return;
+
     if(group->hasChanged()) {
         groupsToUpload.append(group);
         processGroups();
