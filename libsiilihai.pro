@@ -2,7 +2,7 @@ TEMPLATE = subdirs
 SUBDIRS = src
 OTHER_FILES = debian/control debian/rules debian/changelog debian/copyright\
     debian/libsiilihai2.install debian/libsiilihai2-dev.install\
-    rpm/*
+    rpm/* \
     qtc_packaging/debian_harmattan/rules \
     qtc_packaging/debian_harmattan/README \
     qtc_packaging/debian_harmattan/manifest.aegis \

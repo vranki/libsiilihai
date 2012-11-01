@@ -87,13 +87,12 @@ void TapaTalkEngine::probeUrl(QUrl url)
 
 void TapaTalkEngine::replyProbe(QNetworkReply *reply)
 {
-    qDebug() << Q_FUNC_INFO;
     if (reply->error() != QNetworkReply::NoError) {
         emit urlProbeResults(0);
         return;
     }
     QString docs = QString().fromUtf8(reply->readAll());
-    // qDebug() << Q_FUNC_INFO << docs;
+
     QDomDocument doc;
     doc.setContent(docs);
     QDomElement arrayDataElement = doc.firstChildElement("methodResponse");
@@ -106,7 +105,6 @@ void TapaTalkEngine::replyProbe(QNetworkReply *reply)
 }
 
 void TapaTalkEngine::doUpdateForum() {
-    qDebug() << Q_FUNC_INFO << "will now update " << subscriptionTapaTalk()->forumUrl().toString();
     QNetworkRequest req(connectorUrl);
     QDomDocument doc("");
     QDomElement root = doc.createElement("methodCall");
@@ -125,7 +123,6 @@ void TapaTalkEngine::doUpdateForum() {
 
 void TapaTalkEngine::doUpdateGroup(ForumGroup *group)
 {
-    qDebug() << Q_FUNC_INFO << "will now update " << group->toString();
     Q_ASSERT(!groupBeingUpdated);
     groupBeingUpdated = group;
     QNetworkRequest req(connectorUrl);
@@ -171,10 +168,10 @@ void TapaTalkEngine::replyUpdateGroup(QNetworkReply *reply)
     QString docs = QString().fromUtf8(reply->readAll());
     QDomDocument doc;
     doc.setContent(docs);
-    //    qDebug() << Q_FUNC_INFO << doc.toString();
+
     QDomElement paramValueElement = doc.firstChildElement("methodResponse").firstChildElement("params").firstChildElement("param").firstChildElement("value");
     QDomElement topicsValueElement = findMemberValueElement(paramValueElement, "topics");
-    qDebug() << Q_FUNC_INFO << paramValueElement.isNull() << topicsValueElement.isNull();
+
     getThreads(topicsValueElement.firstChildElement("array").firstChildElement("data"), &threads);
     listThreadsFinished(threads, groupBeingUpdated);
     qDeleteAll(threads);
@@ -201,7 +198,6 @@ void TapaTalkEngine::getThreads(QDomElement arrayDataElement, QList<ForumThread 
             newThread->setOrdernum(threads->size());
 
             threads->append(newThread);
-            qDebug() << Q_FUNC_INFO << "got thread " << newThread->toString();
         }
 
         dataValueElement = dataValueElement.nextSiblingElement();
@@ -282,7 +278,6 @@ void TapaTalkEngine::getMessages(QDomElement dataValueElement, QList<ForumMessag
             newMessage->setOrdernum(messages->size());
             newMessage->setRead(false, false);
             convertBodyToHtml(newMessage);
-            qDebug( ) << Q_FUNC_INFO << "Got message " << newMessage->toString();
             messages->append(newMessage);
         }
         arrayDataValueElement = arrayDataValueElement.nextSiblingElement();
@@ -314,7 +309,6 @@ void TapaTalkEngine::networkReply(QNetworkReply *reply)
 
 void TapaTalkEngine::replyListGroups(QNetworkReply *reply)
 {
-    qDebug() << Q_FUNC_INFO << subscription()->toString();
     QList<ForumGroup*> grps;
     if (reply->error() != QNetworkReply::NoError) {
         listGroupsFinished(grps);
@@ -323,7 +317,6 @@ void TapaTalkEngine::replyListGroups(QNetworkReply *reply)
     QString docs = QString().fromUtf8(reply->readAll());
     QDomDocument doc;
     doc.setContent(docs);
-    //    qDebug() << Q_FUNC_INFO << doc.toString();
     QDomElement arrayDataElement = doc.firstChildElement("methodResponse").firstChildElement("params").firstChildElement("param").firstChildElement("value").firstChildElement("array").firstChildElement("data");
     getGroups(arrayDataElement, &grps);
     listGroupsFinished(grps);
