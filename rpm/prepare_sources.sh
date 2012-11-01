@@ -1,6 +1,6 @@
 #/bin/bash
-version=2.0.0-1
-target=libsiilihai
+version=2.0.0
+target=libsiilihai2
 
 rm -rf /tmp/$target-*
 rm *.tar.gz
@@ -13,7 +13,7 @@ make distclean
 popd
 
 pushd ../..
-cp -r $target /tmp/$target-$version
+cp -r libsiilihai /tmp/$target-$version
 rm -rf /tmp/$target-$version/.git
 popd
 
@@ -23,6 +23,6 @@ popd
 
 mv /tmp/$target-$version.tar.gz .
 pushd ..
-debuild -S -us -uc
+debuild -S -us -uc -I.git
 popd
 
