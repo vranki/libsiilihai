@@ -51,9 +51,7 @@ void SiilihaiProtocol::networkReply(QNetworkReply *reply) {
         replyListParsers(reply);
     } else if(operationAttribute==SPOListRequests) {
         replyListRequests(reply);
-    }/* else if(operationAttribute==SPOListSubscriptions) {
-        //replyListSubscriptions(reply);
-    }*/ else if(operationAttribute==SPOGetParser) {
+    } else if(operationAttribute==SPOGetParser) {
         replyGetParser(reply);
     } else if(operationAttribute==SPOSubscribeForum) {
         replySubscribeForum(reply);
@@ -140,7 +138,6 @@ void SiilihaiProtocol::replyLogin(QNetworkReply *reply) {
 
 // Reply is handled in login
 void SiilihaiProtocol::registerUser(QString user, QString pass, QString email, bool sync) {
-    qDebug() << Q_FUNC_INFO;
     QNetworkRequest req(registerUrl);
     QHash<QString, QString> params;
     params.insert("username", user);
@@ -222,43 +219,6 @@ void SiilihaiProtocol::replyListRequests(QNetworkReply *reply) {
     emit listRequestsFinished(requests);
     reply->deleteLater();
 }
-/*
-void SiilihaiProtocol::listSubscriptions() {
-    QNetworkRequest req(listSubscriptionsUrl);
-    QHash<QString, QString> params;
-    if (!clientKey.isNull()) {
-        params.insert("client_key", clientKey);
-    }
-    listSubscriptionsData = HttpPost::setPostParameters(&req, params);
-    req.setAttribute(QNetworkRequest::User, SPOListSubscriptions);
-    nam.post(req, listSubscriptionsData);
-}
-void SiilihaiProtocol::replyListSubscriptions(QNetworkReply *reply) {
-    QString docs = QString().fromUtf8(reply->readAll());
-    QList<int> subscriptions;
-    if (reply->error() == QNetworkReply::NoError) {
-        QDomDocument doc;
-        doc.setContent(docs);
-        QDomElement subscriptionsElement = doc.firstChildElement();
-        QDomElement subElement = subscriptionsElement.firstChildElement("forum_id");
-        while (!subElement.isNull() && subElement.tagName()=="forum_id") {
-            int id = QString(subElement.text()).toInt();
-            if(id > 0) {
-                subscriptions.append(id);
-            } else {
-                qDebug() << Q_FUNC_INFO << "ERROR: got zero forum id";
-            }
-            subElement = subElement.nextSiblingElement("forum_id");
-        }
-    } else {
-        qDebug() << Q_FUNC_INFO << "Network error:" << reply->errorString();
-    }
-    // @todo error handling?
-    emit listSubscriptionsFinished(subscriptions);
-    reply->deleteLater();
-}
-*/
-
 void SiilihaiProtocol::getParser(const int id) {
     Q_ASSERT(id > 0);
     QNetworkRequest req(getParserUrl);
@@ -591,8 +551,6 @@ void SiilihaiProtocol::sendThreadData(ForumGroup *grp, QList<ForumMessage*> &fms
 
     groupTag.appendChild(doc.createTextNode(grp->id()));
 
-    qDebug() << Q_FUNC_INFO << "Sending group " << grp->toString();
-
     QDomElement changesetTag = doc.createElement("changeset");
     root.appendChild(changesetTag);
 
@@ -618,12 +576,10 @@ void SiilihaiProtocol::sendThreadData(ForumGroup *grp, QList<ForumMessage*> &fms
             QDomElement messageTag = doc.createElement("message");
             messageTag.setAttribute("id", fm->id());
             threadTag.appendChild(messageTag);
-            qDebug() << Q_FUNC_INFO << "Sending message " << fm->toString();
         }
         root.appendChild(threadTag);
     }
     sendThreadDataData = doc.toByteArray();
-    qDebug() << Q_FUNC_INFO << "XML out:" << doc.toString();
 
     req.setAttribute(QNetworkRequest::User, SPOSendThreadData);
     nam.post(req, sendThreadDataData);
@@ -639,7 +595,6 @@ void SiilihaiProtocol::replySendThreadData(QNetworkReply *reply) {
 }
 
 void SiilihaiProtocol::downsync(QList<ForumGroup*> &groups) {
-    qDebug() << Q_FUNC_INFO << groups.size() << " groups";
     QNetworkRequest req(downsyncUrl);
     QHash<QString, QString> params;
 
@@ -668,13 +623,11 @@ void SiilihaiProtocol::downsync(QList<ForumGroup*> &groups) {
     getThreadDataData = doc.toByteArray();
     req.setAttribute(QNetworkRequest::User, SPOGetThreadData);
     nam.post(req, getThreadDataData);
-    qDebug() << Q_FUNC_INFO << "XML out:\n" << getThreadDataData;
 }
 
 void SiilihaiProtocol::replyDownsync(QNetworkReply *reply) {
     QString docs = QString().fromUtf8(reply->readAll());
     QMap<ForumThread, QList<ForumMessage> > downsyncData;
-    // qDebug() << Q_FUNC_INFO << "XML in:\n" << docs;
     if (reply->error() == QNetworkReply::NoError) {
         QDomDocument doc;
         doc.setContent(docs);
@@ -690,7 +643,6 @@ void SiilihaiProtocol::replyDownsync(QNetworkReply *reply) {
                 forumParsed->setParser(forumparser);
             }
             forum->setForumId(forumid);
-            qDebug() << Q_FUNC_INFO << " got forum " + forumid;
             QDomElement groupElement = forumElement.firstChildElement("group");
             while(!groupElement.isNull()) {
                 QString groupid = groupElement.attribute("id");
@@ -719,7 +671,7 @@ void SiilihaiProtocol::replyDownsync(QNetworkReply *reply) {
                         msg.setRead(true, false);
                         msg.setOrdernum(999);
                         emit serverMessageData(&msg);
-                        messageElement = messageElement.firstChildElement("message");
+                        messageElement = messageElement.nextSiblingElement("message");
                     }
                     threadElement = threadElement.nextSiblingElement("thread");
                 }
@@ -750,7 +702,6 @@ void SiilihaiProtocol::getSyncSummary() {
 
 void SiilihaiProtocol::replyGetSyncSummary(QNetworkReply *reply) {
     QString docs = QString().fromUtf8(reply->readAll());
-    qDebug() << Q_FUNC_INFO << docs;
     QList<ForumSubscription*> subs;
     QList<ForumGroup*> grps; // to keep groups in context
     if (reply->error() == QNetworkReply::NoError) {

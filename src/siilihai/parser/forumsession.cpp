@@ -116,8 +116,6 @@ void ForumSession::listGroupsReply(QNetworkReply *reply) {
     Q_ASSERT(operationInProgress==FSOListGroups);
     Q_ASSERT(reply->request().attribute(QNetworkRequest::User).toInt() ==FSOListGroups);
 
-    qDebug() << Q_FUNC_INFO;
-
     QString data = convertCharset(reply->readAll());
     if (reply->error() != QNetworkReply::NoError) {
         emit(networkFailure(reply->errorString()));
@@ -149,16 +147,14 @@ void ForumSession::performListGroups(QString &html) {
 }
 
 void ForumSession::loginToForum() {
-    qDebug() << Q_FUNC_INFO;
-
     if (fpar->login_type == ForumParser::LoginTypeNotSupported) {
-        qDebug() << "Login not supproted!";
+        qDebug() << Q_FUNC_INFO << "Login not supproted!";
         emit loginFinished(fsub, false);
         return;
     }
 
     if (fsub->username().length() <= 0 || fsub->password().length() <= 0) {
-        qDebug() << "Warning, no credentials supplied. Logging in should fail.";
+        qDebug() << Q_FUNC_INFO << "Warning, no credentials supplied. Logging in should fail.";
     }
 
     QUrl loginUrl(getLoginUrl());
@@ -177,7 +173,7 @@ void ForumSession::loginToForum() {
                 if (singleParam.size() == 2) {
                     params.insert(singleParam.at(0), singleParam.at(1));
                 } else {
-                    qDebug("hm, invalid login parameter pair!");
+                    qDebug() << Q_FUNC_INFO << "hm, invalid login parameter pair!";
                 }
             }
         }
@@ -185,14 +181,11 @@ void ForumSession::loginToForum() {
 
         nam->post(req, loginData);
     } else {
-        qDebug("Sorry, http auth not yet implemented.");
+        qDebug() << Q_FUNC_INFO << "Sorry, http auth not yet implemented.";
     }
 }
 
 void ForumSession::loginReply(QNetworkReply *reply) {
-    qDebug() << Q_FUNC_INFO;
-    // qDebug() << statusReport();
-
     QString data = convertCharset(reply->readAll());
 
     if (reply->error() != QNetworkReply::NoError) {
@@ -222,7 +215,6 @@ void ForumSession::performLogin(QString &html) {
 }
 
 void ForumSession::fetchCookie() {
-    qDebug() << Q_FUNC_INFO << fpar->forum_url;
     Q_ASSERT(fpar->forum_url.length() > 0);
     if (operationInProgress == FSONoOp)
         return;
@@ -234,9 +226,6 @@ void ForumSession::fetchCookie() {
 
 void ForumSession::fetchCookieReply(QNetworkReply *reply) {
     if(operationInProgress == FSONoOp) return;
-
-    qDebug() << Q_FUNC_INFO;
-    //  qDebug() << statusReport();
 
     if (reply->error() != QNetworkReply::NoError) {
         qDebug() << Q_FUNC_INFO << reply->errorString();
@@ -357,7 +346,7 @@ void ForumSession::listMessagesOnNextPage() {
     QNetworkRequest req;
     req.setUrl(QUrl(urlString));
     setRequestAttributes(req, FSOListMessages);
-    qDebug() << Q_FUNC_INFO << "Listing messages on page " << urlString;
+
     nam->post(req, emptyData);
 }
 
@@ -426,7 +415,6 @@ void ForumSession::listMessagesReply(QNetworkReply *reply) {
         cancelOperation();
         return;
     }
-    qDebug() << Q_FUNC_INFO << reply->request().url();
     QString data = convertCharset(reply->readAll());
     performListMessages(data);
 }
@@ -442,9 +430,7 @@ void ForumSession::performListMessages(QString &html) {
     pm->setPattern(fpar->message_list_pattern);
     QList<QHash<QString, QString> > matches = pm->findMatches(html);
     QHash<QString, QString> match;
-    // @todo WTF. sometimes exactly same html is downloaded for both pages although URL
-    // is different. WTF.
-    qDebug() << Q_FUNC_INFO << matches.size() << " matches from " << currentMessagesUrl << " html size " << html.size();
+
     foreach(match, matches){
         // This will be deleted or added to messages
         ForumMessage *fm = new ForumMessage(currentThread);
@@ -480,7 +466,6 @@ void ForumSession::performListMessages(QString &html) {
         }
         if (messageFound) {
             // Message already in messages - discard it
-            qDebug() << Q_FUNC_INFO << "message " << newMessage->toString() << " was already in messages - discard.";
             delete newMessage;
             newMessage = 0;
         } else {
@@ -489,7 +474,6 @@ void ForumSession::performListMessages(QString &html) {
             newMessage->setOrdernum(messages.size());
             // Check if message limit has reached
             if (messages.size() < currentThread->getMessagesCount()) {
-                qDebug() << Q_FUNC_INFO << "message " << newMessage->toString() << " is new, num" << newMessage->ordernum() << " max " << currentThread->getMessagesCount();
                 messages.append(newMessage);
                 newMessage = 0;
             } else {

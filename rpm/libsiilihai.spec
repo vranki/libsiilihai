@@ -1,5 +1,5 @@
-Name: libsiilihai
-Version: 1.3.0
+Name: libsiilihai2
+Version: 2.0.0
 Release: 1
 Summary: Siilihai web forum reader library
 License: GPL
@@ -49,4 +49,3 @@ make %{?jobs:-j%jobs}
 %{_libdir}/libsiilihai.so
 %{_libdir}/libsiilihai.prl
 %{_includedir}/siilihai
-

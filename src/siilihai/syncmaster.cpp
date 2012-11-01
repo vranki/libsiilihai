@@ -193,7 +193,6 @@ void SyncMaster::processGroups() {
 }
 
 void SyncMaster::sendThreadDataFinished(bool success, QString message) {
-    qDebug() << Q_FUNC_INFO << success;
     disconnect(&protocol, SIGNAL(sendThreadDataFinished(bool, QString)), this, SLOT(sendThreadDataFinished(bool, QString)));
     if(canceled) return;
     if (success) {
@@ -205,7 +204,6 @@ void SyncMaster::sendThreadDataFinished(bool success, QString message) {
 }
 
 void SyncMaster::serverThreadData(ForumThread *tempThread) { // Thread is temporary object!
-    qDebug() << Q_FUNC_INFO << "Received thread " << tempThread->toString();
     if(canceled) return;
     if (tempThread->isSane()) {
         static ForumGroup *lastGroupBeingSynced=0;
@@ -252,7 +250,7 @@ void SyncMaster::serverThreadData(ForumThread *tempThread) { // Thread is tempor
 }
 
 void SyncMaster::serverMessageData(ForumMessage *tempMessage) { // Temporary object!
-    qDebug() << Q_FUNC_INFO << "Received message " << tempMessage->toString();
+    Q_ASSERT(tempMessage);
     if(canceled) return;
     if (tempMessage->isSane()) {
         ForumMessage *dbMessage = fdb.getMessage(tempMessage->thread()->group()->subscription()->forumId(),
@@ -260,7 +258,6 @@ void SyncMaster::serverMessageData(ForumMessage *tempMessage) { // Temporary obj
         if (dbMessage) { // Message already found, merge it
             dbMessage->setRead(tempMessage->isRead());
         } else { // message hasn't been found yet!
-            qDebug() << Q_FUNC_INFO << "message NOT in DB - adding as new";
             ForumThread *dbThread = fdb.getThread(tempMessage->thread()->group()->subscription()->forumId(),
                                                   tempMessage->thread()->group()->id(),
                                                   tempMessage->thread()->id());
@@ -350,8 +347,6 @@ void SyncMaster::subscribeGroupsFinished(bool success) {
 
 
 void SyncMaster::endSyncSingleGroup(ForumGroup *group) {
-    qDebug() << Q_FUNC_INFO << group->toString() << " has changed: " << group->hasChanged();
-
     // This can happen if user reads stuff during update
     if(group->subscription()->beingUpdated())
         return;

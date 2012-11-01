@@ -17,7 +17,7 @@ Description: Siilihai forum reader support library
 Package: libsiilihai2-dbg
 Architecture: any
 Depends: libsiilihai2
-Replaces: libsiilihai-dbg
+Replaces: libsiilihai1-dbg
 Pre-Depends: ${misc:Pre-Depends}
 Description: Debug symbols for Siilihai forum reader support library
  Contains debug symbols for libsiilihai.
@@ -25,6 +25,7 @@ Description: Debug symbols for Siilihai forum reader support library
 Package: libsiilihai2-dev
 Architecture: all
 Depends: libsiilihai2, libqt4-dev
+Replaces: libsiilihai1-dev
 Pre-Depends: ${misc:Pre-Depends}
 Description: Development files for libsiilihai
  Contains headers for libsiilihai.
