@@ -11,8 +11,8 @@ class ForumDatabaseXml : public ForumDatabase
     Q_OBJECT
 public:
     explicit ForumDatabaseXml(QObject *parent = 0);
-    bool openDatabase(QIODevice *source);
-    bool openDatabase(QString filename);
+    bool openDatabase(QIODevice *source, bool loadContent=true);
+    bool openDatabase(QString filename, bool loadContent=true);
 
     virtual void resetDatabase();
     virtual int schemaVersion();

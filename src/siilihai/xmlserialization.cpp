@@ -61,11 +61,13 @@ void XmlSerialization::serialize(ForumMessage *msg, QDomElement &parent, QDomDoc
 ForumSubscription *XmlSerialization::readSubscription(QDomElement &element, QObject *parent)
 {
     ForumSubscription *sub = ForumSubscription::readSubscription(element, parent);
-    QDomElement groupElement = element.firstChildElement(GRP_GROUP);
-    while(!groupElement.isNull()) {
-        ForumGroup *grp = readGroup(groupElement, sub);
-        if(grp) sub->addGroup(grp, false, false);
-        groupElement = groupElement.nextSiblingElement(GRP_GROUP);
+    if(sub) {
+        QDomElement groupElement = element.firstChildElement(GRP_GROUP);
+        while(!groupElement.isNull()) {
+            ForumGroup *grp = readGroup(groupElement, sub);
+            if(grp) sub->addGroup(grp, false, false);
+            groupElement = groupElement.nextSiblingElement(GRP_GROUP);
+        }
     }
     return sub;
 }

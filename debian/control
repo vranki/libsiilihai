@@ -11,6 +11,7 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, libqt4-xml
 Pre-Depends: ${misc:Pre-Depends}
 Replaces: libsiilihai, libsiilihai1
+Breaks: libsiilihai (<< 2.0-1~), libsiilihai1 (<< 2.0-1~)
 Description: Siilihai forum reader support library
  Contains library for creating Siilihai web forum reader UI:s.
 
@@ -29,3 +30,10 @@ Replaces: libsiilihai1-dev
 Pre-Depends: ${misc:Pre-Depends}
 Description: Development files for libsiilihai
  Contains headers for libsiilihai.
+
+Package: libsiilihai
+Depends: libsiilihai2, ${misc:Depends}
+Architecture: all
+Section: oldlibs
+Description: transitional dummy package
+  This is a transitional dummy package. It can safely be removed.

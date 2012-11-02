@@ -65,7 +65,7 @@ void ClientLogic::launchSiilihai() {
         int currentSchemaVersion = settings->value("forum_database_schema", 0).toInt();
         if(forumDatabase.schemaVersion() != currentSchemaVersion) {
             errorDialog("The database schema has been changed. Your forum database will be reset. Sorry. ");
-            forumDatabase.openDatabase(databaseFileName);
+            forumDatabase.openDatabase(databaseFileName, false);
         } else {
             if(!forumDatabase.openDatabase(databaseFileName)) {
                 errorDialog("Could not open Siilihai's forum database file.\n"

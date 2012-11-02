@@ -27,30 +27,32 @@ int ForumDatabaseXml::schemaVersion(){
     return 11;
 }
 
-bool ForumDatabaseXml::openDatabase(QString filename) {
+bool ForumDatabaseXml::openDatabase(QString filename, bool loadContent) {
     databaseFileName = filename;
     QFile databaseFile(databaseFileName);
     if (!databaseFile.open(QIODevice::ReadOnly))
         return false;
-    bool success = openDatabase(&databaseFile);
+    bool success = openDatabase(&databaseFile, loadContent);
     databaseFile.close();
     return success;
 }
 
-bool ForumDatabaseXml::openDatabase(QIODevice *source) {
-    QDomDocument doc("Siilihai_ForumDatabase");
-    if(!doc.setContent(source)) return false;
-    QDomElement docElem = doc.documentElement();
-    if(docElem.tagName() != "forumdatabase") return false;
+bool ForumDatabaseXml::openDatabase(QIODevice *source, bool loadContent) {
+    if(loadContent) {
+        QDomDocument doc("Siilihai_ForumDatabase");
+        if(!doc.setContent(source)) return false;
+        QDomElement docElem = doc.documentElement();
+        if(docElem.tagName() != "forumdatabase") return false;
 
-    QDomElement subscriptionElement = docElem.firstChildElement(SUB_SUBSCRIPTION);
-    while(!subscriptionElement.isNull()) {
-        ForumSubscription *sub = XmlSerialization::readSubscription(subscriptionElement, this);
-        if(sub) {
-            insert(sub->forumId(), sub);
-            emit subscriptionFound(sub);
+        QDomElement subscriptionElement = docElem.firstChildElement(SUB_SUBSCRIPTION);
+        while(!subscriptionElement.isNull()) {
+            ForumSubscription *sub = XmlSerialization::readSubscription(subscriptionElement, this);
+            if(sub) {
+                insert(sub->forumId(), sub);
+                emit subscriptionFound(sub);
+            }
+            subscriptionElement = subscriptionElement.nextSiblingElement(SUB_SUBSCRIPTION);
         }
-        subscriptionElement = subscriptionElement.nextSiblingElement(SUB_SUBSCRIPTION);
     }
     loaded = true;
     checkSanity();
