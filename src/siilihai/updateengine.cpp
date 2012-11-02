@@ -364,7 +364,7 @@ void UpdateEngine::setState(UpdateEngineState newState) {
         if(subscription() && subscription()->authenticated()
                 && subscription()->username().isEmpty()
                 && !requestingCredentials) {
-            qDebug() << Q_FUNC_INFO << "Parser " << subscription()->alias() << "requires authentication. Asking for it. U:"
+            qDebug() << Q_FUNC_INFO << "Forum " << subscription()->alias() << "requires authentication. Asking for it. U:"
                      << subscription()->username();
             requestCredentials();
         }

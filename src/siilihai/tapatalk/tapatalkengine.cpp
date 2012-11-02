@@ -18,6 +18,7 @@ TapaTalkEngine::TapaTalkEngine(ForumDatabase *fd, QObject *parent) :
     connect(&nam, SIGNAL(finished(QNetworkReply*)), this, SLOT(networkReply(QNetworkReply*)), Qt::UniqueConnection);
     groupBeingUpdated = 0;
     threadBeingUpdated = 0;
+    loggedIn = false;
 }
 
 void TapaTalkEngine::setSubscription(ForumSubscription *fs) {
@@ -102,6 +103,11 @@ void TapaTalkEngine::replyProbe(QNetworkReply *reply)
     } else {
         emit urlProbeResults(0);
     }
+}
+
+void TapaTalkEngine::requestCredentials() {
+    UpdateEngine::requestCredentials();
+    emit getForumAuthentication(subscription());
 }
 
 void TapaTalkEngine::doUpdateForum() {
@@ -204,7 +210,6 @@ void TapaTalkEngine::getThreads(QDomElement arrayDataElement, QList<ForumThread 
     }
 }
 
-
 void TapaTalkEngine::doUpdateThread(ForumThread *thread)
 {
     Q_ASSERT(!threadBeingUpdated);
@@ -241,7 +246,6 @@ void TapaTalkEngine::doUpdateThread(ForumThread *thread)
     nam.post(req, requestData);
 }
 
-
 void TapaTalkEngine::replyUpdateThread(QNetworkReply *reply)
 {
     QList<ForumMessage*> messages;
@@ -259,6 +263,59 @@ void TapaTalkEngine::replyUpdateThread(QNetworkReply *reply)
     threadBeingUpdated=0;
     listMessagesFinished(messages, updatedThread, false);
     qDeleteAll(messages);
+}
+
+bool TapaTalkEngine::loginIfNeeded() {
+    if(loggedIn) return false;
+    if(!subscription()->authenticated()) return false;
+
+    QNetworkRequest req(connectorUrl);
+    QDomDocument doc("");
+    QDomElement methodCallElement = doc.createElement("methodCall");
+    doc.appendChild(methodCallElement);
+
+    QDomElement methodTag = doc.createElement("methodName");
+    methodCallElement.appendChild(methodTag);
+
+    QDomText t = doc.createTextNode("login");
+    methodTag.appendChild(t);
+
+    QDomElement paramsTag = doc.createElement("params");
+    methodCallElement.appendChild(paramsTag);
+
+    QDomElement paramTag = doc.createElement("param");
+    paramsTag.appendChild(paramTag);
+
+    QDomElement usernameValueTag = doc.createElement("value");
+    paramTag.appendChild(usernameValueTag);
+
+    QDomElement usernameStringTag = doc.createElement("string");
+    usernameValueTag.appendChild(usernameStringTag);
+
+    QDomText usernameValueText = doc.createTextNode(subscription()->username());
+    usernameStringTag.appendChild(usernameValueText);
+
+    QDomElement passwordParamTag = doc.createElement("param");
+    paramsTag.appendChild(passwordParamTag);
+
+    QDomElement passwordValueTag = doc.createElement("value");
+    passwordParamTag.appendChild(passwordValueTag);
+
+    QDomElement passwordStringTag = doc.createElement("string");
+    passwordValueTag.appendChild(passwordStringTag);
+
+    QDomText passwordValueText = doc.createTextNode(subscription()->password());
+    passwordStringTag.appendChild(passwordValueText);
+
+    QByteArray requestData = doc.toByteArray();
+    req.setAttribute(QNetworkRequest::User, TTO_Login);
+    nam.post(req, requestData);
+
+    return true;
+}
+
+void TapaTalkEngine::replyLogin(QNetworkReply *reply)
+{
 }
 
 void TapaTalkEngine::getMessages(QDomElement dataValueElement, QList<ForumMessage *> *messages)
@@ -284,6 +341,7 @@ void TapaTalkEngine::getMessages(QDomElement dataValueElement, QList<ForumMessag
     }
 }
 
+
 void TapaTalkEngine::networkReply(QNetworkReply *reply)
 {
     int operationAttribute = reply->request().attribute(QNetworkRequest::User).toInt();
@@ -301,6 +359,8 @@ void TapaTalkEngine::networkReply(QNetworkReply *reply)
         replyUpdateThread(reply);
     } else if(operationAttribute==TTO_Probe) {
         replyProbe(reply);
+    }  else if(operationAttribute==TTO_Login) {
+        replyLogin(reply);
     } else {
         Q_ASSERT(false);
     }
