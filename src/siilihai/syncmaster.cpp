@@ -348,7 +348,7 @@ void SyncMaster::subscribeGroupsFinished(bool success) {
 
 void SyncMaster::endSyncSingleGroup(ForumGroup *group) {
     // This can happen if user reads stuff during update
-    if(group->subscription()->beingUpdated())
+    if(group->subscription()->beingUpdated() || group->subscription()->scheduledForUpdate())
         return;
 
     if(group->hasChanged()) {
