@@ -37,3 +37,10 @@ Architecture: all
 Section: oldlibs
 Description: transitional dummy package
   This is a transitional dummy package. It can safely be removed.
+
+Package: libsiilihai1
+Depends: libsiilihai2, ${misc:Depends}
+Architecture: all
+Section: oldlibs
+Description: transitional dummy package
+  This is a transitional dummy package. It can safely be removed.

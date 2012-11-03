@@ -1,6 +1,7 @@
-libsiilihai (2.0.2) precise; urgency=low
+libsiilihai (2.0.2) quantal; urgency=low
 
   * Fixes crash when changing groups while updating
+  * Packaging fixes, hopefully updates work now
 
  -- Ville Ranki <ville.ranki@iki.fi>  Thu, 01 Nov 2012 12:34:56 +0300
 
