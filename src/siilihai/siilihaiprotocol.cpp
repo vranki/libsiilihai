@@ -670,6 +670,7 @@ void SiilihaiProtocol::replyDownsync(QNetworkReply *reply) {
                         msg.setBody("Please update forum to get message content.");
                         msg.setRead(true, false);
                         msg.setOrdernum(999);
+                        Q_ASSERT(msg.thread());
                         emit serverMessageData(&msg);
                         messageElement = messageElement.nextSiblingElement("message");
                     }
