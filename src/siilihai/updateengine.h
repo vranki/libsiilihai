@@ -51,6 +51,7 @@ public:
     UpdateEngine::UpdateEngineState state();
     ForumSubscription* subscription() const;
     QNetworkAccessManager *networkAccessManager();
+    // @todo add function to reset login state (error, u/p changed or something)
 public slots:
     virtual void cancelOperation();
     virtual void credentialsEntered(CredentialsRequest* cr);
@@ -81,6 +82,7 @@ protected:
     void updateCurrentProgress();
     void setState(UpdateEngineState newState);
     virtual void requestCredentials();
+    void continueUpdate(); // Start/continue update which was paused by authentication etc
 
     // Do the actual work
     virtual void doUpdateForum()=0;

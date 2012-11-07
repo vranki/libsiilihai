@@ -66,7 +66,7 @@ public:
     void setPassword(QString password);
     void setLatestThreads(unsigned int lt);
     void setLatestMessages(unsigned int lm);
-    void setAuthenticated(bool na);
+    void setAuthenticated(bool na); // @todo is this required? Why not just username.length() > 0 ?
     void incrementUnreadCount(int urc);
     void addGroup(ForumGroup* grp, bool affectsSync=true, bool incrementUnreads = true);
     void removeGroup(ForumGroup* grp, bool affectsSync=true);

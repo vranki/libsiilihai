@@ -300,6 +300,8 @@ void UpdateEngine::loginFinishedSlot(ForumSubscription *sub, bool success) {
         cancelOperation();
     }
     emit loginFinished(sub, success);
+    if(success)
+        continueUpdate();
 }
 
 void UpdateEngine::updateNextChangedGroup() {
@@ -341,6 +343,9 @@ void UpdateEngine::cancelOperation() {
     threadsToUpdateQueue.clear();
     if(currentState==PES_UPDATING)
         setState(PES_IDLE);
+    if(requestingCredentials)
+        emit loginFinished(subscription(), false);
+    requestingCredentials = false;
 }
 
 void UpdateEngine::updateCurrentProgress() {
@@ -372,11 +377,7 @@ void UpdateEngine::setState(UpdateEngineState newState) {
         if(requestingCredentials) {
             qDebug() << Q_FUNC_INFO << "Requesting credentials - NOT updating!";
         } else {
-            if(updateOnlyThread) {
-                updateNextChangedThread();
-            } else {
-                doUpdateForum();
-            }
+            continueUpdate();
         }
     }
     if(newState==PES_IDLE) {
@@ -391,6 +392,8 @@ void UpdateEngine::setState(UpdateEngineState newState) {
             cancelOperation();
     }
     if(newState==PES_ERROR) {
+        subscription()->setScheduledForUpdate(false);
+        subscription()->setBeingUpdated(false);
         cancelOperation();
     }
     /*
@@ -414,6 +417,7 @@ void UpdateEngine::credentialsEntered(CredentialsRequest* cr) {
     if(cr->authenticator.user().length() > 0) {
         subscription()->setUsername(cr->authenticator.user());
         subscription()->setPassword(cr->authenticator.password());
+        subscription()->setAuthenticated(true);
     } else {
         subscription()->setAuthenticated(false);
     }
@@ -445,5 +449,13 @@ void UpdateEngine::updateGroupList() {
         updateWhenEngineReady = true;
     } else {
         setState(PES_UPDATING);
+    }
+}
+
+void UpdateEngine::continueUpdate() {
+    if(updateOnlyThread) {
+        updateNextChangedThread();
+    } else {
+        doUpdateForum();
     }
 }

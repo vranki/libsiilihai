@@ -223,7 +223,9 @@ void ClientLogic::updateClicked(ForumSubscription* sub , bool force) {
     Q_ASSERT(engines.contains(sub));
 
     UpdateEngine *engine = engines.value(sub);
-    if(engine && engine->state()==UpdateEngine::PES_IDLE && currentState != SH_OFFLINE && currentState != SH_STARTED) {
+    if(engine &&
+            (engine->state()==UpdateEngine::PES_IDLE || engine->state()==UpdateEngine::PES_ERROR)
+            && currentState != SH_OFFLINE && currentState != SH_STARTED) {
         sub->setScheduledForUpdate(false);
         subscriptionsToUpdateLeft.removeAll(sub);
         subscriptionsNotUpdated.remove(sub);

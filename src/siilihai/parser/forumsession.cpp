@@ -380,9 +380,11 @@ void ForumSession::listThreadsReply(QNetworkReply *reply) {
     performListThreads(data);
 }
 
+
 void ForumSession::listMessages(ForumThread *thread) {
     Q_ASSERT(thread->isSane());
-    if (operationInProgress != FSONoOp /*&& operationInProgress != FSOListMessages*/) {
+    if (operationInProgress != FSONoOp &&
+            operationInProgress != FSOListMessages) { // This can be called from nextOperation, after fetchcookie
         qDebug() << Q_FUNC_INFO << "Operation " << operationNames[operationInProgress] << " in progress!! Don't command me yet!";
         Q_ASSERT(false);
         return;

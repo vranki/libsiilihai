@@ -83,13 +83,16 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
             dbSub = newSub;
         } else { // Sub already in db, just update it
             QString username, password;
+            bool authenticated = false;
             if(!dbSub->username().isEmpty()) {
                 username = dbSub->username();
                 password = dbSub->password();
+                authenticated = true;
             }
             dbSub->copyFrom(serverSub);
             dbSub->setUsername(username);
             dbSub->setPassword(password);
+            dbSub->setAuthenticated(authenticated);
 
             // Check for unsubscribed groups
             foreach(ForumGroup *dbGrp, dbSub->values()) {
