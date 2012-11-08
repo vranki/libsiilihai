@@ -199,6 +199,10 @@ void ClientLogic::updateForum(ForumSubscription *sub) {
     if(sub->beingUpdated())
         return;
 
+    if(sub->scheduledForSync() || sub->beingSynced()) {
+        qDebug() << Q_FUNC_INFO << sub->toString() << "syncing, not updating";
+        return;
+    }
     // Don't update if already updating
     if(!sub->scheduledForUpdate())
         sub->setScheduledForUpdate(true);
@@ -221,7 +225,10 @@ void ClientLogic::updateClicked(ForumSubscription* sub , bool force) {
     if(currentState != SH_READY) return;
 
     Q_ASSERT(engines.contains(sub));
-
+    if(sub->scheduledForSync() || sub->beingSynced()) {
+        qDebug() << Q_FUNC_INFO << sub->toString() << "syncing, not updating";
+        return;
+    }
     UpdateEngine *engine = engines.value(sub);
     if(engine &&
             (engine->state()==UpdateEngine::PES_IDLE || engine->state()==UpdateEngine::PES_ERROR)
@@ -398,6 +405,7 @@ void ClientLogic::forumUpdated(ForumSubscription* forum) {
         if(forumDatabase.values().contains(nextSub)) {
             nextSub->setScheduledForUpdate(false);
             Q_ASSERT(!nextSub->beingSynced());
+            Q_ASSERT(!nextSub->scheduledForSync());
             nextSub->updateEngine()->updateForum();
             busyForums++;
         }
@@ -435,6 +443,8 @@ void ClientLogic::moreMessagesRequested(ForumThread* thread) {
     UpdateEngine *engine = engines.value(thread->group()->subscription());
     Q_ASSERT(engine);
     if(engine->state() == UpdateEngine::PES_UPDATING) return;
+    if(thread->group()->subscription()->beingSynced()) return;
+    if(thread->group()->subscription()->scheduledForSync()) return;
 
     thread->setGetMessagesCount(thread->getMessagesCount() + settings->value("preferences/show_more_count", 30).toInt());
     thread->commitChanges();
@@ -524,6 +534,8 @@ void ClientLogic::updateThread(ForumThread* thread, bool force) {
     ForumSubscription *sub = thread->group()->subscription();
     Q_ASSERT(sub);
     Q_ASSERT(engines.contains(sub));
+    if(thread->group()->subscription()->beingSynced()) return;
+    if(thread->group()->subscription()->scheduledForSync()) return;
     engines.value(sub)->updateThread(thread, force);
 }
 

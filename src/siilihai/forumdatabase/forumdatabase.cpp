@@ -11,14 +11,19 @@ ForumThread* ForumDatabase::getThread(const int forum, QString groupid, QString 
     Q_ASSERT(fs);
     ForumGroup *fg = fs->value(groupid);
     Q_ASSERT(fg);
-    return fg->value(threadid);
+    ForumThread *ft = fg->value(threadid);
+    return ft;
 }
 
 ForumMessage* ForumDatabase::getMessage(const int forum, QString groupid, QString threadid,
                                         QString messageid) {
     ForumThread *thread = getThread(forum, groupid, threadid);
-    Q_ASSERT(thread);
-    if(!thread) return 0;
+    if(!thread) {
+        qDebug() << Q_FUNC_INFO << "ERROR: Searching for message " << messageid << " in thread " << threadid << " in group "
+                 << groupid << " in forum " << forum << " but the thread doesn't exist!!";
+        Q_ASSERT(thread);
+        return 0;
+    }
     return thread->value(messageid);
 }
 

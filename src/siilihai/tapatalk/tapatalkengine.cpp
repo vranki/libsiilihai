@@ -40,8 +40,8 @@ ForumSubscriptionTapaTalk *TapaTalkEngine::subscriptionTapaTalk() const
 void TapaTalkEngine::convertBodyToHtml(ForumMessage *msg)
 {
     // @todo: this is probably quite stupid way to do this. Use Regexp or something?
-    //    QString origBody = msg->body(); // testing
-    QString newBody = msg->body();
+    QString origBody = msg->body();
+    QString newBody = origBody;
     newBody = newBody.replace("[/url]", "</a>");
     newBody = newBody.replace("[IMG]", "[img]");
     newBody = newBody.replace("[img]", "<br/><img src=\"");
@@ -49,12 +49,12 @@ void TapaTalkEngine::convertBodyToHtml(ForumMessage *msg)
     newBody = newBody.replace("[/img]", "\"><br/>");
     newBody = newBody.replace("[quote]", "<div class=\"quote\">");
     newBody = newBody.replace("[/quote]", "</div><br/>");
-    newBody = newBody.replace("\n\n", "<br/>");
+    newBody = newBody.replace("\n", "<br/>");
     int urlPosition = -1;
     do {
         urlPosition = newBody.indexOf("[url=");
         if(urlPosition >= 0) {
-            newBody = newBody.replace(urlPosition, 4, "<a href=\"");
+            newBody = newBody.replace(urlPosition, 5, "<a href=\"");
             int closetag = newBody.indexOf("]", urlPosition);
             if(closetag >= 0) {
                 newBody = newBody.replace(closetag, 1, "\">");
@@ -62,7 +62,7 @@ void TapaTalkEngine::convertBodyToHtml(ForumMessage *msg)
         }
     } while(urlPosition >= 0);
 
-    //    newBody.append("-----" + origBody);
+    // newBody.append("----- <pre>" + origBody + "</pre>");
     msg->setBody(newBody);
 }
 

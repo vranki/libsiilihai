@@ -43,6 +43,10 @@ void SyncMaster::startSync() {
     canceled = false;
     errorCount = 0;
     maxGroupCount = 0;
+    foreach(ForumSubscription *fsub, fdb.values()) {
+        Q_ASSERT(!fsub->beingSynced());
+        Q_ASSERT(!fsub->beingUpdated());
+    }
     protocol.getSyncSummary();
 }
 
@@ -145,10 +149,14 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
             Q_ASSERT(dbGroup);
 
             if(dbGroup->changeset() != serverGrp->changeset()) {
-                qDebug() << Q_FUNC_INFO << "Adding group to download queue and setting changeset " << dbGroup->toString();
-                dbGroup->setChangeset(serverGrp->changeset());
-                groupsToDownload.append(dbGroup);
-                //dbGroup->subscription()->setBeingSynced(true);
+                if(!dbGroup->subscription()->beingUpdated()) {
+                    qDebug() << Q_FUNC_INFO << "Adding group to download queue and setting changeset " << dbGroup->toString();
+                    dbGroup->setChangeset(serverGrp->changeset());
+                    groupsToDownload.append(dbGroup);
+                    dbGroup->subscription()->setScheduledForSync(true);
+                } else {
+                    qDebug() << Q_FUNC_INFO << "NOT adding group to dl queue because it's being updated' " << dbGroup->toString();
+                }
             }
             dbGroup->commitChanges();
         }
@@ -187,9 +195,11 @@ void SyncMaster::processGroups() {
 
     // Download groups
     if(!groupsToDownload.isEmpty()) {
-        foreach(ForumGroup *group, groupsToDownload)
+        foreach(ForumGroup *group, groupsToDownload) {
+            Q_ASSERT(!group->subscription()->beingUpdated());
+            group->subscription()->setScheduledForSync(false);
             group->subscription()->setBeingSynced(true);
-
+        }
         protocol.downsync(groupsToDownload);
     }
     fdb.checkSanity();
@@ -209,15 +219,12 @@ void SyncMaster::sendThreadDataFinished(bool success, QString message) {
 void SyncMaster::serverThreadData(ForumThread *tempThread) { // Thread is temporary object!
     if(canceled) return;
     if (tempThread->isSane()) {
-        qDebug() << Q_FUNC_INFO << tempThread->toString();
         static ForumGroup *lastGroupBeingSynced=0;
-        bool newGroupBeingSynced = false;
         ForumGroup *dbGroup = 0;
         ForumThread *dbThread = fdb.getThread(tempThread->group()->subscription()->forumId(), tempThread->group()->id(),
                                               tempThread->id());
         if (dbThread) { // Thread already found, merge it
             dbThread->setChangeset(tempThread->changeset());
-
         } else { // thread hasn't been found yet!
             dbGroup = fdb.value(tempThread->group()->subscription()->forumId())->value(tempThread->group()->id());
             Q_ASSERT(dbGroup);
@@ -232,11 +239,9 @@ void SyncMaster::serverThreadData(ForumThread *tempThread) { // Thread is tempor
             dbGroup->commitChanges();
         }
         dbThread->commitChanges();
+        Q_ASSERT(dbThread->group()->subscription()->beingSynced());
         if(lastGroupBeingSynced != dbThread->group()) {
-            newGroupBeingSynced = true;
             dbGroup = dbThread->group();
-        }
-        if(newGroupBeingSynced) {
             lastGroupBeingSynced = dbGroup;
             QString messagename;
             if(dbThread->group()->name().length() < 2) {
@@ -257,13 +262,6 @@ void SyncMaster::serverMessageData(ForumMessage *tempMessage) { // Temporary obj
     Q_ASSERT(tempMessage);
     if(canceled) return;
     if (tempMessage->isSane()) {
-        // Ok, tempMessage->thread() SHOULD always be in the database.
-#ifdef DEBUG_INFO
-        ForumThread *dbThread = fdb.getThread(tempMessage->thread()->group()->subscription()->forumId(),
-                                              tempMessage->thread()->group()->id(),
-                                              tempMessage->thread()->id());
-        Q_ASSERT(dbThread);
-#endif
         ForumMessage *dbMessage = fdb.getMessage(tempMessage->thread()->group()->subscription()->forumId(),
                                                  tempMessage->thread()->group()->id(), tempMessage->thread()->id(), tempMessage->id());
         if (dbMessage) { // Message already found, merge it
@@ -282,6 +280,7 @@ void SyncMaster::serverMessageData(ForumMessage *tempMessage) { // Temporary obj
             newMessage->markToBeUpdated();
             dbThread->commitChanges();
             dbThread->group()->commitChanges();
+            Q_ASSERT(dbThread->group()->subscription()->beingSynced());
         }
     } else {
         qDebug() << Q_FUNC_INFO << "Got invalid message!" << tempMessage->toString();
@@ -318,6 +317,7 @@ void SyncMaster::downsyncFinishedForForum(ForumSubscription *fs)
     Q_ASSERT(fs && fs->forumId() > 0);
     qDebug() << Q_FUNC_INFO << fs->forumId();
     ForumSubscription *dbSubscription = fdb.value(fs->forumId());
+    Q_ASSERT(!dbSubscription->scheduledForSync());
     dbSubscription->setBeingSynced(false);
     emit syncFinishedFor(dbSubscription);
 }
@@ -359,8 +359,17 @@ void SyncMaster::subscribeGroupsFinished(bool success) {
 
 void SyncMaster::endSyncSingleGroup(ForumGroup *group) {
     // This can happen if user reads stuff during update
-    if(group->subscription()->beingUpdated() || group->subscription()->scheduledForUpdate())
+    if(group->subscription()->beingUpdated() || group->subscription()->scheduledForUpdate() || group->subscription()->beingSynced() ||
+            group->subscription()->scheduledForSync())
         return;
+
+    // Ok, NEVER do this if updates are in progress
+    foreach(ForumSubscription *fsub, fdb.values()) {
+        if(fsub->beingUpdated())
+            return;
+        if(fsub->beingSynced())
+            return;
+    }
 
     if(group->hasChanged()) {
         groupsToUpload.append(group);

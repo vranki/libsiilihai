@@ -89,8 +89,10 @@ public:
     void setBeingUpdated(bool bu);
     void setBeingSynced(bool bs);
     void setScheduledForUpdate(bool su);
+    void setScheduledForSync(bool su);
     bool beingUpdated() const;
     bool beingSynced() const;
+    bool scheduledForSync() const;
     bool scheduledForUpdate() const;
     ForumProvider provider() const;
     bool isParsed() const; // Just helpers
@@ -125,7 +127,7 @@ private:
     int _unreadCount;
     bool _temp, _groupListChanged;
     // Just for status display
-    bool _scheduledForUpdate, _beingUpdated, _beingSynced;
+    bool _scheduledForUpdate, _beingUpdated, _scheduledForSync, _beingSynced;
     ForumProvider _provider;
     QUrl _forumUrl;
 };

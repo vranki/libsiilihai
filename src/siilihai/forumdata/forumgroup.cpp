@@ -51,6 +51,7 @@ void ForumGroup::addThread(ForumThread* thr, bool affectsSync, bool incrementUnr
 
 void ForumGroup::removeThread(ForumThread* thr, bool affectsSync) {
     Q_ASSERT(thr->group() == this);
+    qDebug() << Q_FUNC_INFO << thr->toString();
     if(affectsSync && (thr->size() - thr->unreadCount()) > 0)  setHasChanged(true);
     int urc = thr->unreadCount();
     incrementUnreadCount(-urc);

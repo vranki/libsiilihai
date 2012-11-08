@@ -203,6 +203,7 @@ void UpdateEngine::listThreadsFinished(QList<ForumThread*> &tempThreads, ForumGr
     Q_ASSERT(group);
     Q_ASSERT(!group->isTemp());
     Q_ASSERT(group->isSane());
+    Q_ASSERT(!group->subscription()->beingSynced());
     threadsToUpdateQueue.clear();
 
     if(!group->isSubscribed()) { // Unsubscribed while update
@@ -279,6 +280,8 @@ void UpdateEngine::listThreadsFinished(QList<ForumThread*> &tempThreads, ForumGr
 void UpdateEngine::updateThread(ForumThread *thread, bool force) {
     Q_ASSERT(fsubscription);
     Q_ASSERT(thread);
+    Q_ASSERT(!thread->group()->subscription()->beingSynced());
+    Q_ASSERT(!thread->group()->subscription()->scheduledForSync());
 
     forceUpdate = force;
     updateAll = true;
@@ -310,6 +313,8 @@ void UpdateEngine::loginFinishedSlot(ForumSubscription *sub, bool success) {
 
 void UpdateEngine::updateNextChangedGroup() {
     Q_ASSERT(updateAll);
+    Q_ASSERT(!subscription()->beingSynced());
+
     if(!updateOnlyThread) {
         foreach(ForumGroup *group, subscription()->values()) {
             if(group->needsToBeUpdated()) {
@@ -327,6 +332,8 @@ void UpdateEngine::updateNextChangedGroup() {
 }
 
 void UpdateEngine::updateNextChangedThread() {
+    Q_ASSERT(!subscription()->beingSynced());
+
     if (!threadsToUpdateQueue.isEmpty()) {
         ForumThread *thread = threadsToUpdateQueue.dequeue();
         if(forceUpdate)
@@ -436,6 +443,8 @@ void UpdateEngine::updateForum(bool force) {
     qDebug() << Q_FUNC_INFO << " force: " << force;
     Q_ASSERT(fsubscription);
     Q_ASSERT(!fsubscription->beingSynced());
+    Q_ASSERT(!fsubscription->scheduledForSync());
+
     forceUpdate = force;
     updateOnlyThread = false;
     updateAll = true; // Update whole forum

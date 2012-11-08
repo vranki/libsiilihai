@@ -28,7 +28,7 @@ ForumSubscription::ForumSubscription(QObject *parent, bool temp, ForumProvider p
     _username = _password = QString::null;
     _temp = temp;
     _groupListChanged = false;
-    _beingUpdated = _beingSynced = _scheduledForUpdate = false;
+    _beingUpdated = _beingSynced = _scheduledForUpdate = _scheduledForSync = false;
     _forumId = 0;
     _engine = 0;
 }
@@ -72,7 +72,8 @@ bool ForumSubscription::isSane() const {
 }
 
 QString ForumSubscription::toString() const {
-    return QString("Subscription to ") + QString().number(_forumId) + " (" + _alias + ")";
+    return QString("Subscription to %1 (%2) su %3 bu %4 ss %5 bs %6").arg(_forumId).arg(_alias).arg(_scheduledForUpdate)
+            .arg(_beingUpdated).arg(_scheduledForSync).arg(_beingSynced);
 }
 
 QString ForumSubscription::alias() const {
@@ -194,7 +195,16 @@ void ForumSubscription::setBeingSynced(bool bs) {
 
 void ForumSubscription::setScheduledForUpdate(bool su) {
     Q_ASSERT(!(_beingUpdated && su));
+    Q_ASSERT(!(_scheduledForSync && su));
     _scheduledForUpdate = su;
+    emit changed();
+}
+
+void ForumSubscription::setScheduledForSync(bool su)
+{
+    Q_ASSERT(!(_beingSynced && su));
+    Q_ASSERT(!(_beingUpdated && su));
+    _scheduledForSync = su;
     emit changed();
 }
 
@@ -204,6 +214,11 @@ bool ForumSubscription::beingUpdated() const {
 
 bool ForumSubscription::beingSynced() const {
     return _beingSynced;
+}
+
+bool ForumSubscription::scheduledForSync() const
+{
+    return _scheduledForSync;
 }
 
 bool ForumSubscription::scheduledForUpdate() const {

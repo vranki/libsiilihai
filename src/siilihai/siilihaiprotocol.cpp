@@ -678,9 +678,9 @@ void SiilihaiProtocol::replyDownsync(QNetworkReply *reply) {
                     }
                     threadElement = threadElement.nextSiblingElement("thread");
                 }
-                emit downsyncFinishedForForum(forum);
                 groupElement = groupElement.nextSiblingElement("group");
             }
+            emit downsyncFinishedForForum(forum);
             delete forum;
             forumElement = forumElement.nextSiblingElement("forum");
         }
