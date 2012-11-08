@@ -83,13 +83,16 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
             dbSub = newSub;
         } else { // Sub already in db, just update it
             QString username, password;
+            bool authenticated = false;
             if(!dbSub->username().isEmpty()) {
                 username = dbSub->username();
                 password = dbSub->password();
+                authenticated = true;
             }
             dbSub->copyFrom(serverSub);
             dbSub->setUsername(username);
             dbSub->setPassword(password);
+            dbSub->setAuthenticated(authenticated);
 
             // Check for unsubscribed groups
             foreach(ForumGroup *dbGrp, dbSub->values()) {
@@ -206,6 +209,7 @@ void SyncMaster::sendThreadDataFinished(bool success, QString message) {
 void SyncMaster::serverThreadData(ForumThread *tempThread) { // Thread is temporary object!
     if(canceled) return;
     if (tempThread->isSane()) {
+        qDebug() << Q_FUNC_INFO << tempThread->toString();
         static ForumGroup *lastGroupBeingSynced=0;
         bool newGroupBeingSynced = false;
         ForumGroup *dbGroup = 0;
@@ -253,6 +257,13 @@ void SyncMaster::serverMessageData(ForumMessage *tempMessage) { // Temporary obj
     Q_ASSERT(tempMessage);
     if(canceled) return;
     if (tempMessage->isSane()) {
+        // Ok, tempMessage->thread() SHOULD always be in the database.
+#ifdef DEBUG_INFO
+        ForumThread *dbThread = fdb.getThread(tempMessage->thread()->group()->subscription()->forumId(),
+                                              tempMessage->thread()->group()->id(),
+                                              tempMessage->thread()->id());
+        Q_ASSERT(dbThread);
+#endif
         ForumMessage *dbMessage = fdb.getMessage(tempMessage->thread()->group()->subscription()->forumId(),
                                                  tempMessage->thread()->group()->id(), tempMessage->thread()->id(), tempMessage->id());
         if (dbMessage) { // Message already found, merge it

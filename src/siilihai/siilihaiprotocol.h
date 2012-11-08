@@ -50,7 +50,7 @@ class ForumMessage;
 class SiilihaiProtocol: public QObject {
     Q_OBJECT
 public:
-    enum SiilihaiProtocolOperation { SPONoOp=1, SPOLogin, SPORegisterUser, SPOListParsers, SPOListRequests, SPOListSubscriptions,
+    enum SiilihaiProtocolOperation { SPONoOp=1, SPOLogin, SPORegisterUser, SPOListForums, SPOListRequests, SPOListSubscriptions,
                                    SPOGetParser, SPOSubscribeForum, SPOSubscribeGroups, SPOSaveParser, SPOSetUserSettings,
                                    SPOGetUserSettings, SPOSendParserReport, SPOSendThreadData, SPOGetThreadData, SPOGetSyncSummary,
                                    SPOAddForum, SPOGetForum };
@@ -60,7 +60,7 @@ public:
     void login(QString user, QString pass);
     void setBaseURL(QString bu);
     QString baseURL();
-    void listParsers(); // REALLY: listForums
+    void listForums(); // REALLY: listForums
     void listRequests();
     // void listSubscriptions(); // not used anywhere??
     void getParser(const int id);
@@ -92,12 +92,11 @@ private slots:
     void networkReply(QNetworkReply *reply);
 private:
     void replyLogin(QNetworkReply *reply);
-    void replyListParsers(QNetworkReply *reply);
+    void replyListForums(QNetworkReply *reply);
     void replyListRequests(QNetworkReply *reply);
     void replyGetParser(QNetworkReply *reply);
     void replySaveParser(QNetworkReply *reply);
     void replySubscribeForum(QNetworkReply *reply);
-    // void replyListSubscriptions(QNetworkReply *reply);
     void replySendParserReport(QNetworkReply *reply);
     void replySubscribeGroups(QNetworkReply *reply);
     void replySendThreadData(QNetworkReply *reply);
@@ -108,7 +107,7 @@ private:
 
 signals:
     void loginFinished(bool success, QString motd, bool syncEnabled);
-    void listParsersFinished(QList<ForumParser*> parsers); // Receiver MUST free the parsers!
+    void listForumsFinished(QList<ForumSubscription*> parsers); // Receiver MUST free the parsers!
     void listRequestsFinished(QList<ForumRequest*> requests); // Receiver MUST free requests!
     void subscribeForumFinished(ForumSubscription *fs, bool success);
     void getParserFinished(ForumParser *parser); // Parser is deleted after call!
@@ -132,11 +131,11 @@ private:
     QString clientKey;
     QNetworkAccessManager nam;
     QString baseUrl;
-    QByteArray loginData, listParsersData, saveParserData, getParserData,
+    QByteArray loginData, listForumsData, saveParserData, getParserData,
     subscribeForumData, listRequestsData, registerData,/*listSubscriptionsData,*/
     sendParserReportData, subscribeGroupsData, sendThreadDataData, getThreadDataData,
     syncSummaryData, userSettingsData, addForumData, getForumData;
-    QUrl listParsersUrl, loginUrl, getParserUrl, saveParserUrl,
+    QUrl listForumsUrl, loginUrl, getParserUrl, saveParserUrl,
     subscribeForumUrl, listRequestsUrl, registerUrl, /*listSubscriptionsUrl,*/
     sendParserReportUrl, subscribeGroupsUrl, sendThreadDataUrl, downsyncUrl, syncSummaryUrl,
     userSettingsUrl, addForumUrl, getForumUrl;

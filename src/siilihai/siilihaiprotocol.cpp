@@ -47,8 +47,8 @@ void SiilihaiProtocol::networkReply(QNetworkReply *reply) {
         replyLogin(reply);
     } else if(operationAttribute==SPORegisterUser) {
         replyLogin(reply);
-    } else if(operationAttribute==SPOListParsers) {
-        replyListParsers(reply);
+    } else if(operationAttribute==SPOListForums) {
+        replyListForums(reply);
     } else if(operationAttribute==SPOListRequests) {
         replyListRequests(reply);
     } else if(operationAttribute==SPOGetParser) {
@@ -84,7 +84,7 @@ QString SiilihaiProtocol::baseURL() {
 
 void SiilihaiProtocol::setBaseURL(QString bu) {
     baseUrl = bu;
-    listParsersUrl = QUrl(baseUrl + "api/forumlist.xml");
+    listForumsUrl = QUrl(baseUrl + "api/forumlist.xml");
     loginUrl = QUrl(baseUrl + "api/login.xml");
     registerUrl = QUrl(baseUrl + "api/register.xml");
     getParserUrl = QUrl(baseUrl + "api/getparser.xml");
@@ -152,41 +152,41 @@ void SiilihaiProtocol::registerUser(QString user, QString pass, QString email, b
     nam.post(req, registerData);
 }
 
-void SiilihaiProtocol::listParsers() {
-    QNetworkRequest req(listParsersUrl);
+void SiilihaiProtocol::listForums() {
+    QNetworkRequest req(listForumsUrl);
     QHash<QString, QString> params;
     if (!clientKey.isNull()) {
         params.insert("client_key", clientKey);
     }
-    listParsersData = HttpPost::setPostParameters(&req, params);
-    req.setAttribute(QNetworkRequest::User, SPOListParsers);
-    nam.post(req, listParsersData);
+    listForumsData = HttpPost::setPostParameters(&req, params);
+    req.setAttribute(QNetworkRequest::User, SPOListForums);
+    nam.post(req, listForumsData);
 }
 
-void SiilihaiProtocol::replyListParsers(QNetworkReply *reply) {
+void SiilihaiProtocol::replyListForums(QNetworkReply *reply) {
     QString docs = QString().fromUtf8(reply->readAll());
-    QList<ForumParser*> parsers;
+    QList<ForumSubscription*> forums;
     if (reply->error() == QNetworkReply::NoError) {
         QDomDocument doc;
         doc.setContent(docs);
         QDomElement n = doc.firstChildElement("parserlist").firstChildElement("parser");
         while (!n.isNull()) {
+            // @todo This still uses parsers as backward-compatibility
             ForumParser *parser = XmlSerialization::readParser(n, this);
-            /*
-            ForumParser *parser = new ForumParser(this);
-            parser->id() = QString(n.firstChildElement("id").text()).toInt();
-            parser->forum_url = n.firstChildElement("forum_url").text();
-            parser->name() = n.firstChildElement("name").text();
-            parser->parser_status = QString(n.firstChildElement("status").text()).toInt();
-            parser->parser_type = QString(n.firstChildElement("parser_type").text()).toInt();
-            */
-            if(parser) parsers.append(parser);
+             if(parser) {
+                 ForumSubscription *sub = new ForumSubscription(0, true, ForumSubscription::FP_NONE);
+                 sub->setForumId(parser->id());
+                 sub->setAlias(parser->name());
+                 sub->setForumUrl(parser->forum_url);
+                 sub->setSupportsLogin(parser->supportsLogin());
+                 forums.append(sub);
+             }
             n = n.nextSiblingElement("parser");
         }
     } else {
         qDebug() << Q_FUNC_INFO << "Network error: " << reply->errorString();
     }
-    emit(listParsersFinished(parsers));
+    emit(listForumsFinished(forums));
     reply->deleteLater();
 }
 
@@ -443,11 +443,13 @@ void SiilihaiProtocol::replyGetForum(QNetworkReply *reply)
         int provider = re.firstChildElement("provider").text().toInt();
         QUrl url = QUrl(re.firstChildElement("url").text());
         QString name = re.firstChildElement("name").text();
+        QString supportsLoginString = re.firstChildElement("supports_login").text();
         if(id > 0 && provider > 0) {
             ForumSubscription addedForum(this, true, (ForumSubscription::ForumProvider) provider);
             addedForum.setForumId(id);
             addedForum.setForumUrl(url);
             addedForum.setAlias(name);
+            addedForum.setSupportsLogin(supportsLoginString == "True");
             emit forumGot(&addedForum);
         } else {
             emit forumGot(0);

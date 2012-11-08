@@ -4,6 +4,7 @@
 
 class ForumSubscriptionTapaTalk;
 class QDomElement;
+class QDomDocument;
 
 class TapaTalkEngine : public UpdateEngine
 {
@@ -45,7 +46,7 @@ private:
     void getMessages(QDomElement dataValueElement, QList<ForumMessage *> *messages);
 
     bool loginIfNeeded(); // True if it is needed first
-
+    void createMethodCall(QDomDocument &doc, QString method, QList<QPair<QString, QString> > &params);
     QDomElement findMemberValueElement(QDomElement dataValueElement, QString memberName);
     ForumSubscriptionTapaTalk *subscriptionTapaTalk() const;
     void convertBodyToHtml(ForumMessage *msg); // convert [url=][/url] etc to real html

@@ -19,14 +19,8 @@
 ForumSubscriptionTapaTalk::ForumSubscriptionTapaTalk(QObject *parent, bool temp) :
     ForumSubscription(parent, temp, FP_TAPATALK)
 {
+    setSupportsLogin(true);
 }
-
-void ForumSubscriptionTapaTalk::copyFrom(ForumSubscription * other) {
-    ForumSubscription::copyFrom(other);
-    if(other->isTapaTalk())
-        setForumUrl(qobject_cast<ForumSubscriptionTapaTalk*>(other)->forumUrl());
-}
-
 
 void ForumSubscriptionTapaTalk::setTapaTalkEngine(TapaTalkEngine *newEngine)
 {

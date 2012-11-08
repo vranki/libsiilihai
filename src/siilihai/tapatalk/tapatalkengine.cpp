@@ -71,15 +71,9 @@ void TapaTalkEngine::probeUrl(QUrl url)
     connectorUrl = url.toString() + "mobiquo/mobiquo.php";
     qDebug() << Q_FUNC_INFO << "will now probe " << connectorUrl;
     QNetworkRequest req(connectorUrl);
+    QList<QPair<QString, QString> > params;
     QDomDocument doc("");
-    QDomElement root = doc.createElement("methodCall");
-    doc.appendChild(root);
-
-    QDomElement methodTag = doc.createElement("methodName");
-    root.appendChild(methodTag);
-
-    QDomText t = doc.createTextNode("get_config");
-    methodTag.appendChild(t);
+    createMethodCall(doc, "get_config", params);
 
     QByteArray requestData = doc.toByteArray();
     req.setAttribute(QNetworkRequest::User, TTO_Probe);
@@ -111,16 +105,13 @@ void TapaTalkEngine::requestCredentials() {
 }
 
 void TapaTalkEngine::doUpdateForum() {
+    if(loginIfNeeded()) return;
+
     QNetworkRequest req(connectorUrl);
+
+    QList<QPair<QString, QString> > params;
     QDomDocument doc("");
-    QDomElement root = doc.createElement("methodCall");
-    doc.appendChild(root);
-
-    QDomElement methodTag = doc.createElement("methodName");
-    root.appendChild(methodTag);
-
-    QDomText t = doc.createTextNode("get_forum");
-    methodTag.appendChild(t);
+    createMethodCall(doc, "get_forum", params);
 
     QByteArray requestData = doc.toByteArray();
     req.setAttribute(QNetworkRequest::User, TTO_ListGroups);
@@ -129,41 +120,26 @@ void TapaTalkEngine::doUpdateForum() {
 
 void TapaTalkEngine::doUpdateGroup(ForumGroup *group)
 {
+    if(loginIfNeeded()) return;
+
     Q_ASSERT(!groupBeingUpdated);
+
     groupBeingUpdated = group;
     QNetworkRequest req(connectorUrl);
+
+    QList<QPair<QString, QString> > params;
+    params.append(QPair<QString, QString>("string", group->id()));
+
     QDomDocument doc("");
-    QDomElement methodCallElement = doc.createElement("methodCall");
-    doc.appendChild(methodCallElement);
 
-    QDomElement methodTag = doc.createElement("methodName");
-    methodCallElement.appendChild(methodTag);
-
-    QDomText t = doc.createTextNode("get_topic");
-    methodTag.appendChild(t);
-
-    QDomElement paramsTag = doc.createElement("params");
-    methodCallElement.appendChild(paramsTag);
-
-    QDomElement paramTag = doc.createElement("param");
-    paramsTag.appendChild(paramTag);
-
-    QDomElement forumIdValueTag = doc.createElement("value");
-    paramTag.appendChild(forumIdValueTag);
-
-    QDomElement forumIdStringTag = doc.createElement("string");
-    forumIdValueTag.appendChild(forumIdStringTag);
-
-    QDomText forumIdValueText = doc.createTextNode(group->id());
-    forumIdStringTag.appendChild(forumIdValueText);
+    createMethodCall(doc, "get_topic", params);
 
     QByteArray requestData = doc.toByteArray();
     req.setAttribute(QNetworkRequest::User, TTO_UpdateGroup);
     nam.post(req, requestData);
 }
 
-void TapaTalkEngine::replyUpdateGroup(QNetworkReply *reply)
-{
+void TapaTalkEngine::replyUpdateGroup(QNetworkReply *reply) {
     Q_ASSERT(groupBeingUpdated);
     QList<ForumThread*> threads;
     if (reply->error() != QNetworkReply::NoError) {
@@ -210,36 +186,20 @@ void TapaTalkEngine::getThreads(QDomElement arrayDataElement, QList<ForumThread 
     }
 }
 
-void TapaTalkEngine::doUpdateThread(ForumThread *thread)
-{
+void TapaTalkEngine::doUpdateThread(ForumThread *thread) {
+    if(loginIfNeeded()) return;
+
     Q_ASSERT(!threadBeingUpdated);
     threadBeingUpdated = thread;
 
     QNetworkRequest req(connectorUrl);
+
+    QList<QPair<QString, QString> > params;
+    params.append(QPair<QString, QString>("string", thread->id()));
+
     QDomDocument doc("");
-    QDomElement methodCallElement = doc.createElement("methodCall");
-    doc.appendChild(methodCallElement);
 
-    QDomElement methodTag = doc.createElement("methodName");
-    methodCallElement.appendChild(methodTag);
-
-    QDomText t = doc.createTextNode("get_thread");
-    methodTag.appendChild(t);
-
-    QDomElement paramsTag = doc.createElement("params");
-    methodCallElement.appendChild(paramsTag);
-
-    QDomElement paramTag = doc.createElement("param");
-    paramsTag.appendChild(paramTag);
-
-    QDomElement forumIdValueTag = doc.createElement("value");
-    paramTag.appendChild(forumIdValueTag);
-
-    QDomElement forumIdStringTag = doc.createElement("string");
-    forumIdValueTag.appendChild(forumIdStringTag);
-
-    QDomText forumIdValueText = doc.createTextNode(thread->id());
-    forumIdStringTag.appendChild(forumIdValueText);
+    createMethodCall(doc, "get_thread", params);
 
     QByteArray requestData = doc.toByteArray();
     req.setAttribute(QNetworkRequest::User, TTO_UpdateThread);
@@ -255,6 +215,7 @@ void TapaTalkEngine::replyUpdateThread(QNetworkReply *reply)
     }
 
     QString docs = QString().fromUtf8(reply->readAll());
+    // qDebug() << Q_FUNC_INFO << docs;
     QDomDocument doc;
     doc.setContent(docs);
     QDomElement paramValueElement = doc.firstChildElement("methodResponse").firstChildElement("params").firstChildElement("param").firstChildElement("value");
@@ -270,44 +231,19 @@ bool TapaTalkEngine::loginIfNeeded() {
     if(!subscription()->authenticated()) return false;
 
     QNetworkRequest req(connectorUrl);
+
+    QList<QPair<QString, QString> > params;
+    params.append(QPair<QString, QString>("base64", subscription()->username()));
+    params.append(QPair<QString, QString>("base64", subscription()->password()));
+
     QDomDocument doc("");
-    QDomElement methodCallElement = doc.createElement("methodCall");
-    doc.appendChild(methodCallElement);
 
-    QDomElement methodTag = doc.createElement("methodName");
-    methodCallElement.appendChild(methodTag);
-
-    QDomText t = doc.createTextNode("login");
-    methodTag.appendChild(t);
-
-    QDomElement paramsTag = doc.createElement("params");
-    methodCallElement.appendChild(paramsTag);
-
-    QDomElement paramTag = doc.createElement("param");
-    paramsTag.appendChild(paramTag);
-
-    QDomElement usernameValueTag = doc.createElement("value");
-    paramTag.appendChild(usernameValueTag);
-
-    QDomElement usernameStringTag = doc.createElement("string");
-    usernameValueTag.appendChild(usernameStringTag);
-
-    QDomText usernameValueText = doc.createTextNode(subscription()->username());
-    usernameStringTag.appendChild(usernameValueText);
-
-    QDomElement passwordParamTag = doc.createElement("param");
-    paramsTag.appendChild(passwordParamTag);
-
-    QDomElement passwordValueTag = doc.createElement("value");
-    passwordParamTag.appendChild(passwordValueTag);
-
-    QDomElement passwordStringTag = doc.createElement("string");
-    passwordValueTag.appendChild(passwordStringTag);
-
-    QDomText passwordValueText = doc.createTextNode(subscription()->password());
-    passwordStringTag.appendChild(passwordValueText);
+    createMethodCall(doc, "login", params);
 
     QByteArray requestData = doc.toByteArray();
+
+    // qDebug() << Q_FUNC_INFO << "TX: " << doc.toString();
+
     req.setAttribute(QNetworkRequest::User, TTO_Login);
     nam.post(req, requestData);
 
@@ -316,6 +252,22 @@ bool TapaTalkEngine::loginIfNeeded() {
 
 void TapaTalkEngine::replyLogin(QNetworkReply *reply)
 {
+    if (reply->error() != QNetworkReply::NoError) {
+        emit networkFailure(reply->errorString());
+        loginFinishedSlot(subscription(), false);
+        return;
+    }
+    QString docs = QString().fromUtf8(reply->readAll());
+    // qDebug() << Q_FUNC_INFO << "RX:" << docs;
+    QDomDocument doc;
+    doc.setContent(docs);
+
+    QDomElement paramValueElement = doc.firstChildElement("methodResponse").firstChildElement("params").firstChildElement("param").firstChildElement("value");
+    QString result = getValueFromStruct(paramValueElement, "result");
+    if(result=="1") {
+        loggedIn = true;
+    }
+    loginFinishedSlot(subscription(), loggedIn);
 }
 
 void TapaTalkEngine::getMessages(QDomElement dataValueElement, QList<ForumMessage *> *messages)
@@ -421,9 +373,47 @@ QString TapaTalkEngine::getValueFromStruct(QDomElement arrayValueElement, QStrin
             return valueText.data();
         } else if(valueTypeElement.nodeName()=="boolean") {
             return valueTypeElement.text();
+        } else if(valueTypeElement.nodeName()=="dateTime.iso8601") {
+            return valueTypeElement.text();
+        } else {
+            qDebug() << Q_FUNC_INFO << "unknown value type " << valueTypeElement.nodeName();
         }
     }
     return QString();
+}
+
+
+void TapaTalkEngine::createMethodCall(QDomDocument & doc, QString method, QList<QPair<QString, QString> > &params) {
+    QDomElement methodCallElement = doc.createElement("methodCall");
+    doc.appendChild(methodCallElement);
+
+    QDomElement methodTag = doc.createElement("methodName");
+    methodCallElement.appendChild(methodTag);
+
+    QDomText t = doc.createTextNode(method);
+    methodTag.appendChild(t);
+
+    QDomElement paramsTag = doc.createElement("params");
+    methodCallElement.appendChild(paramsTag);
+    for(int i=0;i<params.size();i++) {
+        QPair<QString, QString> param = params.at(i);
+        QDomElement paramTag = doc.createElement("param");
+        paramsTag.appendChild(paramTag);
+
+        QDomElement valueTag = doc.createElement("value");
+        paramTag.appendChild(valueTag);
+
+        QDomElement valueTypeTag = doc.createElement(param.first);
+        valueTag.appendChild(valueTypeTag);
+
+        QByteArray realValue = param.second.toUtf8();
+
+        if(param.first == "base64") {
+            realValue = realValue.toBase64();
+        }
+        QDomText valueText = doc.createTextNode(realValue);
+        valueTypeTag.appendChild(valueText);
+    }
 }
 
 void TapaTalkEngine::getChildGroups(QDomElement arrayValueElement, QList<ForumGroup *> *grps)

@@ -23,7 +23,7 @@ ForumSubscription::ForumSubscription(QObject *parent, bool temp, ForumProvider p
     _alias = QString::null;
     _latestThreads = 0;
     _latestMessages = 0;
-    _authenticated = false;
+    _supportsLogin = _authenticated = false;
     _unreadCount = 0;
     _username = _password = QString::null;
     _temp = temp;
@@ -41,6 +41,8 @@ void ForumSubscription::copyFrom(ForumSubscription * other) {
     setLatestThreads(other->latestThreads());
     setLatestMessages(other->latestMessages());
     setAuthenticated(other->authenticated());
+    setSupportsLogin(other->supportsLogin());
+    setForumUrl(other->forumUrl());
 }
 
 ForumSubscription::~ForumSubscription() {
@@ -168,6 +170,7 @@ int ForumSubscription::forumId() const
 void ForumSubscription::setForumId(int newId)
 {
     _forumId = newId;
+    emit changed();
 }
 
 void ForumSubscription::markRead(bool read) {
@@ -274,6 +277,16 @@ void ForumSubscription::setForumUrl(QUrl url)
 {
     _forumUrl = url;
     emit changed();
+}
+
+void ForumSubscription::setSupportsLogin(bool sl)
+{
+    _supportsLogin = sl;
+    emit changed();
+}
+
+bool ForumSubscription::supportsLogin() const {
+    return _supportsLogin;
 }
 
 void ForumSubscription::setProvider(ForumSubscription::ForumProvider provider)

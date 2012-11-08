@@ -44,11 +44,13 @@ class UpdateEngine;
   */
 class ForumSubscription : public QObject, public QMap<QString, ForumGroup*>, public UpdateableItem  {
     Q_OBJECT
+    Q_PROPERTY(int forumId READ forumId WRITE setForumId NOTIFY changed)
     Q_PROPERTY(QString alias READ alias WRITE setAlias NOTIFY changed)
     Q_PROPERTY(int unreadCount READ unreadCount NOTIFY unreadCountChanged)
     Q_PROPERTY(bool beingUpdated READ beingUpdated WRITE setBeingUpdated NOTIFY changed)
     Q_PROPERTY(bool beingSynced READ beingSynced WRITE setBeingSynced NOTIFY changed)
     Q_PROPERTY(bool scheduledForUpdate READ scheduledForUpdate WRITE setScheduledForUpdate NOTIFY changed)
+    Q_PROPERTY(bool supportsLogin READ supportsLogin WRITE setSupportsLogin NOTIFY changed)
 public:
     enum ForumProvider {
         FP_NONE=0, // Error in practice..
@@ -66,7 +68,7 @@ public:
     void setPassword(QString password);
     void setLatestThreads(unsigned int lt);
     void setLatestMessages(unsigned int lm);
-    void setAuthenticated(bool na);
+    void setAuthenticated(bool na); // @todo is this required? Why not just username.length() > 0 ?
     void incrementUnreadCount(int urc);
     void addGroup(ForumGroup* grp, bool affectsSync=true, bool incrementUnreads = true);
     void removeGroup(ForumGroup* grp, bool affectsSync=true);
@@ -99,6 +101,8 @@ public:
     virtual void readSubscriptionXml(QDomElement &element);
     virtual QUrl forumUrl() const;
     void setForumUrl(QUrl url);
+    void setSupportsLogin(bool sl);
+    bool supportsLogin() const;
     void setProvider(ForumProvider provider); // Use with care!!
 signals:
     void changed();
@@ -117,7 +121,7 @@ private:
     QString _password;
     unsigned int _latestThreads;
     unsigned int _latestMessages;
-    bool _authenticated;
+    bool _authenticated, _supportsLogin;
     int _unreadCount;
     bool _temp, _groupListChanged;
     // Just for status display
