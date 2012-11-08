@@ -215,6 +215,7 @@ void TapaTalkEngine::replyUpdateThread(QNetworkReply *reply)
     }
 
     QString docs = QString().fromUtf8(reply->readAll());
+    // qDebug() << Q_FUNC_INFO << docs;
     QDomDocument doc;
     doc.setContent(docs);
     QDomElement paramValueElement = doc.firstChildElement("methodResponse").firstChildElement("params").firstChildElement("param").firstChildElement("value");
@@ -372,6 +373,10 @@ QString TapaTalkEngine::getValueFromStruct(QDomElement arrayValueElement, QStrin
             return valueText.data();
         } else if(valueTypeElement.nodeName()=="boolean") {
             return valueTypeElement.text();
+        } else if(valueTypeElement.nodeName()=="dateTime.iso8601") {
+            return valueTypeElement.text();
+        } else {
+            qDebug() << Q_FUNC_INFO << "unknown value type " << valueTypeElement.nodeName();
         }
     }
     return QString();

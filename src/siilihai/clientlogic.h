@@ -80,7 +80,7 @@ protected slots:
     virtual void getForumAuthentication(ForumSubscription *fsub);
     virtual void showSubscribeGroup(ForumSubscription* forum) {};
     virtual void unregisterSiilihai();
-    void forumAdded(ForumSubscription *fs);
+    void forumAdded(ForumSubscription *fs); // Ownership won't change
     void moreMessagesRequested(ForumThread* thread);
     void unsubscribeGroup(ForumGroup *group);
     void updateForum(ForumSubscription *sub);

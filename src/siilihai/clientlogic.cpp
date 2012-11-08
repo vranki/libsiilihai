@@ -341,7 +341,6 @@ void ClientLogic::forumAdded(ForumSubscription *fs) {
         engines.value(newFs)->updateGroupList();
         if(!noAccount())
             protocol.subscribeForum(newFs);
-
     }
 }
 

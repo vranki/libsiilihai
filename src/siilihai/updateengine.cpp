@@ -201,10 +201,14 @@ void UpdateEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups) {
 
 void UpdateEngine::listThreadsFinished(QList<ForumThread*> &tempThreads, ForumGroup *group) {
     Q_ASSERT(group);
-    Q_ASSERT(group->isSubscribed());
     Q_ASSERT(!group->isTemp());
     Q_ASSERT(group->isSane());
     threadsToUpdateQueue.clear();
+
+    if(!group->isSubscribed()) { // Unsubscribed while update
+        qDebug() << Q_FUNC_INFO << "Group" << group->toString() << " not subscribed! Ignoring these.";
+        return;
+    }
 
     if (tempThreads.isEmpty() && !group->isEmpty()) {
         QString errorMsg = "Found no threads in group " + group->toString() + ".\n Broken parser?";

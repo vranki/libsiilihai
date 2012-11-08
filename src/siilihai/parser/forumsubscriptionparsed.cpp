@@ -36,6 +36,7 @@ void ForumSubscriptionParsed::setParserEngine(ParserEngine *eng) {
     _engine = eng;
     if(parserEngine() && parserEngine()->parser()) {
         setForumUrl(parserEngine()->parser()->forum_url);
+        setSupportsLogin(parserEngine()->parser()->supportsLogin());
     } else {
         emit changed();
     }
