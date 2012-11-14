@@ -143,6 +143,7 @@ void TapaTalkEngine::replyUpdateGroup(QNetworkReply *reply) {
     Q_ASSERT(groupBeingUpdated);
     QList<ForumThread*> threads;
     if (reply->error() != QNetworkReply::NoError) {
+        qDebug() << Q_FUNC_INFO << reply->errorString();
         listThreadsFinished(threads, groupBeingUpdated);
         groupBeingUpdated = 0;
         return;
@@ -210,6 +211,8 @@ void TapaTalkEngine::replyUpdateThread(QNetworkReply *reply)
 {
     QList<ForumMessage*> messages;
     if (reply->error() != QNetworkReply::NoError) {
+        qDebug() << Q_FUNC_INFO << reply->errorString();
+
         listMessagesFinished(messages, threadBeingUpdated, false);
         return;
     }
@@ -253,6 +256,7 @@ bool TapaTalkEngine::loginIfNeeded() {
 void TapaTalkEngine::replyLogin(QNetworkReply *reply)
 {
     if (reply->error() != QNetworkReply::NoError) {
+        qDebug() << Q_FUNC_INFO << reply->errorString();
         emit networkFailure(reply->errorString());
         loginFinishedSlot(subscription(), false);
         return;
@@ -270,8 +274,7 @@ void TapaTalkEngine::replyLogin(QNetworkReply *reply)
     loginFinishedSlot(subscription(), loggedIn);
 }
 
-void TapaTalkEngine::getMessages(QDomElement dataValueElement, QList<ForumMessage *> *messages)
-{
+void TapaTalkEngine::getMessages(QDomElement dataValueElement, QList<ForumMessage *> *messages) {
     Q_ASSERT(dataValueElement.nodeName()=="value");
     QDomElement postsValueElement = findMemberValueElement(dataValueElement, "posts");
     QDomElement arrayDataValueElement = postsValueElement.firstChildElement("array").firstChildElement("data").firstChildElement("value");
@@ -323,6 +326,7 @@ void TapaTalkEngine::replyListGroups(QNetworkReply *reply)
 {
     QList<ForumGroup*> grps;
     if (reply->error() != QNetworkReply::NoError) {
+        qDebug() << Q_FUNC_INFO << reply->errorString();
         listGroupsFinished(grps);
         return;
     }

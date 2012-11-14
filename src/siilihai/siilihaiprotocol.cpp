@@ -17,6 +17,7 @@
 #include "parser/forumparser.h"
 #include "forumrequest.h"
 #include "forumdata/forumsubscription.h"
+#include "parser/forumsubscriptionparsed.h"
 #include "forumdata/forumgroup.h"
 #include "forumdata/forumthread.h"
 #include "forumdata/forummessage.h"
@@ -432,8 +433,7 @@ void SiilihaiProtocol::getForum(int forumid)
     nam.post(req, getForumData);
 }
 
-void SiilihaiProtocol::replyGetForum(QNetworkReply *reply)
-{
+void SiilihaiProtocol::replyGetForum(QNetworkReply *reply) {
     QString docs = QString().fromUtf8(reply->readAll());
     if (reply->error() == QNetworkReply::NoError) {
         QDomDocument doc;
@@ -445,12 +445,20 @@ void SiilihaiProtocol::replyGetForum(QNetworkReply *reply)
         QString name = re.firstChildElement("name").text();
         QString supportsLoginString = re.firstChildElement("supports_login").text();
         if(id > 0 && provider > 0) {
-            ForumSubscription addedForum(this, true, (ForumSubscription::ForumProvider) provider);
-            addedForum.setForumId(id);
-            addedForum.setForumUrl(url);
-            addedForum.setAlias(name);
-            addedForum.setSupportsLogin(supportsLoginString == "True");
-            emit forumGot(&addedForum);
+            ForumSubscription *addedForum = ForumSubscription::newForProvider((ForumSubscription::ForumProvider) provider, 0, true);
+            addedForum->setForumId(id);
+            addedForum->setForumUrl(url);
+            addedForum->setAlias(name);
+            addedForum->setSupportsLogin(supportsLoginString == "True");
+
+            // @todo change protocol & move this to ForumSubscription classes
+            if(addedForum->provider() == ForumSubscription::FP_PARSER) {
+                int parser = re.firstChildElement("parser").text().toInt();
+                qobject_cast<ForumSubscriptionParsed*> (addedForum)->setParser(parser);
+            }
+
+            emit forumGot(addedForum);
+            addedForum->deleteLater();
         } else {
             emit forumGot(0);
         }

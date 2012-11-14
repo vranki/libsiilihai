@@ -317,7 +317,7 @@ void UpdateEngine::updateNextChangedGroup() {
 
     if(!updateOnlyThread) {
         foreach(ForumGroup *group, subscription()->values()) {
-            if(group->needsToBeUpdated()) {
+            if(group->needsToBeUpdated() && group->isSubscribed()) {
                 doUpdateGroup(group);
                 return;
             }

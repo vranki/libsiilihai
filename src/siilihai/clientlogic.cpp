@@ -329,6 +329,7 @@ void ClientLogic::loginFinished(bool success, QString motd, bool sync) {
     }
 }
 
+// Note: fs *MUST* be a real ForumSubscription derived class, NOT just ForumSubscription with provider set!
 void ClientLogic::forumAdded(ForumSubscription *fs) {
     Q_ASSERT(fs->forumId());
     if(forumDatabase.contains(fs->forumId())) {
