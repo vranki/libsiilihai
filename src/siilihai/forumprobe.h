@@ -16,6 +16,7 @@ class ForumProbe : public QObject
 public:
     explicit ForumProbe(QObject *parent, SiilihaiProtocol &proto);
     void probeUrl(QUrl url);
+    void probeUrl(int id);
 
 signals:
     void probeResults(ForumSubscription *probedSub);
@@ -30,7 +31,7 @@ private:
     SiilihaiProtocol &protocol;
     QUrl url;
     UpdateEngine *currentEngine;
-    ForumSubscription probedSub;
+    ForumSubscription *probedSub;
 };
 
 #endif // FORUMPROBE_H

@@ -2,7 +2,7 @@
 #include "tapatalk/tapatalkengine.h"
 
 ForumProbe::ForumProbe(QObject *parent, SiilihaiProtocol &proto) :
-    QObject(parent), protocol(proto), currentEngine(0), probedSub(0, true, ForumSubscription::FP_NONE) {
+    QObject(parent), protocol(proto), currentEngine(0), probedSub(0) {
     QObject::connect(&nam, SIGNAL(finished(QNetworkReply*)), this, SLOT(finishedSlot(QNetworkReply*)));
 }
 
@@ -11,12 +11,23 @@ void ForumProbe::probeUrl(QUrl urlToProbe) {
     Q_ASSERT(urlToProbe.isValid());
     Q_ASSERT(!currentEngine);
     url = urlToProbe;
-    probedSub.setProvider(ForumSubscription::FP_NONE);
-    probedSub.setAlias(QString::null);
-    probedSub.setForumId(0);
-    probedSub.setForumUrl(url);
+    if(probedSub) {
+        probedSub->deleteLater();
+        probedSub = 0;
+    }
     connect(&protocol, SIGNAL(forumGot(ForumSubscription*)), this, SLOT(forumGot(ForumSubscription*)));
     protocol.getForum(url);
+}
+
+void ForumProbe::probeUrl(int id) {
+    qDebug() << Q_FUNC_INFO << id;
+    Q_ASSERT(id > 0);
+    if(probedSub) {
+        probedSub->deleteLater();
+        probedSub = 0;
+    }
+    connect(&protocol, SIGNAL(forumGot(ForumSubscription*)), this, SLOT(forumGot(ForumSubscription*)));
+    protocol.getForum(id);
 }
 
 void ForumProbe::forumGot(ForumSubscription *sub) {
@@ -37,15 +48,20 @@ void ForumProbe::forumGot(ForumSubscription *sub) {
 
 void ForumProbe::engineProbeResults(ForumSubscription *sub) {
     qDebug() << Q_FUNC_INFO << url.toString() << sub;
-
+    Q_ASSERT(!probedSub);
     if(sub) {
-        probedSub.setProvider(ForumSubscription::FP_TAPATALK);
+        probedSub = ForumSubscription::newForProvider(sub->provider(), 0, true);
+        probedSub->copyFrom(sub);
+        if(!probedSub->forumUrl().isValid())
+            probedSub->setForumUrl(url);
         qDebug() << Q_FUNC_INFO << sub->toString();
-    }
-    if(sub && sub->alias().isNull()) {
-        qDebug() << Q_FUNC_INFO << "Getting title";
-        // Dang, we need to figure out a name for the forum
-        nam.get(QNetworkRequest(url));
+        if(sub->alias().isNull()) {
+            qDebug() << Q_FUNC_INFO << "Getting title";
+            // Dang, we need to figure out a name for the forum
+            nam.get(QNetworkRequest(url));
+        } else {
+            emit probeResults(sub);
+        }
     } else {
         emit probeResults(sub);
     }
@@ -53,8 +69,10 @@ void ForumProbe::engineProbeResults(ForumSubscription *sub) {
     currentEngine = 0;
 }
 
+// Title reply
 void ForumProbe::finishedSlot(QNetworkReply *reply) {
     qDebug() << Q_FUNC_INFO;
+    Q_ASSERT(probedSub);
     // no error received?
     if (reply->error() == QNetworkReply::NoError) {
         QString html = reply->readAll();
@@ -63,13 +81,12 @@ void ForumProbe::finishedSlot(QNetworkReply *reply) {
             int titleEnd = html.indexOf("</", titleBegin);
             QString title = html.mid(titleBegin + 7, titleEnd - titleBegin - 7);
             qDebug() << Q_FUNC_INFO << "title:" << title;
-            probedSub.setAlias(title);
-            Q_ASSERT(probedSub.provider() != ForumSubscription::FP_NONE);
+            probedSub->setAlias(title);
+            Q_ASSERT(probedSub->provider() != ForumSubscription::FP_NONE);
         }
-        emit probeResults(&probedSub);
+        emit probeResults(probedSub);
     } else {
         emit probeResults(0);
     }
     reply->deleteLater();
 }
-
