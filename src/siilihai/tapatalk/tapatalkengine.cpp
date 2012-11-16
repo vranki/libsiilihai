@@ -349,7 +349,7 @@ void TapaTalkEngine::getGroups(QDomElement arrayDataElement, QList<ForumGroup *>
         QString subOnly = getValueFromStruct(arrayValueElement, "sub_only");
         QString newPosts = getValueFromStruct(arrayValueElement, "new_post");
 
-        if(subOnly=="0") { // Add only leaf groups
+        if(subOnly=="0" || subOnly.isEmpty()) { // Add only leaf groups
             ForumGroup *newGroup = new ForumGroup(subscription(), true);
             newGroup->setName(groupName);
             newGroup->setId(groupId);
