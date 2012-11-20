@@ -304,6 +304,17 @@ bool ForumSubscription::supportsLogin() const {
     return _supportsLogin;
 }
 
+QString ForumSubscription::faviconUrl()
+{
+    QString fiUrl = forumUrl().toString(); // @todo modify to QUrl handling..
+    if(fiUrl.isNull()) return fiUrl;
+    QString path = QUrl(fiUrl).path();
+    if(path.length() > 1)
+        fiUrl = fiUrl.replace(path, "");
+    fiUrl = fiUrl + "/favicon.ico";
+    return fiUrl;
+}
+
 void ForumSubscription::setProvider(ForumSubscription::ForumProvider provider)
 {
     _provider = provider;

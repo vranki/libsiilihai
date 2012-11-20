@@ -51,6 +51,7 @@ class ForumSubscription : public QObject, public QMap<QString, ForumGroup*>, pub
     Q_PROPERTY(bool beingSynced READ beingSynced WRITE setBeingSynced NOTIFY changed)
     Q_PROPERTY(bool scheduledForUpdate READ scheduledForUpdate WRITE setScheduledForUpdate NOTIFY changed)
     Q_PROPERTY(bool supportsLogin READ supportsLogin WRITE setSupportsLogin NOTIFY changed)
+    Q_PROPERTY(QString faviconUrl READ faviconUrl() NOTIFY changed)
 public:
     enum ForumProvider {
         FP_NONE=0, // Error in practice..
@@ -105,6 +106,7 @@ public:
     void setForumUrl(QUrl url);
     void setSupportsLogin(bool sl);
     bool supportsLogin() const;
+    QString faviconUrl();
     void setProvider(ForumProvider provider); // Use with care!!
 signals:
     void changed();
