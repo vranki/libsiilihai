@@ -93,6 +93,7 @@ protected:
     bool forceUpdate; // Update even if no changes
     bool updateOnlyThread;
     bool requestingCredentials;
+    bool updateCanceled;
     ForumDatabase *fdb;
     QQueue<ForumThread*> threadsToUpdateQueue;
     bool updateWhenEngineReady;

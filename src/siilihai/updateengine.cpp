@@ -32,6 +32,7 @@ UpdateEngine::UpdateEngine(QObject *parent, ForumDatabase *fd) :
     requestingCredentials = false;
     updateWhenEngineReady = false;
     updateOnlyThread = false;
+    updateCanceled = true;
 }
 
 UpdateEngine::~UpdateEngine() {
@@ -70,6 +71,8 @@ void UpdateEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages, Foru
     Q_ASSERT(dbThread->isSane());
     Q_ASSERT(!dbThread->isTemp());
     Q_ASSERT(dbThread->group()->isSubscribed());
+    if(updateCanceled) return;
+
     dbThread->markToBeUpdated(false);
     if(tempMessages.size()==0) qDebug() << Q_FUNC_INFO << "got 0 messages in thread " << dbThread->toString();
     bool messagesChanged = false;
@@ -126,6 +129,8 @@ void UpdateEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages, Foru
 
 void UpdateEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups) {
     if(!fsubscription) return;
+    if(updateCanceled) return;
+
     bool dbGroupsWasEmpty = fsubscription->isEmpty();
     fsubscription->markToBeUpdated(false);
     if (tempGroups.size() == 0 && fsubscription->size() > 0) {
@@ -204,6 +209,8 @@ void UpdateEngine::listThreadsFinished(QList<ForumThread*> &tempThreads, ForumGr
     Q_ASSERT(!group->isTemp());
     Q_ASSERT(group->isSane());
     Q_ASSERT(!group->subscription()->beingSynced());
+    if(updateCanceled) return;
+
     threadsToUpdateQueue.clear();
 
     if(!group->isSubscribed()) { // Unsubscribed while update
@@ -286,6 +293,7 @@ void UpdateEngine::updateThread(ForumThread *thread, bool force) {
     forceUpdate = force;
     updateAll = true;
     updateOnlyThread = true;
+    updateCanceled = false;
 
     if(force) {
         thread->setLastPage(0);
@@ -297,7 +305,8 @@ void UpdateEngine::updateThread(ForumThread *thread, bool force) {
 }
 
 void UpdateEngine::networkFailure(QString message) {
-    emit updateFailure(fsubscription, "Updating " + fsubscription->alias() + " failed due to network error:\n\n" + message);
+    if(!updateCanceled)
+        emit updateFailure(fsubscription, "Updating " + fsubscription->alias() + " failed due to network error:\n\n" + message);
     setState(PES_ERROR);
 }
 
@@ -314,6 +323,7 @@ void UpdateEngine::loginFinishedSlot(ForumSubscription *sub, bool success) {
 void UpdateEngine::updateNextChangedGroup() {
     Q_ASSERT(updateAll);
     Q_ASSERT(!subscription()->beingSynced());
+    Q_ASSERT(!updateCanceled);
 
     if(!updateOnlyThread) {
         foreach(ForumGroup *group, subscription()->values()) {
@@ -333,6 +343,7 @@ void UpdateEngine::updateNextChangedGroup() {
 
 void UpdateEngine::updateNextChangedThread() {
     Q_ASSERT(!subscription()->beingSynced());
+    Q_ASSERT(!updateCanceled);
 
     if (!threadsToUpdateQueue.isEmpty()) {
         ForumThread *thread = threadsToUpdateQueue.dequeue();
@@ -347,6 +358,7 @@ void UpdateEngine::updateNextChangedThread() {
 }
 
 void UpdateEngine::cancelOperation() {
+    updateCanceled = true;
     if(currentState==PES_IDLE || currentState==PES_ERROR) return;
     updateAll = false;
     foreach(ForumGroup *group, subscription()->values())
@@ -408,15 +420,6 @@ void UpdateEngine::setState(UpdateEngineState newState) {
         cancelOperation();
         emit forumUpdated(subscription());
     }
-    /*
-    if(newState==PES_REQUESTING_CREDENTIALS) {
-        if(!subscription()->authenticated() || subscription()->username().length()>0) {
-            setState(PES_IDLE);
-            // @todo is parser updated now?
-        } // Else state changes to requesting, and Siilihai tries to provide creds.
-    }
-    */
-
     emit stateChanged(currentState, oldState);
 }
 
@@ -448,6 +451,7 @@ void UpdateEngine::updateForum(bool force) {
 
     forceUpdate = force;
     updateOnlyThread = false;
+    updateCanceled = false;
     updateAll = true; // Update whole forum
     if(state()==PES_ENGINE_NOT_READY) {
         updateWhenEngineReady = true;
@@ -459,6 +463,7 @@ void UpdateEngine::updateForum(bool force) {
 void UpdateEngine::updateGroupList() {
     updateAll = false; // Just the group list
     updateOnlyThread = false;
+    updateCanceled = false;
     if(state()==PES_ENGINE_NOT_READY) {
         updateWhenEngineReady = true;
     } else {

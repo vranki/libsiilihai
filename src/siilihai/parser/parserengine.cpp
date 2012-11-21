@@ -105,6 +105,7 @@ void ParserEngine::updateThread(ForumThread *thread, bool force) {
 
 void ParserEngine::cancelOperation() {
     updateAll = false;
+    updateCanceled = true;
     session.cancelOperation();
     UpdateEngine::cancelOperation();
 }

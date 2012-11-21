@@ -242,8 +242,12 @@ void ClientLogic::updateClicked(ForumSubscription* sub , bool force) {
 }
 
 void ClientLogic::cancelClicked() {
-    foreach(UpdateEngine* engine, engines.values())
+    foreach(ForumSubscription *sub, forumDatabase.values()) {
+        sub->setScheduledForUpdate(false);
+    }
+    foreach(UpdateEngine* engine, engines.values()) {
         engine->cancelOperation();
+    }
 }
 
 
