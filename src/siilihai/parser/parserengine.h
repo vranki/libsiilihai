@@ -51,6 +51,7 @@ signals:
 
 private slots:
     void parserUpdated(ForumParser *p);
+    void updateParserIfError(UpdateEngine::UpdateEngineState newState, UpdateEngine::UpdateEngineState oldState);
 protected:
     virtual void requestCredentials();
     virtual void doUpdateForum();

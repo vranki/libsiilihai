@@ -406,6 +406,7 @@ void UpdateEngine::setState(UpdateEngineState newState) {
         subscription()->setScheduledForUpdate(false);
         subscription()->setBeingUpdated(false);
         cancelOperation();
+        emit forumUpdated(subscription());
     }
     /*
     if(newState==PES_REQUESTING_CREDENTIALS) {

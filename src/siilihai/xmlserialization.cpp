@@ -7,6 +7,7 @@
 #include "parser/forumsubscriptionparsed.h"
 #include "tapatalk/forumsubscriptiontapatalk.h"
 #include "forumrequest.h"
+#include <QDate>
 
 void XmlSerialization::serialize(ForumSubscription *sub, QDomElement &parent, QDomDocument &doc) {
     QDomElement subElement = sub->serialize(parent, doc);
@@ -186,7 +187,12 @@ ForumParser *XmlSerialization::readParser(QDomElement &element, QObject *parent)
     parser->posting_message = element.firstChildElement("posting_message").text();
     parser->posting_parameters = element.firstChildElement("posting_parameters").text();
     parser->posting_hints = element.firstChildElement("posting_hints").text();
-
+    QString ud = element.firstChildElement("update_date").text();
+    if(ud.isNull()) {
+        parser->update_date = QDate(1970, 1, 1);
+    } else {
+        parser->update_date = QDate::fromString(ud);
+    }
     return parser;
 }
 
@@ -219,6 +225,7 @@ void XmlSerialization::serialize(ForumParser *p, QDomElement &parent, QDomDocume
     appendValue("posting_message", p->posting_message, newElement, doc);
     appendValue("posting_parameters", p->posting_parameters, newElement, doc);
     appendValue("posting_hints", p->posting_hints, newElement, doc);
+    appendValue("update_date", p->update_date.toString(), newElement, doc);
     parent.appendChild(newElement);
 }
 

@@ -17,6 +17,8 @@
 #define FORUMPARSER_H_
 #include <QString>
 #include <QObject>
+#include <QDate>
+
 /**
   * Represents a single forum parser. Parser is used to parse
   * html into groups, threads and messages.
@@ -81,6 +83,7 @@ public:
     QString reply_subject;
     QString reply_message;
     QString reply_parameters;
+    QDate update_date; // Date of last update from server
 private:
     int _id;
     QString _parser_name;

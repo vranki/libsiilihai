@@ -242,6 +242,7 @@ void SiilihaiProtocol::replyGetParser(QNetworkReply *reply) {
         doc.setContent(docs);
         QDomElement re = doc.firstChildElement("parser");
         parser = XmlSerialization::readParser(re, this);
+        parser->update_date = QDate::currentDate();
     } else {
         qDebug() << Q_FUNC_INFO << "Network error: " << reply->errorString();
     }

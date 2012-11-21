@@ -25,6 +25,7 @@ ForumParser::ForumParser(QObject *parent) : QObject(parent){
     parser_type = 0;
     parser_status = 0;
     date_format = 0;
+    update_date = QDate(1970, 1, 1);
 }
 
 ForumParser &ForumParser::operator=(const ForumParser& o) {
@@ -59,6 +60,7 @@ ForumParser &ForumParser::operator=(const ForumParser& o) {
     reply_subject = o.reply_subject;
     reply_message = o.reply_message;
     reply_parameters = o.reply_parameters;
+    update_date = o.update_date;
     emit changed();
     return *this;
 }

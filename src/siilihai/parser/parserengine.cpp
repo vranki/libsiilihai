@@ -32,6 +32,8 @@ ParserEngine::ParserEngine(ForumDatabase *fd, QObject *parent, ParserManager *pm
     connect(&session, SIGNAL(getHttpAuthentication(ForumSubscription*, QAuthenticator*)), this, SIGNAL(getHttpAuthentication(ForumSubscription*,QAuthenticator*)));
     connect(&session, SIGNAL(loginFinished(ForumSubscription *,bool)), this, SLOT(loginFinishedSlot(ForumSubscription *,bool)));
     connect(parserManager, SIGNAL(parserUpdated(ForumParser*)), this, SLOT(parserUpdated(ForumParser*)));
+    connect(this, SIGNAL(stateChanged(UpdateEngine::UpdateEngineState,UpdateEngine::UpdateEngineState)),
+            this, SLOT(updateParserIfError(UpdateEngine::UpdateEngineState,UpdateEngine::UpdateEngineState)));
     currentParser = 0;
     sessionInitialized = false;
     updatingParser = false;
@@ -57,7 +59,18 @@ void ParserEngine::setSubscription(ForumSubscription *fs) {
     UpdateEngine::setSubscription(fs);
     if(!fs) return;
     subscriptionParsed()->setParserEngine(this);
+
+    bool updateParser = false;
+
     if(!currentParser) {
+        updateParser = true;
+    } else {
+        QDate updateDate = QDate::currentDate();
+        updateDate.addDays(-2); // Update if older than 2 days
+
+        if(currentParser->update_date < updateDate) updateParser = true;
+    }
+    if(updateParser) {
         parserManager->updateParser(subscriptionParsed()->parser());
         updatingParser = true;
         setState(PES_ENGINE_NOT_READY);
@@ -76,6 +89,12 @@ void ParserEngine::parserUpdated(ForumParser *p) {
         qDebug() << Q_FUNC_INFO;
         updatingParser = false;
         setParser(p);
+    }
+}
+
+void ParserEngine::updateParserIfError(UpdateEngine::UpdateEngineState newState, UpdateEngine::UpdateEngineState oldState) {
+    if(newState == PES_ERROR) {
+        parserManager->updateParser(subscriptionParsed()->parser());
     }
 }
 

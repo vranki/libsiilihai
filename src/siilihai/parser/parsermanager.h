@@ -26,14 +26,13 @@ public:
     void deleteParser(int id);
 private slots:
     // Called from protocol
-    void storeOrUpdateParser(ForumParser* parser); // Owership does not change
-    void loginFinished(bool success);
+    void storeOrUpdateParser(ForumParser* parser); // Called by protocol. Owership does not change
 signals:
     void parserUpdated(ForumParser *parser); // Parser was d/l'd from server
 private:
     ParserDatabase *parserDatabase;
     SiilihaiProtocol *protocol;
-    QQueue<int> parsersToUpdate; // Waiting for login
+//    QQueue<int> parsersToUpdate; // Waiting for login
 };
 
 #endif // PARSERMANAGER_H
