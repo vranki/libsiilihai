@@ -4,6 +4,12 @@ libsiilihai (2.2.0~quantal) quantal; urgency=low
 
  -- Ville Ranki <ville.ranki@iki.fi>  Wed, 21 Nov 2012 12:34:56 +0300
 
+libsiilihai (2.1.2~precise) precise; urgency=low
+
+  * Fixes parsers not updating
+
+ -- Ville Ranki <ville.ranki@iki.fi>  Wed, 21 Nov 2012 12:34:56 +0300
+
 libsiilihai (2.1.2~quantal) quantal; urgency=low
 
   * Fixes parsers not updating
