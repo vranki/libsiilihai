@@ -533,6 +533,17 @@ void ClientLogic::updateGroupSubscriptions(ForumSubscription *sub) {
     updateForum(sub);
 }
 
+void ClientLogic::updateAllParsers() {
+    if(currentState != SH_READY) return;
+    foreach(UpdateEngine *eng, engines) {
+        if(eng->state()==UpdateEngine::PES_IDLE && eng->subscription()->isParsed()) {
+            ForumSubscriptionParsed *subParser = qobject_cast<ForumSubscriptionParsed*> (eng->subscription());
+            Q_ASSERT(subParser);
+            parserManager->updateParser(subParser->parser());
+        }
+    }
+}
+
 void ClientLogic::updateThread(ForumThread* thread, bool force) {
     if(currentState != SH_READY) return;
     qDebug() << Q_FUNC_INFO << thread->toString() << force;

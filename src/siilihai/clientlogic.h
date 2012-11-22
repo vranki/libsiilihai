@@ -57,6 +57,7 @@ public slots:
     virtual void loginFinished(bool success, QString motd, bool sync);
     virtual void unsubscribeForum(ForumSubscription* fs);
     virtual void updateGroupSubscriptions(ForumSubscription *sub);
+    virtual void updateAllParsers();
 
 protected:
     virtual QString getDataFilePath();

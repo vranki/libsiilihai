@@ -38,6 +38,6 @@ void ParserManager::storeOrUpdateParser(ForumParser* parser) {
     emit parserUpdated(newParser);
 }
 
-void ParserManager::updateParser(int id) {
-    protocol->getParser(id);
+void ParserManager::updateParser(int parserId) {
+    protocol->getParser(parserId);
 }

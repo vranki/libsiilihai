@@ -21,7 +21,7 @@ public:
     ~ParserManager();
     void openDatabase(QString filename);
     ForumParser *getParser(int id);
-    void updateParser(int id); // download the parser from server and signal parseravailable
+    void updateParser(int parserId); // download the parser from server and signal parseravailable
     void uploadParser(ForumParser *parser);
     void deleteParser(int id);
 private slots:
@@ -32,7 +32,6 @@ signals:
 private:
     ParserDatabase *parserDatabase;
     SiilihaiProtocol *protocol;
-//    QQueue<int> parsersToUpdate; // Waiting for login
 };
 
 #endif // PARSERMANAGER_H
