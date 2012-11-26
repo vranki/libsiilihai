@@ -16,13 +16,10 @@
 #include "../xmlserialization.h"
 #include <QDomDocument>
 
-ParserDatabase::ParserDatabase(QObject *parent) :
-    QObject(parent) {
-
+ParserDatabase::ParserDatabase(QObject *parent) : QObject(parent) {
 }
 
 ParserDatabase::~ParserDatabase() {
-
 }
 
 bool ParserDatabase::openDatabase(QString filename) {

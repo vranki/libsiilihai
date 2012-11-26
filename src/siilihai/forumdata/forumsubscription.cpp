@@ -155,6 +155,10 @@ UpdateEngine *ForumSubscription::updateEngine() const {
     return _engine;
 }
 
+void ForumSubscription::engineDestroyed() {
+    _engine = 0;
+}
+
 bool ForumSubscription::hasGroupListChanged() const {
     return _groupListChanged;
 }

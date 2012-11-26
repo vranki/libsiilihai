@@ -36,13 +36,19 @@ UpdateEngine::UpdateEngine(QObject *parent, ForumDatabase *fd) :
 }
 
 UpdateEngine::~UpdateEngine() {
+    if(subscription())
+        subscription()->engineDestroyed();
 }
 
 void UpdateEngine::setSubscription(ForumSubscription *fs) {
+    ForumSubscription *oldSub = fsubscription;
     fsubscription = fs;
-    if(fs) {
+    if(fsubscription) {
         connect(fsubscription, SIGNAL(destroyed()), this, SLOT(subscriptionDeleted()));
     } else {
+        if(oldSub) {
+            disconnect(oldSub, 0, this, 0);
+        }
         setState(PES_ENGINE_NOT_READY);
     }
 }

@@ -370,7 +370,7 @@ void ForumSession::listThreadsReply(QNetworkReply *reply) {
     if(operationInProgress == FSONoOp) return;
     Q_ASSERT(currentGroup);
     Q_ASSERT(operationInProgress == FSOListThreads);
-    Q_ASSERT(reply->request().attribute(QNetworkRequest::User).toInt() ==FSOListThreads);
+    Q_ASSERT(reply->request().attribute(QNetworkRequest::User).toInt()==FSOListThreads);
     if (reply->error() != QNetworkReply::NoError) {
         emit(networkFailure(reply->errorString()));
         cancelOperation();

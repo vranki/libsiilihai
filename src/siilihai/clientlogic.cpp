@@ -15,8 +15,7 @@
 #include "tapatalk/tapatalkengine.h"
 
 ClientLogic::ClientLogic(QObject *parent) : QObject(parent), settings(0), forumDatabase(this), syncmaster(this, forumDatabase, protocol),
-    parserManager(0), currentCredentialsRequest(0)
-{
+    parserManager(0), currentCredentialsRequest(0), currentState(SH_OFFLINE) {
     endSyncDone = false;
     firstRun = true;
     dbStored = false;
@@ -86,8 +85,12 @@ void ClientLogic::launchSiilihai() {
 
 void ClientLogic::haltSiilihai() {
     cancelClicked();
-    foreach(UpdateEngine *engine, engines.values())
+    foreach(UpdateEngine *engine, engines.values()) {
+        engine->subscription()->engineDestroyed();
+        engine->setSubscription(0);
         engine->deleteLater();
+    }
+
     engines.clear();
     if(usettings.syncEnabled() && !endSyncDone && currentState == SH_READY) {
         qDebug() << "Sync enabled - running end sync";

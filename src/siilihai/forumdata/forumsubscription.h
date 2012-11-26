@@ -85,6 +85,7 @@ public:
     int unreadCount() const;
     bool isTemp() const;
     UpdateEngine *updateEngine() const;
+    void engineDestroyed(); // Sets engine to 0
     bool hasGroupListChanged() const;
     void markRead(bool read=true);
     void setBeingUpdated(bool bu);
