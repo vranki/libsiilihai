@@ -1,4 +1,4 @@
-libsiilihai (2.2.0~quantal) quantal; urgency=low
+libsiilihai (2.2.0) quantal; urgency=low
 
   * Force update of parsers implementes
 
