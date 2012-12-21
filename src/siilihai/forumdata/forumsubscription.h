@@ -72,7 +72,7 @@ public:
     void setAuthenticated(bool na); // @todo is this required? Why not just username.length() > 0 ?
     void incrementUnreadCount(int urc);
     void addGroup(ForumGroup* grp, bool affectsSync=true, bool incrementUnreads = true);
-    void removeGroup(ForumGroup* grp, bool affectsSync=true);
+    void removeGroup(ForumGroup* grp, bool affectsSync=true, bool incrementUnreads = true);
     void setGroupListChanged(bool changed=true); // To trigger sending group list update
     int forumId() const;
     void setForumId(int newId);

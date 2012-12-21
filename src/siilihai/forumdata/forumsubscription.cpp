@@ -57,8 +57,9 @@ void ForumSubscription::addGroup(ForumGroup* grp, bool affectsSync, bool increme
     emit groupAdded(grp);
 }
 
-void ForumSubscription::removeGroup(ForumGroup* grp, bool affectsSync) {
+void ForumSubscription::removeGroup(ForumGroup* grp, bool affectsSync, bool incrementUnreads) {
     Q_ASSERT(grp->subscription() == this);
+    if(incrementUnreads) incrementUnreadCount(-grp->unreadCount());
     remove(grp->id());
 
     if(affectsSync)

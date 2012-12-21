@@ -17,7 +17,9 @@ Description: Siilihai forum reader support library
 
 Package: libsiilihai2-dbg
 Architecture: any
-Depends: libsiilihai2
+Section: debug
+Priority: extra
+Depends: libsiilihai2 (= ${binary:Version})
 Replaces: libsiilihai1-dbg
 Pre-Depends: ${misc:Pre-Depends}
 Description: Debug symbols for Siilihai forum reader support library
