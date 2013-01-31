@@ -501,8 +501,6 @@ void ClientLogic::parserEngineStateChanged(UpdateEngine::UpdateEngineState newSt
     }
     if (!busyParserEngines.isEmpty()) {
         showStatusMessage("Updating Forums.. ");
-    } else {
-        showStatusMessage("Forums updated");
     }
     if(currentState==SH_READY && newState == UpdateEngine::PES_IDLE && oldState != UpdateEngine::PES_UPDATING) {
         if (settings->value("preferences/update_automatically", true).toBool())

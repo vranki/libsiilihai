@@ -144,8 +144,9 @@ void TapaTalkEngine::replyUpdateGroup(QNetworkReply *reply) {
     QList<ForumThread*> threads;
     if (reply->error() != QNetworkReply::NoError) {
         qDebug() << Q_FUNC_INFO << reply->errorString();
-        listThreadsFinished(threads, groupBeingUpdated);
-        groupBeingUpdated = 0;
+        ForumGroup *updatedGroup = groupBeingUpdated;
+        groupBeingUpdated = 0; // Update finished so clear this.
+        listThreadsFinished(threads, updatedGroup);
         return;
     }
     QString docs = QString().fromUtf8(reply->readAll());
