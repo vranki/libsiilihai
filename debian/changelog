@@ -2,7 +2,7 @@ libsiilihai (2.2.1) quantal; urgency=low
 
   * Maybe fixes crash when group has been deleted
 
- -- Ville Ranki <ville.ranki@iki.fi>  Wed, 21 Nov 2012 12:34:56 +0300
+ -- Ville Ranki <ville.ranki@iki.fi>  Thu, 27 Nov 2012 12:34:56 +0300
 
 libsiilihai (2.2.0-1) quantal; urgency=low
 
