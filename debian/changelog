@@ -1,3 +1,9 @@
+libsiilihai (2.2.2) quantal; urgency=low
+
+  * Crash fixes & fixed long threads in Tapatalk
+
+ -- Ville Ranki <ville.ranki@iki.fi>  Mon, 4 Jan 2013 12:34:56 +0300
+
 libsiilihai (2.2.1) quantal; urgency=low
 
   * Maybe fixes crash when group has been deleted
