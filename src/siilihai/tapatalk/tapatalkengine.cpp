@@ -49,6 +49,8 @@ void TapaTalkEngine::convertBodyToHtml(ForumMessage *msg)
     newBody = newBody.replace("[/img]", "\"><br/>");
     newBody = newBody.replace("[quote]", "<div class=\"quote\">");
     newBody = newBody.replace("[/quote]", "</div><br/>");
+    newBody = newBody.replace("[color=Black]", "");
+    newBody = newBody.replace("[/color]", "");
     newBody = newBody.replace("\n", "<br/>");
     int urlPosition = -1;
     do {
@@ -194,23 +196,38 @@ void TapaTalkEngine::doUpdateThread(ForumThread *thread) {
     Q_ASSERT(!threadBeingUpdated);
     threadBeingUpdated = thread;
 
+    currentMessagePage = 0; // Start from first page
+    qDeleteAll(messages);
+    messages.clear();
+    updateCurrentThreadPage();
+}
+
+void TapaTalkEngine::updateCurrentThreadPage() {
+    int firstMessage = currentMessagePage * 50;
+    int lastMessage = qMin(firstMessage + 49, threadBeingUpdated->getMessagesCount());
+
+    qDebug() << Q_FUNC_INFO << "Getting messages " << firstMessage <<  " to " << lastMessage << " in " << threadBeingUpdated->toString();
+
+    Q_ASSERT(firstMessage < lastMessage);
+
     QNetworkRequest req(connectorUrl);
 
     QList<QPair<QString, QString> > params;
-    params.append(QPair<QString, QString>("string", thread->id()));
+    params.append(QPair<QString, QString>("string", threadBeingUpdated->id()));
+    params.append(QPair<QString, QString>("int", QString::number(firstMessage)));
+    params.append(QPair<QString, QString>("int", QString::number(lastMessage)));
 
     QDomDocument doc("");
 
     createMethodCall(doc, "get_thread", params);
 
     QByteArray requestData = doc.toByteArray();
+
     req.setAttribute(QNetworkRequest::User, TTO_UpdateThread);
     nam.post(req, requestData);
 }
 
-void TapaTalkEngine::replyUpdateThread(QNetworkReply *reply)
-{
-    QList<ForumMessage*> messages;
+void TapaTalkEngine::replyUpdateThread(QNetworkReply *reply) {
     if (reply->error() != QNetworkReply::NoError) {
         qDebug() << Q_FUNC_INFO << reply->errorString();
 
@@ -219,15 +236,28 @@ void TapaTalkEngine::replyUpdateThread(QNetworkReply *reply)
     }
 
     QString docs = QString().fromUtf8(reply->readAll());
-    // qDebug() << Q_FUNC_INFO << docs;
     QDomDocument doc;
     doc.setContent(docs);
     QDomElement paramValueElement = doc.firstChildElement("methodResponse").firstChildElement("params").firstChildElement("param").firstChildElement("value");
     getMessages(paramValueElement, &messages);
-    ForumThread *updatedThread = threadBeingUpdated;
-    threadBeingUpdated=0;
-    listMessagesFinished(messages, updatedThread, false);
-    qDeleteAll(messages);
+
+    // Find total_post_num value to figure out if we could have more messages
+    QDomElement totalPostNumElement = findMemberValueElement(paramValueElement, "total_post_num");
+    QString totalPostNumString = valueElementToString(totalPostNumElement);
+    int totalPostNum = totalPostNumString.toInt();
+    qDebug() << Q_FUNC_INFO << "Got " << messages.size() << " messages now, total" << totalPostNum << ", limit " << threadBeingUpdated->getMessagesCount();
+    if(messages.size() < threadBeingUpdated->getMessagesCount() &&
+            messages.size() < totalPostNum) {
+        // Need to get next page of messages
+        currentMessagePage++;
+        updateCurrentThreadPage();
+    } else {
+        ForumThread *updatedThread = threadBeingUpdated;
+        threadBeingUpdated=0;
+        listMessagesFinished(messages, updatedThread, totalPostNum > messages.size());
+        qDeleteAll(messages);
+        messages.clear();
+    }
 }
 
 bool TapaTalkEngine::loginIfNeeded() {
@@ -369,6 +399,10 @@ QString TapaTalkEngine::getValueFromStruct(QDomElement arrayValueElement, QStrin
     Q_ASSERT(arrayValueElement.nodeName()=="value");
 
     QDomElement valueElement = findMemberValueElement(arrayValueElement, name);
+    return valueElementToString(valueElement);
+}
+
+QString TapaTalkEngine::valueElementToString(QDomElement valueElement) {
     if(!valueElement.isNull()) {
         QDomElement valueTypeElement = valueElement.firstChildElement();
         if(valueTypeElement.nodeName()=="string") {
@@ -380,13 +414,16 @@ QString TapaTalkEngine::getValueFromStruct(QDomElement arrayValueElement, QStrin
             return valueTypeElement.text();
         } else if(valueTypeElement.nodeName()=="dateTime.iso8601") {
             return valueTypeElement.text();
+        } else if(valueTypeElement.nodeName()=="int") {
+            return valueTypeElement.text();
         } else {
             qDebug() << Q_FUNC_INFO << "unknown value type " << valueTypeElement.nodeName();
         }
+    } else {
+        qDebug() << Q_FUNC_INFO << "Null value element given!";
     }
     return QString();
 }
-
 
 void TapaTalkEngine::createMethodCall(QDomDocument & doc, QString method, QList<QPair<QString, QString> > &params) {
     QDomElement methodCallElement = doc.createElement("methodCall");
@@ -432,7 +469,6 @@ void TapaTalkEngine::getChildGroups(QDomElement arrayValueElement, QList<ForumGr
         }
     }
 }
-
 
 QDomElement TapaTalkEngine::findMemberValueElement(QDomElement arrayValueElement, QString memberName)
 {

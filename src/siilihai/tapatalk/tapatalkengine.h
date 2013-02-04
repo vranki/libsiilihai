@@ -33,6 +33,8 @@ private slots:
 protected:
     virtual void requestCredentials();
 private:
+    void updateCurrentThreadPage(); // Get next 50 messages in current thread
+
     void replyProbe(QNetworkReply *reply);
     void replyListGroups(QNetworkReply *reply);
     void replyUpdateGroup(QNetworkReply *reply);
@@ -48,6 +50,7 @@ private:
     bool loginIfNeeded(); // True if it is needed first
     void createMethodCall(QDomDocument &doc, QString method, QList<QPair<QString, QString> > &params);
     QDomElement findMemberValueElement(QDomElement dataValueElement, QString memberName);
+    QString valueElementToString(QDomElement valueElement); // Value should be something like <value><int>29</int></value>
     ForumSubscriptionTapaTalk *subscriptionTapaTalk() const;
     void convertBodyToHtml(ForumMessage *msg); // convert [url=][/url] etc to real html
 
@@ -55,6 +58,9 @@ private:
     ForumGroup *groupBeingUpdated;
     ForumThread *threadBeingUpdated;
     bool loggedIn;
+    // TapaTalk sends only 50 messages per request, so we must use "pages" to update longer threads
+    int currentMessagePage;
+    QList<ForumMessage*> messages;
 };
 
 #endif // TAPATALKENGINE_H
