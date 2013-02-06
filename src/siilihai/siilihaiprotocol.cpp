@@ -314,6 +314,7 @@ void SiilihaiProtocol::subscribeGroups(ForumSubscription *fs) {
     }
     subscribeGroupsData = doc.toByteArray();
     req.setAttribute(QNetworkRequest::User, SPOSubscribeGroups);
+    req.setHeader(QNetworkRequest::ContentTypeHeader, QString("application/x-www-form-urlencoded"));
     nam.post(req, subscribeGroupsData);
 }
 
@@ -593,6 +594,7 @@ void SiilihaiProtocol::sendThreadData(ForumGroup *grp, QList<ForumMessage*> &fms
     sendThreadDataData = doc.toByteArray();
 
     req.setAttribute(QNetworkRequest::User, SPOSendThreadData);
+    req.setHeader(QNetworkRequest::ContentTypeHeader, QString("application/x-www-form-urlencoded"));
     nam.post(req, sendThreadDataData);
 }
 
@@ -633,6 +635,7 @@ void SiilihaiProtocol::downsync(QList<ForumGroup*> &groups) {
     }
     getThreadDataData = doc.toByteArray();
     req.setAttribute(QNetworkRequest::User, SPOGetThreadData);
+    req.setHeader(QNetworkRequest::ContentTypeHeader, QString("application/x-www-form-urlencoded"));
     nam.post(req, getThreadDataData);
 }
 

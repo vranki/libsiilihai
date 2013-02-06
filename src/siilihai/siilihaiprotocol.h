@@ -60,9 +60,8 @@ public:
     void login(QString user, QString pass);
     void setBaseURL(QString bu);
     QString baseURL();
-    void listForums(); // REALLY: listForums
+    void listForums();
     void listRequests();
-    // void listSubscriptions(); // not used anywhere??
     void getParser(const int id);
     void subscribeGroups(ForumSubscription *fs); // Sends groups in forum to server
     void saveParser(const ForumParser *parser);
