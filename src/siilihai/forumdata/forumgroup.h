@@ -34,12 +34,13 @@ class ForumGroup : public ForumDataItem, public QMap<QString, ForumThread*> {
     Q_PROPERTY(int unreadCount READ unreadCount NOTIFY unreadCountChanged)
     Q_PROPERTY(bool isSubscribed READ isSubscribed WRITE setSubscribed NOTIFY changed)
 public:
-    ForumGroup(ForumSubscription *sub, bool temp=true);
+    ForumGroup(QObject *parent, bool temp=true);
     virtual ~ForumGroup();
     void copyFrom(ForumGroup * o);
     virtual QString toString() const;
     bool isSane() const;
     ForumSubscription *subscription() const;
+    void setSubscription(ForumSubscription *sub);
     bool isSubscribed() const;
     int changeset() const;
     bool hasChanged() const;

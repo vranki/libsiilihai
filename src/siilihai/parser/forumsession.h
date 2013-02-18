@@ -73,7 +73,7 @@ public slots:
     void authenticationRequired (QNetworkReply * reply, QAuthenticator * authenticator); // Called by NAM
     void authenticationReceived();
 signals:
-    void listGroupsFinished(QList<ForumGroup*> &groups);
+    void listGroupsFinished(QList<ForumGroup*> &groups, ForumSubscription *sub);
     void listThreadsFinished(QList<ForumThread*> &threads, ForumGroup *group); // Will be deleted
     void listMessagesFinished(QList<ForumMessage*> &messages, ForumThread *thread, bool moreAvailable);
     void networkFailure(QString message);

@@ -20,8 +20,8 @@
 ForumThread::~ForumThread() {
 }
 
-ForumThread::ForumThread(ForumGroup *grp, bool temp) : ForumDataItem(grp) {
-    _group = grp;
+ForumThread::ForumThread(QObject *parent, bool temp) : ForumDataItem(parent) {
+    _group = 0;
     _changeset = -1;
     _ordernum = -1;
     _hasMoreMessages = false;
@@ -57,7 +57,7 @@ QString ForumThread::toString() const {
 }
 
 bool ForumThread::isSane() const {
-    return (_group && id().length() > 0 && _getMessagesCount >= 0);
+    return (id().length() > 0 && _getMessagesCount >= 0);
 }
 
 int ForumThread::ordernum() const {
@@ -67,8 +67,13 @@ int ForumThread::ordernum() const {
 int ForumThread::changeset() const {
     return _changeset;
 }
+
 ForumGroup *ForumThread::group() const {
     return _group;
+}
+
+void ForumThread::setGroup(ForumGroup *grp) {
+    _group = grp;
 }
 
 bool ForumThread::hasMoreMessages() const {
@@ -125,14 +130,18 @@ int ForumThread::lastPage() {
 }
 
 void ForumThread::addMessage(ForumMessage* msg, bool affectsSync) {
-    Q_ASSERT(msg->thread() == this);
+    Q_ASSERT(!msg->thread());
+    msg->setThread(this);
+
     if(msg->isRead()) {
-        if(affectsSync) group()->setHasChanged(true);
+        if(affectsSync && group()) group()->setHasChanged(true);
     } else {
         incrementUnreadCount(1);
-        group()->incrementUnreadCount(1);
-        if(group()->isSubscribed())
-            group()->subscription()->incrementUnreadCount(1);
+        if(group()) {
+            group()->incrementUnreadCount(1);
+            if(group()->isSubscribed())
+                group()->subscription()->incrementUnreadCount(1);
+        }
     }
     Q_ASSERT(!contains(msg->id()));
     insert(msg->id(), msg);
@@ -164,6 +173,7 @@ bool ForumThread::needsToBeUpdated() const {
 
 void ForumThread::markToBeUpdated(bool toBe) {
     UpdateableItem::markToBeUpdated(toBe);
+    Q_ASSERT(group());
     if(toBe) {
         group()->markToBeUpdated();
     }

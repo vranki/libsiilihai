@@ -176,7 +176,7 @@ void TapaTalkEngine::getThreads(QDomElement arrayDataElement, QList<ForumThread 
         QString lc = getValueFromStruct(dataValueElement, "last_reply_time");
 
         if(!id.isNull()) {
-            ForumThread *newThread = new ForumThread(groupBeingUpdated, true);
+            ForumThread *newThread = new ForumThread(this, true);
             newThread->setId(id);
             newThread->setName(name);
             newThread->setLastchange(lc);
@@ -312,7 +312,7 @@ void TapaTalkEngine::getMessages(QDomElement dataValueElement, QList<ForumMessag
     while(!arrayDataValueElement.isNull()) {
         QString id = getValueFromStruct(arrayDataValueElement, "post_id");
         if(!id.isNull()) {
-            ForumMessage *newMessage = new ForumMessage(threadBeingUpdated, true);
+            ForumMessage *newMessage = new ForumMessage(this, true);
             newMessage->setId(id);
             newMessage->setAuthor(getValueFromStruct(arrayDataValueElement, "post_author_name"));
             newMessage->setName(getValueFromStruct(arrayDataValueElement, "post_title"));
@@ -358,7 +358,7 @@ void TapaTalkEngine::replyListGroups(QNetworkReply *reply)
     QList<ForumGroup*> grps;
     if (reply->error() != QNetworkReply::NoError) {
         qDebug() << Q_FUNC_INFO << reply->errorString();
-        listGroupsFinished(grps);
+        listGroupsFinished(grps, subscription());
         return;
     }
     QString docs = QString().fromUtf8(reply->readAll());
@@ -366,7 +366,7 @@ void TapaTalkEngine::replyListGroups(QNetworkReply *reply)
     doc.setContent(docs);
     QDomElement arrayDataElement = doc.firstChildElement("methodResponse").firstChildElement("params").firstChildElement("param").firstChildElement("value").firstChildElement("array").firstChildElement("data");
     getGroups(arrayDataElement, &grps);
-    listGroupsFinished(grps);
+    listGroupsFinished(grps, subscription());
     qDeleteAll(grps);
 }
 
@@ -381,7 +381,7 @@ void TapaTalkEngine::getGroups(QDomElement arrayDataElement, QList<ForumGroup *>
         QString newPosts = getValueFromStruct(arrayValueElement, "new_post");
 
         if(subOnly=="0" || subOnly.isEmpty()) { // Add only leaf groups
-            ForumGroup *newGroup = new ForumGroup(subscription(), true);
+            ForumGroup *newGroup = new ForumGroup(this, true);
             newGroup->setName(groupName);
             newGroup->setId(groupId);
             newGroup->setChangeset(rand()); // Testing

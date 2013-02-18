@@ -12,21 +12,22 @@
 
     You should have received a copy of the GNU Lesser General Public License
     along with libSiilihai.  If not, see <http://www.gnu.org/licenses/>. */
+
 #include "forummessage.h"
 #include "forumgroup.h"
 #include "forumthread.h"
 #include "forumsubscription.h"
 #include "../messageformatting.h"
 
-ForumMessage::~ForumMessage() {
-}
-
-ForumMessage::ForumMessage(ForumThread *thread, bool temp) : ForumDataItem(thread) {
-    _thread = thread;
+ForumMessage::ForumMessage(QObject *parent, bool temp) : ForumDataItem(parent) {
+    _thread = 0;
     _author = _body = "";
     _ordernum = -1;
     _read = true;
     _temp = temp;
+}
+
+ForumMessage::~ForumMessage() {
 }
 
 void ForumMessage::copyFrom(ForumMessage * o) {
@@ -45,7 +46,7 @@ bool ForumMessage::operator<(const ForumMessage &o) {
 }
 
 bool ForumMessage::isSane() const {
-    return (_thread && id().length()>0);
+    return (id().length()>0);
 }
 
 QString ForumMessage::toString() const {
@@ -66,6 +67,11 @@ QString ForumMessage::toString() const {
 }
 
 ForumThread* ForumMessage::thread() const { return _thread; }
+
+void ForumMessage::setThread(ForumThread *thr) {
+    _thread = thr;
+}
+
 int ForumMessage::ordernum() const { return _ordernum; }
 QString ForumMessage::url() const { return _url; }
 QString ForumMessage::author() const { return _author; }
@@ -117,6 +123,7 @@ void ForumMessage::setRead(bool nr, bool affectsParents) {
     if(nr==_read) return;
     _read = nr;
     if(!affectsParents) return;
+    if(!thread() || !thread()->group() || !thread()->group()->subscription()) return;
     if(thread()->group()->isSubscribed()) {
         if(_read) {
             thread()->incrementUnreadCount(-1);

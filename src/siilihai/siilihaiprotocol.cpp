@@ -662,6 +662,7 @@ void SiilihaiProtocol::replyDownsync(QNetworkReply *reply) {
                 QString groupid = groupElement.attribute("id");
                 ForumGroup group(forum, true);
                 group.setId(groupid);
+                forum->addGroup(&group);
                 QDomElement threadElement = groupElement.firstChildElement("thread");
                 while(!threadElement.isNull()) {
                     QString threadid = threadElement.attribute("id");
@@ -674,6 +675,7 @@ void SiilihaiProtocol::replyDownsync(QNetworkReply *reply) {
                     thread.setGetMessagesCount(threadGetMessagesCount);
                     thread.setName(UNKNOWN_SUBJECT);
                     thread.setOrdernum(999);
+                    group.addThread(&thread);
                     emit serverThreadData(&thread);
                     QDomElement messageElement = threadElement.firstChildElement("message");
                     while(!messageElement.isNull()) {
@@ -684,7 +686,7 @@ void SiilihaiProtocol::replyDownsync(QNetworkReply *reply) {
                         msg.setBody("Please update forum to get message content.");
                         msg.setRead(true, false);
                         msg.setOrdernum(999);
-                        Q_ASSERT(msg.thread());
+                        thread.addMessage(&msg);
                         emit serverMessageData(&msg);
                         messageElement = messageElement.nextSiblingElement("message");
                     }

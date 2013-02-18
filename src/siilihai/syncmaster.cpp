@@ -231,8 +231,8 @@ void SyncMaster::serverThreadData(ForumThread *tempThread) { // Thread is tempor
             Q_ASSERT(!dbGroup->isTemp());
             ForumThread *newThread = new ForumThread(dbGroup, false);
             newThread->copyFrom(tempThread);
-            newThread->markToBeUpdated();
             dbGroup->addThread(newThread, false);
+            newThread->markToBeUpdated();
             dbThread = newThread;
             // Make sure group will be updated
             dbGroup->markToBeUpdated();

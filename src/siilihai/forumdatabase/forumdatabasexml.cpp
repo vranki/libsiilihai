@@ -2,6 +2,10 @@
 
 #include "forumdatabasexml.h"
 #include "../forumdata/forumsubscription.h"
+#include "../forumdata/forumgroup.h"
+#include "../forumdata/forumthread.h"
+#include "../forumdata/forummessage.h"
+
 #include "../xmlserialization.h"
 
 #ifdef SANITY_CHECKS
@@ -48,6 +52,26 @@ bool ForumDatabaseXml::openDatabase(QIODevice *source, bool loadContent) {
         while(!subscriptionElement.isNull()) {
             ForumSubscription *sub = XmlSerialization::readSubscription(subscriptionElement, this);
             if(sub) {
+                // Fix unread counts
+                sub->incrementUnreadCount(-sub->unreadCount());
+                Q_ASSERT(sub->unreadCount()==0);
+                foreach(ForumGroup *grp, sub->values()) {
+                    grp->incrementUnreadCount(-grp->unreadCount());
+                    Q_ASSERT(grp->unreadCount()==0);
+                    if(grp->isSubscribed()) {
+                        foreach(ForumThread *thr, grp->values()) {
+                            thr->incrementUnreadCount(-thr->unreadCount());
+                            Q_ASSERT(thr->unreadCount()==0);
+                            foreach(ForumMessage *msg, thr->values()) {
+                                if(!msg->isRead()) {
+                                    thr->incrementUnreadCount(1);
+                                    grp->incrementUnreadCount(1);
+                                    sub->incrementUnreadCount(1);
+                                }
+                            }
+                        }
+                    }
+                }
                 insert(sub->forumId(), sub);
                 emit subscriptionFound(sub);
             }

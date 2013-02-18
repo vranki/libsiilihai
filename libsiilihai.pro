@@ -1,5 +1,5 @@
 TEMPLATE = subdirs
-SUBDIRS = src
+SUBDIRS = src src/test
 OTHER_FILES = debian/control debian/rules debian/changelog debian/copyright\
     debian/libsiilihai2.install debian/libsiilihai2-dev.install\
     rpm/* \

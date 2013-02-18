@@ -18,18 +18,18 @@
 #include <QCoreApplication>
 #include <QDebug>
 #include <QTest>
-#include "patternmatcher.h"
-#include "parserengine.h"
-#include "forumparser.h"
-#include "siilihaiprotocol.h"
-#include "parserdatabase.h"
-#include "forumdatabase.h"
-#include "forumparser.h"
-#include "forumsubscription.h"
-#include "forumsession.h"
-#include "parserengine.h"
-#include "httppost.h"
-#include "syncmaster.h"
+#include "siilihai/parser/patternmatcher.h"
+#include "siilihai/parser/parserengine.h"
+#include "siilihai/parser/forumparser.h"
+#include "siilihai/siilihaiprotocol.h"
+#include "siilihai/parser/parserdatabase.h"
+#include "siilihai/forumdatabase/forumdatabasexml.h"
+#include "siilihai/parser/forumparser.h"
+#include "siilihai/forumdata/forumsubscription.h"
+#include "siilihai/parser/forumsession.h"
+#include "siilihai/parser/parserengine.h"
+#include "siilihai/httppost.h"
+#include "siilihai/syncmaster.h"
 
 class LibSiilihaiTests : public QObject {
 	Q_OBJECT
@@ -40,27 +40,12 @@ signals:
 	void testsFinished();
 public slots:
 	void runTests();
-	void loginFinished(bool success, QString motd);
-	void listParsersFinished(QList <ForumParser> parsers);
-	void getParserFinished(ForumParser parser);
-	void subscribeGroupsFinished(bool success);
-	void sendThreadDataFinished(bool success);
 	void groupFound(ForumGroup *grp);
 private:
-	void runParserEngineTests();
-	void runProtocolTests();
-	void runForumSession();
 	void runForumDatabaseTests();
 
 	SiilihaiProtocol protocol;
-	ForumDatabase fdb;
-	ParserDatabase pdb;
-	QSqlDatabase db;
-	ForumParser fp;
-	ForumSubscription fsub;
-	ForumSession fses;
-	ParserEngine engine;
-	SyncMaster sm;
+        ForumDatabaseXml fdb;
 };
 
 #endif /* LIBSIILIHAITESTS_H_ */

@@ -135,14 +135,14 @@ void ForumSession::performListGroups(QString &html) {
     QList<QHash<QString, QString> > matches = pm->findMatches(html);
     QHash<QString, QString> match;
     foreach (match, matches) {
-        ForumGroup *fg = new ForumGroup(fsub);
+        ForumGroup *fg = new ForumGroup(this);
         fg->setId(match["%a"]);
         fg->setName(match["%b"]);
         fg->setLastchange(match["%c"]);
         groups.append(fg);
     }
     operationInProgress = FSONoOp;
-    emit(listGroupsFinished(groups));
+    emit(listGroupsFinished(groups, fsub));
     qDeleteAll(groups);
 }
 
@@ -268,7 +268,7 @@ void ForumSession::performListThreads(QString &html) {
     // Iterate through matches on page
     QHash<QString, QString> match;
     foreach(match, matches) {
-        ForumThread *ft = new ForumThread(currentGroup);
+        ForumThread *ft = new ForumThread(this);
         ft->setId(match["%a"]);
         ft->setName(match["%b"]);
         ft->setLastchange(match["%c"]);
@@ -435,7 +435,7 @@ void ForumSession::performListMessages(QString &html) {
 
     foreach(match, matches){
         // This will be deleted or added to messages
-        ForumMessage *fm = new ForumMessage(currentThread);
+        ForumMessage *fm = new ForumMessage(this);
         fm->setRead(false, false);
         Q_ASSERT(!fm->isRead());
         fm->setId(match["%a"]);
@@ -539,7 +539,7 @@ void ForumSession::cancelOperation() {
     qDebug() << Q_FUNC_INFO;
     if(operationInProgress == FSOListGroups) {
         QList<ForumGroup*> emptyList;
-        emit listGroupsFinished(emptyList);
+        emit listGroupsFinished(emptyList, fsub);
     }
     if(operationInProgress == FSOListThreads) {
         QList<ForumThread*> emptyList;

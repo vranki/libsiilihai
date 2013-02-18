@@ -20,8 +20,8 @@
 #include "forumsubscription.h"
 #include "forummessage.h"
 
-ForumGroup::ForumGroup(ForumSubscription *sub, bool temp) : ForumDataItem(sub) {
-    _subscription = sub;
+ForumGroup::ForumGroup(QObject *parent, bool temp) : ForumDataItem(parent) {
+    _subscription = 0;
     _subscribed = false;
     _changeset = -1;
     _hasChanged = false;
@@ -41,8 +41,9 @@ ForumGroup::~ForumGroup() {
 }
 
 void ForumGroup::addThread(ForumThread* thr, bool affectsSync, bool incrementUnreads) {
-    Q_ASSERT(thr->group() == this);
+    Q_ASSERT(!thr->group());
     Q_ASSERT(!value(thr->id()));
+    thr->setGroup(this);
     if(incrementUnreads) incrementUnreadCount(thr->unreadCount());
     if(affectsSync) setHasChanged(true);
     insert(thr->id(), thr);
@@ -82,6 +83,10 @@ int ForumGroup::changeset() const {
 
 ForumSubscription* ForumGroup::subscription() const {
     return _subscription;
+}
+
+void ForumGroup::setSubscription(ForumSubscription *sub) {
+    _subscription = sub;
 }
 
 void ForumGroup::setSubscribed(bool s) {

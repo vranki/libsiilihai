@@ -70,8 +70,8 @@ signals:
 
 protected slots:
     void listMessagesFinished(QList<ForumMessage*> &messages, ForumThread *thread, bool moreAvailable);
-    void listGroupsFinished(QList<ForumGroup*> &groups);
-    void listThreadsFinished(QList<ForumThread*> &threads, ForumGroup *group);
+    void listGroupsFinished(QList<ForumGroup*> &groups, ForumSubscription *updatedSub); // These have subscription() as 0
+    void listThreadsFinished(QList<ForumThread*> &threads, ForumGroup *group); // These have group() as 0
     void networkFailure(QString message);
     void loginFinishedSlot(ForumSubscription *sub, bool success);
     void subscriptionDeleted();

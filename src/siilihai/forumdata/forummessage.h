@@ -35,12 +35,13 @@ class ForumMessage : public ForumDataItem {
     Q_PROPERTY(QString authorCleaned READ authorCleaned NOTIFY changed)
 public:
     virtual ~ForumMessage();
-    ForumMessage(ForumThread *thr, bool temp=true);
+    ForumMessage(QObject *parent, bool temp=true);
     void copyFrom(ForumMessage * o);
     bool operator<(const ForumMessage &o);
     bool isSane() const;
     virtual QString toString() const;
     ForumThread* thread() const;
+    void setThread(ForumThread *thr);
     int ordernum() const;
     QString url() const;
     QString author() const;

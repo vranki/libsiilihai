@@ -24,7 +24,7 @@
 
 ParserEngine::ParserEngine(ForumDatabase *fd, QObject *parent, ParserManager *pm) :
     UpdateEngine(parent, fd), session(this, &nam), parserManager(pm) {
-    connect(&session, SIGNAL(listGroupsFinished(QList<ForumGroup*>&)), this, SLOT(listGroupsFinished(QList<ForumGroup*>&)));
+    connect(&session, SIGNAL(listGroupsFinished(QList<ForumGroup*>&, ForumSubscription *)), this, SLOT(listGroupsFinished(QList<ForumGroup*>&, ForumSubscription *)));
     connect(&session, SIGNAL(listThreadsFinished(QList<ForumThread*>&, ForumGroup*)), this, SLOT(listThreadsFinished(QList<ForumThread*>&, ForumGroup*)));
     connect(&session, SIGNAL(listMessagesFinished(QList<ForumMessage*>&, ForumThread*, bool)),
             this, SLOT(listMessagesFinished(QList<ForumMessage*>&, ForumThread*, bool)));

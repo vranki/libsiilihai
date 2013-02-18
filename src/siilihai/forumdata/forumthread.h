@@ -38,13 +38,14 @@ class ForumThread : public ForumDataItem, public QMap<QString, ForumMessage*> {
     Q_PROPERTY(int unreadCount READ unreadCount() NOTIFY unreadCountChanged)
     Q_PROPERTY(bool hasMoreMessages READ hasMoreMessages() NOTIFY changed)
 public:
-    ForumThread(ForumGroup *grp, bool temp=true);
+    ForumThread(QObject *parent, bool temp=true);
     virtual ~ForumThread();
     bool operator<(const ForumThread &o);
     void copyFrom(ForumThread * o);
     int ordernum() const;
     int changeset() const;
     ForumGroup *group() const;
+    void setGroup(ForumGroup * grp);
     bool hasMoreMessages() const;
     int getMessagesCount() const; // Max number of messages to get
     void setOrdernum(int on);
@@ -70,8 +71,6 @@ protected:
     virtual void emitUnreadCountChanged();
 private:
     Q_DISABLE_COPY(ForumThread);
-    int _forumid;
-    QString _groupid;
     int _ordernum;
     QString _lastchange;
     int _changeset;

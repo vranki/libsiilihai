@@ -49,7 +49,8 @@ ForumSubscription::~ForumSubscription() {
 }
 
 void ForumSubscription::addGroup(ForumGroup* grp, bool affectsSync, bool incrementUnreads) {
-    Q_ASSERT(grp->subscription() == this);
+    Q_ASSERT(!grp->subscription());
+    grp->setSubscription(this);
     if(incrementUnreads) incrementUnreadCount(grp->unreadCount());
     insert(grp->id(), grp);
     if(affectsSync)
