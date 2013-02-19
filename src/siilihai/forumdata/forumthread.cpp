@@ -173,8 +173,7 @@ bool ForumThread::needsToBeUpdated() const {
 
 void ForumThread::markToBeUpdated(bool toBe) {
     UpdateableItem::markToBeUpdated(toBe);
-    Q_ASSERT(group());
-    if(toBe) {
+    if(toBe && group()) {
         group()->markToBeUpdated();
     }
 }

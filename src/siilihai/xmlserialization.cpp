@@ -66,7 +66,11 @@ ForumSubscription *XmlSerialization::readSubscription(QDomElement &element, QObj
         QDomElement groupElement = element.firstChildElement(GRP_GROUP);
         while(!groupElement.isNull()) {
             ForumGroup *grp = readGroup(groupElement, sub);
-            if(grp) sub->addGroup(grp, false, false);
+            if(grp) {
+                sub->addGroup(grp, false, false);
+                if(grp->needsToBeUpdated())
+                    sub->markToBeUpdated(true);
+            }
             groupElement = groupElement.nextSiblingElement(GRP_GROUP);
         }
     }
@@ -99,7 +103,11 @@ ForumGroup* XmlSerialization::readGroup(QDomElement &element, ForumSubscription 
         QDomElement threadElement = element.firstChildElement(THR_THREAD);
         while(!threadElement.isNull()) {
             ForumThread *thr = readThread(threadElement, grp);
-            if(thr) grp->addThread(thr, false, false);
+            if(thr) {
+                grp->addThread(thr, false, false);
+                if(thr->needsToBeUpdated())
+                    grp->markToBeUpdated(true);
+            }
             threadElement = threadElement.nextSiblingElement(THR_THREAD);
         }
         if(grp->isEmpty()) // Force update if contains no threads
@@ -126,7 +134,11 @@ ForumThread* XmlSerialization::readThread(QDomElement &element, ForumGroup *pare
     QDomElement messageElement = element.firstChildElement(MSG_MESSAGE);
     while(!messageElement.isNull()) {
         ForumMessage *msg = readMessage(messageElement, thr);
-        if(msg) thr->addMessage(msg, false);
+        if(msg) {
+            thr->addMessage(msg, false);
+            if(msg->needsToBeUpdated())
+                thr->markToBeUpdated(true);
+        }
         messageElement = messageElement.nextSiblingElement(MSG_MESSAGE);
     }
     if(thr->isEmpty()) // Force update if contains no messages

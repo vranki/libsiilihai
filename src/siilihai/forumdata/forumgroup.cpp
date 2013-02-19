@@ -128,7 +128,7 @@ void ForumGroup::emitUnreadCountChanged() {
 
 void ForumGroup::markToBeUpdated(bool toBe) {
     UpdateableItem::markToBeUpdated(toBe);
-    if(toBe)
+    if(toBe && subscription())
         subscription()->markToBeUpdated();
 }
 

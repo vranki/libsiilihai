@@ -154,7 +154,7 @@ void ForumMessage::emitUnreadCountChanged() {
 
 void ForumMessage::markToBeUpdated(bool toBe) {
     UpdateableItem::markToBeUpdated(toBe);
-    if(toBe) {
+    if(toBe && thread()) {
         thread()->markToBeUpdated();
     }
 }
