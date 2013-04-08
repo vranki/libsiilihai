@@ -5,7 +5,14 @@
 class ForumSubscriptionTapaTalk;
 class QDomElement;
 class QDomDocument;
-
+/**
+ * @brief The TapaTalkEngine class implements a UpdateEngine for
+ * TapaTalk forum protocol.
+ *
+ * @todo Protect against invalid data in responses. Currently we
+ * assume server always returns correct data and we may crash/assert
+ * if something unexpected happens.
+ */
 class TapaTalkEngine : public UpdateEngine
 {
     Q_OBJECT

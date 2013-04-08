@@ -371,7 +371,11 @@ void TapaTalkEngine::replyListGroups(QNetworkReply *reply)
     QDomDocument doc;
     doc.setContent(docs);
     QDomElement arrayDataElement = doc.firstChildElement("methodResponse").firstChildElement("params").firstChildElement("param").firstChildElement("value").firstChildElement("array").firstChildElement("data");
-    getGroups(arrayDataElement, &grps);
+    if(arrayDataElement.nodeName()=="data") {
+        getGroups(arrayDataElement, &grps);
+    } else {
+        qDebug() << Q_FUNC_INFO << "Expected data element in response, got " << arrayDataElement.nodeName();
+    }
     listGroupsFinished(grps, subscription());
     qDeleteAll(grps);
 }
