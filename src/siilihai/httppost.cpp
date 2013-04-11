@@ -50,5 +50,5 @@ QByteArray HttpPost::setPostParameters(QNetworkRequest *req, const
 		if(i.hasNext())
 			resultData +="&";
 	}
-	return resultData.toAscii();
+	return resultData.toUtf8();
 }

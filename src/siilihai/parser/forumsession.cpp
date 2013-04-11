@@ -90,8 +90,8 @@ QString ForumSession::convertCharset(const QByteArray &src) {
     } else if (fpar->charset == "iso-8859-1" || fpar->charset == "iso-8859-15") {
         converted = QString::fromLatin1(src.data());
     } else {
-        qDebug() << "Unknown charset " << fpar->charset << " - assuming ASCII";
-        converted = QString().fromAscii(src.data());
+        qDebug() << Q_FUNC_INFO << "Unknown charset " << fpar->charset << " - assuming UTF-8";
+        converted = QString().fromUtf8(src.data());
     }
     // Remove silly newlines
     converted.replace(QChar(13), QChar(' '));
