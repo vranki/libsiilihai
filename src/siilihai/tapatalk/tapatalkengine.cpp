@@ -175,24 +175,28 @@ void TapaTalkEngine::getThreads(QDomElement arrayDataElement, QList<ForumThread 
 {
     Q_ASSERT(arrayDataElement.nodeName()=="data");
     QDomElement dataValueElement = arrayDataElement.firstChildElement("value");
-    while(!dataValueElement.isNull()) {
-        QString name = getValueFromStruct(dataValueElement, "topic_title");
-        QString id = getValueFromStruct(dataValueElement, "topic_id");
-        QString author = getValueFromStruct(dataValueElement, "topic_author_name");
-        QString lc = getValueFromStruct(dataValueElement, "last_reply_time");
+    if(dataValueElement.nodeName()=="value") {
+        while(!dataValueElement.isNull()) {
+            QString name = getValueFromStruct(dataValueElement, "topic_title");
+            QString id = getValueFromStruct(dataValueElement, "topic_id");
+            QString author = getValueFromStruct(dataValueElement, "topic_author_name");
+            QString lc = getValueFromStruct(dataValueElement, "last_reply_time");
 
-        if(!id.isNull()) {
-            ForumThread *newThread = new ForumThread(this, true);
-            newThread->setId(id);
-            newThread->setName(name);
-            newThread->setLastchange(lc);
-            newThread->setGetMessagesCount(subscription()->latestMessages());
-            newThread->setOrdernum(threads->size());
+            if(!id.isNull()) {
+                ForumThread *newThread = new ForumThread(this, true);
+                newThread->setId(id);
+                newThread->setName(name);
+                newThread->setLastchange(lc);
+                newThread->setGetMessagesCount(subscription()->latestMessages());
+                newThread->setOrdernum(threads->size());
 
-            threads->append(newThread);
+                threads->append(newThread);
+            }
+            dataValueElement = dataValueElement.nextSiblingElement();
         }
-
-        dataValueElement = dataValueElement.nextSiblingElement();
+    } else {
+        emit networkFailure("Unexpected TapaTalk reply while updating threads");
+        setState(UpdateEngine::PES_ERROR);
     }
 }
 
@@ -290,8 +294,7 @@ bool TapaTalkEngine::loginIfNeeded() {
     return true;
 }
 
-void TapaTalkEngine::replyLogin(QNetworkReply *reply)
-{
+void TapaTalkEngine::replyLogin(QNetworkReply *reply) {
     if (reply->error() != QNetworkReply::NoError) {
         qDebug() << Q_FUNC_INFO << reply->errorString();
         emit networkFailure(reply->errorString());
@@ -304,11 +307,17 @@ void TapaTalkEngine::replyLogin(QNetworkReply *reply)
     doc.setContent(docs);
 
     QDomElement paramValueElement = doc.firstChildElement("methodResponse").firstChildElement("params").firstChildElement("param").firstChildElement("value");
-    QString result = getValueFromStruct(paramValueElement, "result");
-    if(result=="1") {
-        loggedIn = true;
+    if(!paramValueElement.isNull()) {
+        QString result = getValueFromStruct(paramValueElement, "result");
+        if(result=="1") {
+            loggedIn = true;
+        }
+        loginFinishedSlot(subscription(), loggedIn);
+    } else {
+        qDebug() << Q_FUNC_INFO << "Error in TapaTalk login reply:" << docs;
+        emit networkFailure("Received unexpected TapaTalk login reply");
+        setState(UpdateEngine::PES_ERROR);
     }
-    loginFinishedSlot(subscription(), loggedIn);
 }
 
 void TapaTalkEngine::getMessages(QDomElement dataValueElement, QList<ForumMessage *> *messages) {
@@ -332,7 +341,6 @@ void TapaTalkEngine::getMessages(QDomElement dataValueElement, QList<ForumMessag
         arrayDataValueElement = arrayDataValueElement.nextSiblingElement();
     }
 }
-
 
 void TapaTalkEngine::networkReply(QNetworkReply *reply)
 {

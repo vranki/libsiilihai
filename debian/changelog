@@ -1,3 +1,9 @@
+libsiilihai (2.2.7) raring; urgency=low
+
+  * Yet again another minor crash fix in lib
+
+ -- Ville Ranki <ville.ranki@iki.fi>  Mon, 9 Jul 2013 12:34:56 +0300
+
 libsiilihai (2.2.6) quantal; urgency=low
 
   * Again another minor crash fix in lib
