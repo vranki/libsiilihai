@@ -323,7 +323,7 @@ void SyncMaster::downsyncFinishedForForum(ForumSubscription *fs)
 }
 
 
-void SyncMaster::threadChanged(ForumThread *thread) {
+void SyncMaster::threadChanged(ForumThread *) {
 }
 
 void SyncMaster::cancel() {

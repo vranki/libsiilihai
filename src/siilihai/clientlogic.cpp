@@ -14,8 +14,8 @@
 #include "tapatalk/forumsubscriptiontapatalk.h"
 #include "tapatalk/tapatalkengine.h"
 
-ClientLogic::ClientLogic(QObject *parent) : QObject(parent), settings(0), forumDatabase(this), syncmaster(this, forumDatabase, protocol),
-    parserManager(0), currentCredentialsRequest(0), currentState(SH_OFFLINE) {
+ClientLogic::ClientLogic(QObject *parent) : QObject(parent), currentState(SH_OFFLINE), settings(0), forumDatabase(this), syncmaster(this, forumDatabase, protocol),
+    parserManager(0), currentCredentialsRequest(0) {
     endSyncDone = false;
     firstRun = true;
     dbStored = false;

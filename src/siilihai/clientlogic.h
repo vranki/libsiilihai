@@ -79,7 +79,7 @@ protected slots:
     virtual void subscriptionDeleted(QObject* subobj);
     virtual void getHttpAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator);
     virtual void getForumAuthentication(ForumSubscription *fsub);
-    virtual void showSubscribeGroup(ForumSubscription* forum) {};
+    virtual void showSubscribeGroup(ForumSubscription* ) {};
     virtual void unregisterSiilihai();
     void forumAdded(ForumSubscription *fs); // Ownership won't change
     void moreMessagesRequested(ForumThread* thread);
