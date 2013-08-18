@@ -2,13 +2,13 @@ Source: libsiilihai
 Section: libs
 Priority: extra
 Maintainer: Ville Ranki <ville.ranki@iki.fi>
-Build-Depends: debhelper (>= 7.4.17), libqt4-dev, cdbs (>= 0.4.87~), devscripts
+Build-Depends: debhelper (>= 7.4.17), qtbase5-dev, qt5-default, cdbs (>= 0.4.87~), devscripts
 Standards-Version: 3.8.0
 Homepage: http://www.siilihai.com/
 
 Package: libsiilihai2
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libqt4-xml
+Depends: ${shlibs:Depends}, ${misc:Depends}
 Pre-Depends: ${misc:Pre-Depends}
 Replaces: libsiilihai, libsiilihai1
 Breaks: libsiilihai (<< 2.0-1~), libsiilihai1 (<< 2.0-1~)
@@ -32,17 +32,3 @@ Replaces: libsiilihai1-dev
 Pre-Depends: ${misc:Pre-Depends}
 Description: Development files for libsiilihai
  Contains headers for libsiilihai.
-
-Package: libsiilihai
-Depends: libsiilihai2, ${misc:Depends}
-Architecture: all
-Section: oldlibs
-Description: transitional dummy package
-  This is a transitional dummy package. It can safely be removed.
-
-Package: libsiilihai1
-Depends: libsiilihai2, ${misc:Depends}
-Architecture: all
-Section: oldlibs
-Description: transitional dummy package
-  This is a transitional dummy package. It can safely be removed.
