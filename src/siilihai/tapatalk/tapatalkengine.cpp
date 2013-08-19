@@ -396,16 +396,21 @@ void TapaTalkEngine::getGroups(QDomElement arrayDataElement, QList<ForumGroup *>
         QString groupId = getValueFromStruct(arrayValueElement, "forum_id");
         QString groupName = getValueFromStruct(arrayValueElement, "forum_name");
         QString subOnly = getValueFromStruct(arrayValueElement, "sub_only");
-        QString newPosts = getValueFromStruct(arrayValueElement, "new_post");
+        // QString newPosts = getValueFromStruct(arrayValueElement, "new_post");
 
         if(subOnly=="0" || subOnly.isEmpty()) { // Add only leaf groups
             ForumGroup *newGroup = new ForumGroup(this, true);
             newGroup->setName(groupName);
             newGroup->setId(groupId);
-            newGroup->setChangeset(rand()); // Testing
+            newGroup->setLastchange(QString::number(rand()));
+            newGroup->setChangeset(rand()); // TapaTalk doesn't support last change per group
+
+            // newPosts can't work as server doesn't know what we've read
+            /*
             if(newPosts=="1") { // Mark as changed
                 newGroup->setChangeset(rand());
-            }
+            }*/
+
             grps->append(newGroup);
         }
         getChildGroups(arrayValueElement, grps);

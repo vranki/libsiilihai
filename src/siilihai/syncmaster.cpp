@@ -171,7 +171,7 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
 // next in groupsToDownload
 void SyncMaster::processGroups() {
     fdb.checkSanity();
-    qDebug() << Q_FUNC_INFO << "Groups to upload: " << groupsToUpload.size() << " download: " << groupsToDownload.size();
+    // qDebug() << Q_FUNC_INFO << "Groups to upload: " << groupsToUpload.size() << " download: " << groupsToDownload.size();
     if(canceled) return;
     if (groupsToUpload.isEmpty() && groupsToDownload.isEmpty()) {
         emit syncFinished(true, QString::null);

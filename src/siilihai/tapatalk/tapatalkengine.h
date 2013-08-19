@@ -31,7 +31,6 @@ signals:
 public slots:
 
 protected:
-    //    virtual void requestCredentials();
     virtual void doUpdateForum();
     virtual void doUpdateGroup(ForumGroup *group);
     virtual void doUpdateThread(ForumThread *thread);
