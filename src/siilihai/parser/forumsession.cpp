@@ -113,8 +113,11 @@ void ForumSession::listGroups() {
 
 void ForumSession::listGroupsReply(QNetworkReply *reply) {
     if(operationInProgress == FSONoOp) return;
-    Q_ASSERT(operationInProgress==FSOListGroups);
-    Q_ASSERT(reply->request().attribute(QNetworkRequest::User).toInt() ==FSOListGroups);
+    if(operationInProgress != FSOListGroups) {
+        qDebug() << Q_FUNC_INFO << "ALERT!! POSSIBLE BUG: operationInProgress is not FSOListGroups! It is: " << operationInProgress << " ignoring this signal, i hope nothing breaks.";
+        return;
+    }
+    Q_ASSERT(reply->request().attribute(QNetworkRequest::User).toInt() == FSOListGroups);
 
     QString data = convertCharset(reply->readAll());
     if (reply->error() != QNetworkReply::NoError) {

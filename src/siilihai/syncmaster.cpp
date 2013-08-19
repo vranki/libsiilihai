@@ -87,16 +87,18 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
             dbSub = newSub;
         } else { // Sub already in db, just update it
             QString username, password;
-            bool authenticated = false;
+            bool localIsAuthenticated = false;
             if(!dbSub->username().isEmpty()) {
                 username = dbSub->username();
                 password = dbSub->password();
-                authenticated = true;
+                localIsAuthenticated = true;
             }
             dbSub->copyFrom(serverSub);
             dbSub->setUsername(username);
             dbSub->setPassword(password);
-            dbSub->setAuthenticated(authenticated);
+            if(localIsAuthenticated) dbSub->setAuthenticated(true);
+            // UpdateEngine will get the missing credentials if
+            // forum is authenticated but no u/p are known
 
             // Check for unsubscribed groups
             foreach(ForumGroup *dbGrp, dbSub->values()) {

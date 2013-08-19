@@ -722,6 +722,7 @@ void SiilihaiProtocol::replyGetSyncSummary(QNetworkReply *reply) {
     QList<ForumSubscription*> subs;
     QList<ForumGroup*> grps; // to keep groups in context
     if (reply->error() == QNetworkReply::NoError) {
+        qDebug() << Q_FUNC_INFO << docs;
         QDomDocument doc;
         doc.setContent(docs);
         QDomElement re = doc.firstChildElement("syncsummary");

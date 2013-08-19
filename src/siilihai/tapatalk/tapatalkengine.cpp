@@ -315,7 +315,7 @@ void TapaTalkEngine::replyLogin(QNetworkReply *reply) {
         loginFinishedSlot(subscription(), loggedIn);
     } else {
         qDebug() << Q_FUNC_INFO << "Error in TapaTalk login reply:" << docs;
-        emit networkFailure("Received unexpected TapaTalk login reply");
+        emit networkFailure("Received unexpected TapaTalk login reply.\nSee console for details.");
         setState(UpdateEngine::PES_ERROR);
     }
 }
