@@ -376,13 +376,34 @@ void TapaTalkEngine::replyListGroups(QNetworkReply *reply)
         return;
     }
     QString docs = QString().fromUtf8(reply->readAll());
+
+    /*
+     * In case of error (Authentication req'd) docs would now be:
+     * We could display the result_text to user here..
+     *
+    "<?xml version="1.0" encoding="UTF-8"?>\n<methodResponse>\n<params>\n<param>\n<value><struct>\n<member>
+<name>result</name>\n<value><boolean>0</boolean></value>\n</member>\n<member>
+<name>result_text</name>\n<value>
+<base64>WW91IGFyZSBub3QgbG9nZ2VkIGluIG9yIHlvdSBkbyBub3QgaGF2ZSBwZXJtaXNzaW9uIHRvIGRvIHRoaXMgYWN0aW9uLg==</base64>
+</value>\n</member>\n</struct></value>\n</param>\n</params>\n</methodResponse>"
+    */
+
+
     QDomDocument doc;
     doc.setContent(docs);
-    QDomElement arrayDataElement = doc.firstChildElement("methodResponse").firstChildElement("params").firstChildElement("param").firstChildElement("value").firstChildElement("array").firstChildElement("data");
-    if(arrayDataElement.nodeName()=="data") {
-        getGroups(arrayDataElement, &grps);
+    QDomElement resultElement = doc.firstChildElement("methodResponse").firstChildElement("params").firstChildElement("param").firstChildElement("value");
+    qDebug() << Q_FUNC_INFO << resultElement.tagName();
+    QString result = getValueFromStruct(resultElement, "result");
+    if(result == "") { // Result not found - it should be ok
+        QDomElement arrayDataElement = doc.firstChildElement("methodResponse").firstChildElement("params").firstChildElement("param").firstChildElement("value").firstChildElement("array").firstChildElement("data");
+        if(arrayDataElement.nodeName()=="data") {
+            getGroups(arrayDataElement, &grps);
+        } else {
+            qDebug() << Q_FUNC_INFO << "Expected data element in response, got " << arrayDataElement.nodeName();
+        }
     } else {
-        qDebug() << Q_FUNC_INFO << "Expected data element in response, got " << arrayDataElement.nodeName();
+        QString resultText = getValueFromStruct(resultElement, "result_text");
+        emit updateFailure(subscription(), resultText);
     }
     listGroupsFinished(grps, subscription());
     qDeleteAll(grps);
