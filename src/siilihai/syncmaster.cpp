@@ -289,7 +289,7 @@ void SyncMaster::serverMessageData(ForumMessage *tempMessage) { // Temporary obj
         Q_ASSERT(false);
     }
     fdb.checkSanity();
-    QCoreApplication::processEvents();
+    // QCoreApplication::processEvents();
 }
 
 void SyncMaster::getThreadDataFinished(bool success, QString message){

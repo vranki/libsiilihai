@@ -463,9 +463,8 @@ void UpdateEngine::updateGroupList() {
     updateAll = false; // Just the group list
     updateOnlyThread = false;
     updateCanceled = false;
-    if(state()==PES_ENGINE_NOT_READY) {
-        updateWhenEngineReady = true;
-    } else {
+    updateWhenEngineReady = true;
+    if(state() != PES_ENGINE_NOT_READY) {
         setState(PES_UPDATING);
     }
 }

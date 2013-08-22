@@ -394,21 +394,22 @@ void TapaTalkEngine::replyListGroups(QNetworkReply *reply)
     QDomElement resultElement = doc.firstChildElement("methodResponse").firstChildElement("params").firstChildElement("param").firstChildElement("value");
     qDebug() << Q_FUNC_INFO << resultElement.tagName();
     QString result = getValueFromStruct(resultElement, "result");
-    if(result == "") { // Result not found - it should be ok
+    if(result.isEmpty() || result != "0") { // Getting list succeeded
         QDomElement arrayDataElement = doc.firstChildElement("methodResponse").firstChildElement("params").firstChildElement("param").firstChildElement("value").firstChildElement("array").firstChildElement("data");
         if(arrayDataElement.nodeName()=="data") {
             getGroups(arrayDataElement, &grps);
         } else {
             qDebug() << Q_FUNC_INFO << "Expected data element in response, got " << arrayDataElement.nodeName();
         }
-    } else {
+    } else { // Getting list failed
         QString resultText = getValueFromStruct(resultElement, "result_text");
+        if(resultText.isEmpty()) resultText = "Updating TapaTalk group list failed (no result text)";
         emit updateFailure(subscription(), resultText);
+        setState(UpdateEngine::PES_ERROR);
     }
     listGroupsFinished(grps, subscription());
     qDeleteAll(grps);
 }
-
 
 void TapaTalkEngine::getGroups(QDomElement arrayDataElement, QList<ForumGroup *> *grps) {
     Q_ASSERT(arrayDataElement.nodeName()=="data");
