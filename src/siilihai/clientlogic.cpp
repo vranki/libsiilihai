@@ -195,7 +195,8 @@ void ClientLogic::updateClicked() {
 }
 
 void ClientLogic::updateForum(ForumSubscription *sub) {
-    Q_ASSERT(engines.contains(sub));
+    if(!engines.contains(sub)) return; // Can happen if quitting
+
     qDebug() << Q_FUNC_INFO << sub->toString();
     subscriptionsNotUpdated.remove(sub);
 

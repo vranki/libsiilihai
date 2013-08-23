@@ -46,21 +46,38 @@ void TapaTalkEngine::convertBodyToHtml(ForumMessage *msg)
     QString origBody = msg->body();
     QString newBody = origBody;
     newBody = newBody.replace("[/url]", "</a>");
+    newBody = newBody.replace("[/URL]", "</a>");
     newBody = newBody.replace("[IMG]", "[img]");
     newBody = newBody.replace("[img]", "<br/><img src=\"");
     newBody = newBody.replace("[/IMG]", "[/img]");
     newBody = newBody.replace("[/img]", "\"><br/>");
     newBody = newBody.replace("[quote]", "<div class=\"quote\">");
     newBody = newBody.replace("[/quote]", "</div><br/>");
+    newBody = newBody.replace("[QUOTE]", "<div class=\"quote\">");
+    newBody = newBody.replace("[/QUOTE]", "</div><br/>");
     newBody = newBody.replace("[color=Black]", "");
     newBody = newBody.replace("[/color]", "");
     newBody = newBody.replace("[DIV]", "<div>");
     newBody = newBody.replace("[/DIV]", "</div>");
     newBody = newBody.replace("Â", ""); // WTF is this character doing in some posts.
     newBody = newBody.replace("\n", "<br/>");
+
+    // Replace [url] and [URL]
+    // @todo do more smartly
     int urlPosition = -1;
     do {
         urlPosition = newBody.indexOf("[url=");
+        if(urlPosition >= 0) {
+            newBody = newBody.replace(urlPosition, 5, "<a href=\"");
+            int closetag = newBody.indexOf("]", urlPosition);
+            if(closetag >= 0) {
+                newBody = newBody.replace(closetag, 1, "\">");
+            }
+        }
+    } while(urlPosition >= 0);
+    urlPosition = -1;
+    do {
+        urlPosition = newBody.indexOf("[URL=");
         if(urlPosition >= 0) {
             newBody = newBody.replace(urlPosition, 5, "<a href=\"");
             int closetag = newBody.indexOf("]", urlPosition);
@@ -163,8 +180,27 @@ void TapaTalkEngine::replyUpdateGroup(QNetworkReply *reply) {
 
     QDomElement paramValueElement = doc.firstChildElement("methodResponse").firstChildElement("params").firstChildElement("param").firstChildElement("value");
     QDomElement topicsValueElement = findMemberValueElement(paramValueElement, "topics");
+    QDomElement dataElement = topicsValueElement.firstChildElement("array").firstChildElement("data");
 
-    getThreads(topicsValueElement.firstChildElement("array").firstChildElement("data"), &threads);
+    /*
+     @todo got here something like and dataElement is null:
+
+      "<?xml version="1.0" encoding="UTF-8"?>\n<methodResponse>\n<params>\n<param>\n<value><struct>\n<member>
+<name>total_topic_num</name>\n<value><int>0</int></value>\n</member>\n
+<member><name>prefixes</name>\n<value><array>\n<data>\n</data>\n</array></value>\n</member>\n
+<member><name>can_upload</name>\n<value><boolean>0</boolean></value>\n</member>\n
+<member><name>can_post</name>\n<value><boolean>0</boolean></value>\n</member>\n</struct>
+</value>\n</param>\n</params>\n</methodResponse>"
+
+     **/
+
+    if(dataElement.nodeName() == "data") {
+        getThreads(dataElement, &threads);
+    } else {
+        qDebug() << Q_FUNC_INFO << docs;
+        emit updateFailure(subscription(), "Error while updating group " + groupBeingUpdated->name() + "\nUnexpected TapatTalk reply.");
+        setState(PES_ERROR);
+    }
     ForumGroup *groupThatWasBeingUpdated = groupBeingUpdated;
     groupBeingUpdated = 0;
     listThreadsFinished(threads, groupThatWasBeingUpdated);
