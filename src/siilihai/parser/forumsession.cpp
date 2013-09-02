@@ -357,8 +357,7 @@ void ForumSession::listThreads(ForumGroup *group) {
     Q_ASSERT(group->isSubscribed());
     if (operationInProgress != FSONoOp && operationInProgress != FSOListThreads) {
         //statusReport();
-        qDebug() << Q_FUNC_INFO << "Operation " << operationNames[operationInProgress] << " in progress!! Don't command me yet!";
-        Q_ASSERT(false);
+        qWarning() << Q_FUNC_INFO << "Operation " << operationNames[operationInProgress] << " in progress!! Don't command me yet!";
         return;
     }
     operationInProgress = FSOListThreads;
@@ -388,7 +387,7 @@ void ForumSession::listMessages(ForumThread *thread) {
     Q_ASSERT(thread->isSane());
     if (operationInProgress != FSONoOp &&
             operationInProgress != FSOListMessages) { // This can be called from nextOperation, after fetchcookie
-        qDebug() << Q_FUNC_INFO << "Operation " << operationNames[operationInProgress] << " in progress!! Don't command me yet!";
+        qWarning() << Q_FUNC_INFO << "Operation " << operationNames[operationInProgress] << " in progress!! Don't command me yet!";
         Q_ASSERT(false);
         return;
     }
@@ -427,6 +426,7 @@ void ForumSession::listMessagesReply(QNetworkReply *reply) {
 void ForumSession::performListMessages(QString &html) {
     // Parser maker may need this
     if(operationInProgress == FSONoOp) operationInProgress = FSOListMessages;
+    Q_ASSERT(operationInProgress == FSOListMessages);
 //    qDebug() << Q_FUNC_INFO << html;
     QList<ForumMessage*> newMessages;
     Q_ASSERT(currentThread->isSane());
