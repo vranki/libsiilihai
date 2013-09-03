@@ -22,11 +22,11 @@ ForumSubscriptionParsed::ForumSubscriptionParsed(QObject *parent, bool temp) :
     _parser = -1;
 }
 
-int ForumSubscriptionParsed::parser() const {
+int ForumSubscriptionParsed::parserId() const {
     return _parser;
 }
 
-void ForumSubscriptionParsed::setParser(int parser) {
+void ForumSubscriptionParsed::setParserId(int parser) {
     if(parser==_parser) return;
     _parser = parser;
     emit ForumSubscription::changed();
@@ -46,7 +46,7 @@ void ForumSubscriptionParsed::copyFrom(ForumSubscription * other) {
     ForumSubscription::copyFrom(other);
     Q_ASSERT(qobject_cast<ForumSubscriptionParsed*>(other));
     if(other->isParsed())
-        setParser(qobject_cast<ForumSubscriptionParsed*>(other)->parser());
+        setParserId(qobject_cast<ForumSubscriptionParsed*>(other)->parserId());
 }
 
 ParserEngine *ForumSubscriptionParsed::parserEngine() const
@@ -67,7 +67,7 @@ QUrl ForumSubscriptionParsed::forumUrl() const {
 
 QDomElement ForumSubscriptionParsed::serialize(QDomElement &parent, QDomDocument &doc) {
     QDomElement subElement = ForumSubscription::serialize(parent, doc);
-    XmlSerialization::appendValue(SUB_PARSER, QString::number(parser()), subElement, doc);
+    XmlSerialization::appendValue(SUB_PARSER, QString::number(parserId()), subElement, doc);
     return subElement;
 }
 
@@ -76,5 +76,5 @@ void ForumSubscriptionParsed::readSubscriptionXml(QDomElement &element)
     ForumSubscription::readSubscriptionXml(element);
     bool ok = false;
     int parser = QString(element.firstChildElement(SUB_PARSER).text()).toInt(&ok);
-    setParser(parser);
+    setParserId(parser);
 }

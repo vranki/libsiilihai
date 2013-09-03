@@ -28,7 +28,7 @@ void TapaTalkEngine::setSubscription(ForumSubscription *fs) {
     Q_ASSERT(fs->forumUrl().isValid());
     subscriptionTapaTalk()->setTapaTalkEngine(this);
     connectorUrl = subscriptionTapaTalk()->forumUrl().toString() + "mobiquo/mobiquo.php";
-    setState(PES_IDLE);
+    setState(UES_IDLE);
 }
 
 
@@ -199,7 +199,7 @@ void TapaTalkEngine::replyUpdateGroup(QNetworkReply *reply) {
     } else {
         qDebug() << Q_FUNC_INFO << docs;
         emit updateFailure(subscription(), "Error while updating group " + groupBeingUpdated->name() + "\nUnexpected TapatTalk reply.");
-        setState(PES_ERROR);
+        setState(UES_ERROR);
     }
     ForumGroup *groupThatWasBeingUpdated = groupBeingUpdated;
     groupBeingUpdated = 0;
@@ -232,7 +232,7 @@ void TapaTalkEngine::getThreads(QDomElement arrayDataElement, QList<ForumThread 
         }
     } else {
         emit networkFailure("Unexpected TapaTalk reply while updating threads");
-        setState(UpdateEngine::PES_ERROR);
+        setState(UpdateEngine::UES_ERROR);
     }
 }
 
@@ -352,7 +352,7 @@ void TapaTalkEngine::replyLogin(QNetworkReply *reply) {
     } else {
         qDebug() << Q_FUNC_INFO << "Error in TapaTalk login reply:" << docs;
         emit networkFailure("Received unexpected TapaTalk login reply.\nSee console for details.");
-        setState(UpdateEngine::PES_ERROR);
+        setState(UpdateEngine::UES_ERROR);
     }
 }
 
@@ -441,7 +441,7 @@ void TapaTalkEngine::replyListGroups(QNetworkReply *reply)
         QString resultText = getValueFromStruct(resultElement, "result_text");
         if(resultText.isEmpty()) resultText = "Updating TapaTalk group list failed (no result text)";
         emit updateFailure(subscription(), resultText);
-        setState(UpdateEngine::PES_ERROR);
+        setState(UpdateEngine::UES_ERROR);
     }
     listGroupsFinished(grps, subscription());
     qDeleteAll(grps);

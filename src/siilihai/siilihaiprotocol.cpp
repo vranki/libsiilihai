@@ -456,7 +456,7 @@ void SiilihaiProtocol::replyGetForum(QNetworkReply *reply) {
             // @todo change protocol & move this to ForumSubscription classes
             if(addedForum->provider() == ForumSubscription::FP_PARSER) {
                 int parser = re.firstChildElement("parser").text().toInt();
-                qobject_cast<ForumSubscriptionParsed*> (addedForum)->setParser(parser);
+                qobject_cast<ForumSubscriptionParsed*> (addedForum)->setParserId(parser);
             }
 
             emit forumGot(addedForum);
@@ -654,7 +654,7 @@ void SiilihaiProtocol::replyDownsync(QNetworkReply *reply) {
             if(forum->isParsed()) {
                 ForumSubscriptionParsed *forumParsed = qobject_cast<ForumSubscriptionParsed*> (forum);
                 int forumparser = forumElement.attribute("id").toInt();
-                forumParsed->setParser(forumparser);
+                forumParsed->setParserId(forumparser);
             }
             forum->setForumId(forumid);
             QDomElement groupElement = forumElement.firstChildElement("group");
@@ -735,7 +735,7 @@ void SiilihaiProtocol::replyGetSyncSummary(QNetworkReply *reply) {
             if(sub->isParsed()) {
                 ForumSubscriptionParsed *forumParsed = qobject_cast<ForumSubscriptionParsed*>(sub);
                 int forumparser = forumElement.attribute("parser").toInt();
-                forumParsed->setParser(forumparser);
+                forumParsed->setParserId(forumparser);
                 Q_ASSERT(forumparser > 0);
             }
             sub->setForumId(forumid);

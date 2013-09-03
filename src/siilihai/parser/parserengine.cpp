@@ -13,17 +13,25 @@
     You should have received a copy of the GNU Lesser General Public License
     along with libSiilihai.  If not, see <http://www.gnu.org/licenses/>. */
 #include "parserengine.h"
+#include <QNetworkRequest>
+#include <QNetworkProxy>
+#include <QNetworkReply>
+#include <QStringList>
 #include "../forumdata/forumgroup.h"
 #include "../forumdata/forumthread.h"
 #include "../forumdata/forummessage.h"
 #include "../forumdatabase/forumdatabase.h"
 #include "../forumdata/forumsubscription.h"
 #include "../credentialsrequest.h"
+#include "patternmatcher.h"
 #include "parsermanager.h"
+#include "../httppost.h"
 
+static const QString operationNames[] = {"(null)", "NoOp", "Login", "FetchCookie", "ListGroups", "ListThreads", "ListMessages" };
 
-ParserEngine::ParserEngine(ForumDatabase *fd, QObject *parent, ParserManager *pm) :
-    UpdateEngine(parent, fd), session(this, &nam), parserManager(pm) {
+ParserEngine::ParserEngine(QObject *parent, ForumDatabase *fd, ParserManager *pm, QNetworkAccessManager *n) :
+    UpdateEngine(parent, fd), parserManager(pm), nam(n) {
+    /*
     connect(&session, SIGNAL(listGroupsFinished(QList<ForumGroup*>&, ForumSubscription *)), this, SLOT(listGroupsFinished(QList<ForumGroup*>&, ForumSubscription *)));
     connect(&session, SIGNAL(listThreadsFinished(QList<ForumThread*>&, ForumGroup*)), this, SLOT(listThreadsFinished(QList<ForumThread*>&, ForumGroup*)));
     connect(&session, SIGNAL(listMessagesFinished(QList<ForumMessage*>&, ForumThread*, bool)),
@@ -31,12 +39,30 @@ ParserEngine::ParserEngine(ForumDatabase *fd, QObject *parent, ParserManager *pm
     connect(&session, SIGNAL(networkFailure(QString)), this, SLOT(networkFailure(QString)));
     connect(&session, SIGNAL(getHttpAuthentication(ForumSubscription*, QAuthenticator*)), this, SIGNAL(getHttpAuthentication(ForumSubscription*,QAuthenticator*)));
     connect(&session, SIGNAL(loginFinished(ForumSubscription *,bool)), this, SLOT(loginFinishedSlot(ForumSubscription *,bool)));
+            */
     connect(parserManager, SIGNAL(parserUpdated(ForumParser*)), this, SLOT(parserUpdated(ForumParser*)));
     connect(this, SIGNAL(stateChanged(UpdateEngine::UpdateEngineState,UpdateEngine::UpdateEngineState)),
             this, SLOT(updateParserIfError(UpdateEngine::UpdateEngineState,UpdateEngine::UpdateEngineState)));
+
+    if(!nam)
+        nam = new QNetworkAccessManager(this);
+    nam->setProxy(QNetworkProxy::applicationProxy());
+    connect(nam, SIGNAL(finished(QNetworkReply*)), this, SLOT(networkReply(QNetworkReply*)), Qt::UniqueConnection);
+
     currentParser = 0;
-    sessionInitialized = false;
     updatingParser = false;
+    operationInProgress = FSONoOp;
+    cookieJar = 0;
+    currentListPage = 0;
+    patternMatcher = new PatternMatcher(this);
+    loggedIn = false;
+    cookieFetched = false;
+    cookieExpiredTimer.setSingleShot(true);
+    cookieExpiredTimer.setInterval(10*60*1000);
+    waitingForAuthentication = false;
+    connect(&cookieExpiredTimer, SIGNAL(timeout()), this, SLOT(cookieExpired()));
+    connect(nam, SIGNAL(authenticationRequired(QNetworkReply *, QAuthenticator *)),
+            this, SLOT(authenticationRequired(QNetworkReply *, QAuthenticator *)), Qt::UniqueConnection);
 }
 
 ParserEngine::~ParserEngine() {
@@ -45,12 +71,12 @@ ParserEngine::~ParserEngine() {
 void ParserEngine::setParser(ForumParser *fp) {
     currentParser = fp;
     if(fp) {
-        if(subscription() && !updatingParser && state()==PES_ENGINE_NOT_READY)  {
-            setState(PES_IDLE);
+        if(subscription() && !updatingParser && state()==UES_ENGINE_NOT_READY)  {
+            setState(UES_IDLE);
         }
     } else {
         if(!updatingParser)
-            setState(PES_ENGINE_NOT_READY);
+            setState(UES_ENGINE_NOT_READY);
     }
 }
 
@@ -70,12 +96,12 @@ void ParserEngine::setSubscription(ForumSubscription *fs) {
 
         if(currentParser->update_date < updateDate) updateParser = true;
     }
-    if(updateParser) {
-        parserManager->updateParser(subscriptionParsed()->parser());
+    if(updateParser && parserManager) {
+        parserManager->updateParser(subscriptionParsed()->parserId());
         updatingParser = true;
-        setState(PES_ENGINE_NOT_READY);
+        setState(UES_ENGINE_NOT_READY);
     } else {
-        setState(PES_IDLE);
+        setState(UES_IDLE);
     }
 }
 
@@ -83,9 +109,15 @@ ForumParser *ParserEngine::parser() const {
     return currentParser;
 }
 
+void ParserEngine::initialize(ForumParser *fop, ForumSubscription *fos, PatternMatcher *matcher) {
+    setParser(fop);
+    setSubscription(fos);
+    patternMatcher = matcher;
+}
+
 void ParserEngine::parserUpdated(ForumParser *p) {
     Q_ASSERT(p);
-    if(subscriptionParsed()->parser() == p->id()) {
+    if(subscriptionParsed()->parserId() == p->id()) {
         qDebug() << Q_FUNC_INFO;
         updatingParser = false;
         setParser(p);
@@ -93,20 +125,45 @@ void ParserEngine::parserUpdated(ForumParser *p) {
 }
 
 void ParserEngine::updateParserIfError(UpdateEngine::UpdateEngineState newState, UpdateEngine::UpdateEngineState oldState) {
-    if(newState == PES_ERROR) {
-        parserManager->updateParser(subscriptionParsed()->parser());
+    if(newState == UES_ERROR && parserManager) {
+        parserManager->updateParser(subscriptionParsed()->parserId());
     }
 }
 
 void ParserEngine::updateThread(ForumThread *thread, bool force) {
-    initSession();
     UpdateEngine::updateThread(thread, force);
 }
 
 void ParserEngine::cancelOperation() {
     updateAll = false;
     updateCanceled = true;
-    session.cancelOperation();
+    qDebug() << Q_FUNC_INFO;
+    if(operationInProgress == FSOListGroups) {
+        QList<ForumGroup*> emptyList;
+        emit listGroupsFinished(emptyList, subscription());
+    }
+    if(operationInProgress == FSOListThreads) {
+        QList<ForumThread*> emptyList;
+        emit listThreadsFinished(emptyList, groupBeingUpdated);
+    }
+
+    if(operationInProgress == FSOListMessages) {
+        QList<ForumMessage*> emptyList;
+        emit listMessagesFinished(emptyList, threadBeingUpdated, false);
+    }
+
+    if(operationInProgress == FSOLogin) emit loginFinished(subscription(), false);
+
+    operationInProgress = FSONoOp;
+    cookieFetched = false;
+    currentListPage = -1;
+    qDeleteAll(messages);
+    messages.clear();
+    qDeleteAll(threads);
+    threads.clear();
+    groupBeingUpdated = 0;
+    threadBeingUpdated = 0;
+    waitingForAuthentication = false;
     UpdateEngine::cancelOperation();
 }
 
@@ -121,37 +178,612 @@ void ParserEngine::requestCredentials() {
 
 void ParserEngine::credentialsEntered(CredentialsRequest* cr) {
     if(cr->credentialType==CredentialsRequest::SH_CREDENTIAL_HTTP) {
-        session.authenticationReceived();
+        Q_ASSERT(waitingForAuthentication);
+        qDebug() << Q_FUNC_INFO;
+        statusReport();
+        waitingForAuthentication = false;
     }
     UpdateEngine::credentialsEntered(cr);
 }
 
-
 void ParserEngine::doUpdateGroup(ForumGroup *group) {
-    session.listThreads(group);
+    Q_ASSERT(group->isSubscribed());
+    if (operationInProgress != FSONoOp && operationInProgress != FSOListThreads) {
+        //statusReport();
+        qWarning() << Q_FUNC_INFO << "Operation " << operationNames[operationInProgress] << " in progress!! Don't command me yet!";
+        return;
+    }
+    operationInProgress = FSOListThreads;
+    groupBeingUpdated = group;
+    currentMessagesUrl = QString::null;
+    if(prepareForUse()) return;
+    currentListPage = parser()->thread_list_page_start;
+    listThreadsOnNextPage();
 }
 
 void ParserEngine::doUpdateForum()
 {
-    initSession();
-    session.listGroups();
+    if (operationInProgress != FSONoOp && operationInProgress != FSOListGroups) {
+        qDebug() << Q_FUNC_INFO << "Operation " << operationNames[operationInProgress] << " in progress!! Don't command me yet! ";
+        return;
+    }
+    operationInProgress = FSOListGroups;
+    if(prepareForUse()) return;
+
+    QNetworkRequest req(QUrl(parser()->forum_url));
+    setRequestAttributes(req, FSOListGroups);
+    nam->post(req, emptyData);
 }
 
 void ParserEngine::doUpdateThread(ForumThread *thread)
 {
-    initSession();
-    session.listMessages(thread);
-}
-
-void ParserEngine::initSession()
-{
-    if (!sessionInitialized) {
-        session.initialize(currentParser, subscription());
-        sessionInitialized = true;
+    Q_ASSERT(thread->isSane());
+    if (operationInProgress != FSONoOp &&
+            operationInProgress != FSOListMessages) { // This can be called from nextOperation, after fetchcookie
+        qWarning() << Q_FUNC_INFO << "Operation " << operationNames[operationInProgress] << " in progress!! Don't command me yet!";
+        Q_ASSERT(false);
+        return;
     }
+    operationInProgress = FSOListMessages;
+    threadBeingUpdated = thread;
+    groupBeingUpdated = thread->group();
+
+    messages.clear();
+    moreMessagesAvailable = false;
+    if(prepareForUse()) return;
+    /* @todo enable this when it's figured out how to add the new messages to
+      end of thread and NOT delete the messages in beginning of thread.
+
+    if(thread->getLastPage()) { // Start from last known page if possible
+        currentListPage = thread->getLastPage();
+    } else {*/
+    currentListPage = parser()->view_thread_page_start;
+    //  }
+
+    listMessagesOnNextPage();
 }
 
 ForumSubscriptionParsed *ParserEngine::subscriptionParsed() const
 {
     return qobject_cast<ForumSubscriptionParsed*>(subscription());
+}
+
+void ParserEngine::networkReply(QNetworkReply *reply) {
+    int operationAttribute = reply->request().attribute(QNetworkRequest::User).toInt();
+    int forumId = reply->request().attribute(FORUMID_ATTRIBUTE).toInt();
+    if(forumId != subscription()->forumId()) return;
+    if(!operationAttribute) {
+        qDebug( ) << Q_FUNC_INFO << "Reply " << operationAttribute << " not for me";
+        return;
+    }
+    if(waitingForAuthentication) {
+        qDebug( ) << Q_FUNC_INFO << "Waiting for authentication - ignoring this reply";
+        return;
+    }
+    if(operationAttribute==FSONoOp) {
+        Q_ASSERT(false);
+    } else if(operationAttribute==FSOLogin) {
+        loginReply(reply);
+    } else if(operationAttribute==FSOFetchCookie) {
+        fetchCookieReply(reply);
+    } else if(operationAttribute==FSOListGroups) {
+        listGroupsReply(reply);
+    } else if(operationAttribute==FSOListThreads) {
+        listThreadsReply(reply);
+    } else if(operationAttribute==FSOListMessages) {
+        listMessagesReply(reply);
+    }
+}
+
+QString ParserEngine::convertCharset(const QByteArray &src) {
+    QString converted;
+    // I don't like this.. Support needed for more!
+    if (parser()->charset == "" || parser()->charset == "utf-8") {
+        converted = QString::fromUtf8(src.data());
+    } else if (parser()->charset == "iso-8859-1" || parser()->charset == "iso-8859-15") {
+        converted = QString::fromLatin1(src.data());
+    } else {
+        qDebug() << Q_FUNC_INFO << "Unknown charset " << parser()->charset << " - assuming UTF-8";
+        converted = QString().fromUtf8(src.data());
+    }
+    // Remove silly newlines
+    converted.replace(QChar(13), QChar(' '));
+    return converted;
+}
+
+void ParserEngine::listGroupsReply(QNetworkReply *reply) {
+    if(operationInProgress == FSONoOp) return;
+    if(operationInProgress != FSOListGroups) {
+        qDebug() << Q_FUNC_INFO << "ALERT!! POSSIBLE BUG: operationInProgress is not FSOListGroups! It is: " << operationInProgress << " ignoring this signal, i hope nothing breaks.";
+        return;
+    }
+    Q_ASSERT(reply->request().attribute(QNetworkRequest::User).toInt() == FSOListGroups);
+
+    QString data = convertCharset(reply->readAll());
+    if (reply->error() != QNetworkReply::NoError) {
+        emit(networkFailure(reply->errorString()));
+        cancelOperation();
+        return;
+    }
+    performListGroups(data);
+}
+
+void ParserEngine::performListGroups(QString &html) {
+    // Parser maker may need this
+    if(operationInProgress == FSONoOp) operationInProgress = FSOListGroups;
+    emit receivedHtml(html);
+    QList<ForumGroup*> groups;
+    patternMatcher->setPattern(parser()->group_list_pattern);
+    QList<QHash<QString, QString> > matches = patternMatcher->findMatches(html);
+    QHash<QString, QString> match;
+    foreach (match, matches) {
+        ForumGroup *fg = new ForumGroup(this);
+        fg->setId(match["%a"]);
+        fg->setName(match["%b"]);
+        fg->setLastchange(match["%c"]);
+        groups.append(fg);
+    }
+    operationInProgress = FSONoOp;
+    emit(listGroupsFinished(groups, subscription()));
+    qDeleteAll(groups);
+}
+
+void ParserEngine::loginToForum() {
+    if (parser()->login_type == ForumParser::LoginTypeNotSupported) {
+        qDebug() << Q_FUNC_INFO << "Login not supproted!";
+        emit loginFinished(subscription(), false);
+        return;
+    }
+
+    if (subscription()->username().length() <= 0 || subscription()->password().length() <= 0) {
+        qDebug() << Q_FUNC_INFO << "Warning, no credentials supplied. Logging in should fail.";
+    }
+
+    QUrl loginUrl(getLoginUrl());
+    if (parser()->login_type == ForumParser::LoginTypeHttpPost) {
+        QNetworkRequest req;
+        req.setUrl(loginUrl);
+        setRequestAttributes(req, FSOLogin);
+        QHash<QString, QString> params;
+        QStringList loginParamPairs = parser()->login_parameters.split(",", QString::SkipEmptyParts);
+        foreach(QString paramPair, loginParamPairs) {
+            paramPair = paramPair.replace("%u", subscription()->username());
+            paramPair = paramPair.replace("%p", subscription()->password());
+
+            if (paramPair.contains('=')) {
+                QStringList singleParam = paramPair.split('=', QString::KeepEmptyParts);
+                if (singleParam.size() == 2) {
+                    params.insert(singleParam.at(0), singleParam.at(1));
+                } else {
+                    qDebug() << Q_FUNC_INFO << "hm, invalid login parameter pair!";
+                }
+            }
+        }
+        loginData = HttpPost::setPostParameters(&req, params);
+
+        nam->post(req, loginData);
+    } else {
+        qDebug() << Q_FUNC_INFO << "Sorry, http auth not yet implemented.";
+    }
+}
+
+void ParserEngine::loginReply(QNetworkReply *reply) {
+    QString data = convertCharset(reply->readAll());
+
+    if (reply->error() != QNetworkReply::NoError) {
+        emit(networkFailure(reply->errorString()));
+        loginFinished(subscription(), false);
+        cancelOperation();
+        return;
+    }
+
+    performLogin(data);
+}
+
+void ParserEngine::performLogin(QString &html) {
+    //    qDebug() << Q_FUNC_INFO << " looking for " << parser()->verify_login_pattern;
+    emit receivedHtml(html);
+    bool success = html.contains(parser()->verify_login_pattern);
+    //    if(success)
+    //        qDebug() << Q_FUNC_INFO << "found in html at " << html.indexOf(parser()->verify_login_pattern);
+    emit loginFinished(subscription(), success);
+    loggedIn = success;
+    if(loggedIn) {
+        nextOperation();
+    } else {
+        cancelOperation();
+        qDebug() << Q_FUNC_INFO << "Login failed - cancelling ops!";
+    }
+}
+
+void ParserEngine::fetchCookie() {
+    Q_ASSERT(parser()->forum_url.length() > 0);
+    if (operationInProgress == FSONoOp)
+        return;
+    QNetworkRequest req(QUrl(parser()->forum_url));
+    setRequestAttributes(req, FSOFetchCookie);
+    nam->post(req, emptyData);
+}
+
+
+void ParserEngine::fetchCookieReply(QNetworkReply *reply) {
+    if(operationInProgress == FSONoOp) return;
+
+    if (reply->error() != QNetworkReply::NoError) {
+        qDebug() << Q_FUNC_INFO << reply->errorString();
+        emit(networkFailure(reply->errorString()));
+        cancelOperation();
+        return;
+    }
+    if (operationInProgress == FSONoOp)
+        return;
+    /*
+ QList<QNetworkCookie> cookies = cookieJar->cookiesForUrl(QUrl(
+   parser()->forum_url));
+ for (int i = 0; i < cookies.size(); i++) {
+  qDebug() << "\t" << cookies[i].name();
+ }
+ */
+    cookieFetched = true;
+    cookieExpiredTimer.start();
+    nextOperation();
+}
+void ParserEngine::listThreadsOnNextPage() {
+    Q_ASSERT(operationInProgress==FSOListThreads);
+    if (operationInProgress != FSOListThreads)
+        return;
+
+    QString urlString = getThreadListUrl(groupBeingUpdated, currentListPage);
+    QNetworkRequest req;
+    req.setUrl(QUrl(urlString));
+    setRequestAttributes(req, FSOListThreads);
+    nam->post(req, emptyData);
+}
+
+void ParserEngine::performListThreads(QString &html) {
+    // Parser maker may need this
+    if(operationInProgress == FSONoOp) operationInProgress = FSOListThreads;
+    QList<ForumThread*> newThreads;
+    emit receivedHtml(html);
+    patternMatcher->setPattern(parser()->thread_list_pattern);
+    QList<QHash<QString, QString> > matches = patternMatcher->findMatches(html);
+    // Iterate through matches on page
+    QHash<QString, QString> match;
+    foreach(match, matches) {
+        ForumThread *ft = new ForumThread(this);
+        ft->setId(match["%a"]);
+        ft->setName(match["%b"]);
+        ft->setLastchange(match["%c"]);
+        ft->setGetMessagesCount(groupBeingUpdated->subscription()->latestMessages());
+        ft->setHasMoreMessages(false);
+        if (ft->isSane()) {
+            newThreads.append(ft);
+        } else {
+            qDebug() << Q_FUNC_INFO << "Incomplete thread, not adding";
+            // Q_ASSERT(false);
+        }
+    }
+    // See if the new threads contains already unknown threads
+    bool newThreadsFound = false;
+    // @todo this could be optimized a lot
+    while(!newThreads.isEmpty()) {
+        ForumThread *newThread = newThreads.takeFirst();
+        bool threadFound = false;
+        foreach (ForumThread *thread, threads) {
+            if (newThread->id() == thread->id()) {
+                threadFound = true;
+            }
+        }
+        if(threadFound) { // Delete if already known thread
+            delete newThread;
+            newThread = 0;
+        } else {
+            newThreadsFound = true;
+            newThread->setOrdernum(threads.size());
+            if (threads.size() < subscription()->latestThreads()) {
+                threads.append(newThread);
+                newThread = 0;
+            } else {
+                //                qDebug() << "Number of threads exceeding maximum latest threads limit - not adding "
+                //                        << newThread->toString();
+                newThreadsFound = false;
+                delete newThread;
+                newThread = 0;
+            }
+        }
+        Q_ASSERT(!newThread);
+    }
+    bool finished = false;
+    if (newThreadsFound) {
+        if (parser()->thread_list_page_increment > 0) {
+            // Continue to next page
+            currentListPage += parser()->thread_list_page_increment;
+            //qDebug() << Q_FUNC_INFO << "New threads were found - continuing to next page " << currentListPage;
+            listThreadsOnNextPage();
+        } else {
+            // qDebug() << Q_FUNC_INFO << "Forum doesn't support multipage - NOT continuing to next page.";
+            finished = true;
+        }
+    } else { // Not continuing to next page
+        // qDebug() << Q_FUNC_INFO << "No new threads - finished";
+        finished = true;
+    }
+    if (finished) {
+        operationInProgress = FSONoOp;
+        emit listThreadsFinished(threads, groupBeingUpdated);
+        qDeleteAll(threads);
+        threads.clear();
+    }
+}
+
+void ParserEngine::listMessagesOnNextPage() {
+    Q_ASSERT(operationInProgress==FSOListMessages);
+    if (operationInProgress != FSOListMessages) {
+        Q_ASSERT(false);
+        return;
+    }
+    QString urlString = getMessageListUrl(threadBeingUpdated, currentListPage);
+    currentMessagesUrl = urlString;
+
+    QNetworkRequest req;
+    req.setUrl(QUrl(urlString));
+    setRequestAttributes(req, FSOListMessages);
+
+    nam->post(req, emptyData);
+}
+
+void ParserEngine::listThreadsReply(QNetworkReply *reply) {
+    if(operationInProgress == FSONoOp) return;
+    Q_ASSERT(groupBeingUpdated);
+    Q_ASSERT(operationInProgress == FSOListThreads);
+    Q_ASSERT(reply->request().attribute(QNetworkRequest::User).toInt()==FSOListThreads);
+    if (reply->error() != QNetworkReply::NoError) {
+        emit(networkFailure(reply->errorString()));
+        cancelOperation();
+        return;
+    }
+    QString data = convertCharset(reply->readAll());
+    performListThreads(data);
+}
+
+void ParserEngine::listMessagesReply(QNetworkReply *reply) {
+    if(operationInProgress == FSONoOp) return;
+    Q_ASSERT(operationInProgress == FSOListMessages);
+    Q_ASSERT(reply->request().attribute(QNetworkRequest::User).toInt() == FSOListMessages);
+    if (reply->error() != QNetworkReply::NoError) {
+        emit(networkFailure(reply->errorString()));
+        cancelOperation();
+        return;
+    }
+    QString data = convertCharset(reply->readAll());
+    performListMessages(data);
+}
+
+void ParserEngine::performListMessages(QString &html) {
+    // Parser maker may need this
+    if(operationInProgress == FSONoOp) operationInProgress = FSOListMessages;
+    Q_ASSERT(operationInProgress == FSOListMessages);
+    //    qDebug() << Q_FUNC_INFO << html;
+    QList<ForumMessage*> newMessages;
+    Q_ASSERT(threadBeingUpdated->isSane());
+    emit receivedHtml(html);
+    operationInProgress = FSOListMessages;
+    patternMatcher->setPattern(parser()->message_list_pattern);
+    QList<QHash<QString, QString> > matches = patternMatcher->findMatches(html);
+    QHash<QString, QString> match;
+
+    foreach(match, matches){
+        // This will be deleted or added to messages
+        ForumMessage *fm = new ForumMessage(this);
+        fm->setRead(false, false);
+        Q_ASSERT(!fm->isRead());
+        fm->setId(match["%a"]);
+        fm->setName(match["%b"]);
+        fm->setBody(match["%c"]);
+        fm->setAuthor(match["%d"]);
+        fm->setLastchange(match["%e"]);
+        if (parser()->supportsMessageUrl()) {
+            fm->setUrl(getMessageUrl(fm));
+        } else {
+            fm->setUrl(currentMessagesUrl);
+        }
+        if (fm->isSane()) {
+            newMessages.append(fm);
+        } else {
+            qDebug() << Q_FUNC_INFO << "Incomplete message, not adding";
+            // Q_ASSERT(false);
+        }
+    }
+    // See if the new threads contains already unknown threads
+    bool newMessagesFound = false;
+    while(!newMessages.isEmpty()) {
+        ForumMessage *newMessage = newMessages.takeFirst();
+        bool messageFound = false;
+        for(int idx=0;idx < messages.size() && !messageFound;idx++) {
+            ForumMessage *message = messages.value(idx);
+            if (newMessage->id() == message->id()) {
+                messageFound = true;
+            }
+        }
+        if (messageFound) {
+            // Message already in messages - discard it
+            delete newMessage;
+            newMessage = 0;
+        } else {
+            // Message not in messages - add it if possible
+            newMessagesFound = true;
+            newMessage->setOrdernum(messages.size());
+            // Check if message limit has reached
+            if (messages.size() < threadBeingUpdated->getMessagesCount()) {
+                messages.append(newMessage);
+                newMessage = 0;
+            } else {
+                //  qDebug() << "Number of messages exceeding maximum latest messages limit - not adding.";
+                newMessagesFound = false;
+                moreMessagesAvailable = true;
+                delete newMessage;
+                newMessage = 0;
+            }
+        }
+        Q_ASSERT(!newMessage);
+    }
+    bool finished = false;
+    if (newMessagesFound) {
+        if (parser()->view_thread_page_increment > 0) {
+            // Continue to next page
+            threadBeingUpdated->setLastPage(currentListPage); // To be updated to db in listMessagesFinished
+            currentListPage += parser()->view_thread_page_increment;
+            listMessagesOnNextPage();
+        } else {
+            // qDebug() << "Forum doesn't support multipage - NOT continuing to next page.";
+            finished = true;
+        }
+    } else {
+        // qDebug() << "NOT continuing to next page, no new messages found on this one.";
+        finished = true;
+    }
+
+    if(finished) {
+        operationInProgress = FSONoOp;
+        emit listMessagesFinished(messages, threadBeingUpdated, moreMessagesAvailable);
+        qDeleteAll(messages);
+        messages.clear();
+    } else {
+        // Help keep UI responsive
+        //QCoreApplication::processEvents();
+    }
+}
+
+QString ParserEngine::statusReport() {
+    QString op;
+    if (operationInProgress == FSONoOp)
+        op = "NoOp";
+    if (operationInProgress == FSOListGroups)
+        op = "ListGroups";
+    if (operationInProgress == FSOListThreads)
+        op = "UpdateThreads";
+    if (operationInProgress == FSOListMessages)
+        op = "UpdateMessages";
+
+    return "Operation: " + operationNames[operationInProgress] + " in " + parser()->toString() + "\n" + "Threads: "
+            + QString().number(threads.size()) + "\n" + "Messages: "
+            + QString().number(messages.size()) + "\n" + "Page: "
+            + QString().number(currentListPage)/* + "\n" + "Group: "
+                                   + currentGroup->toString() + "\n" + "Thread: "
+                                                        + currentThread->toString() + "\n"*/;
+}
+
+QString ParserEngine::getMessageUrl(const ForumMessage *msg) {
+    QUrl url = QUrl();
+
+    QString urlString = parser()->view_message_path;
+    urlString = urlString.replace("%g", groupBeingUpdated->id());
+    urlString = urlString.replace("%t", threadBeingUpdated->id());
+    urlString = urlString.replace("%m", msg->id());
+    urlString = parser()->forumUrlWithoutEnd() + urlString;
+    return urlString;
+}
+
+QString ParserEngine::getLoginUrl() {
+    return parser()->forumUrlWithoutEnd() + parser()->login_path;
+}
+
+QString ParserEngine::getThreadListUrl(const ForumGroup *grp, int page) {
+    QString urlString = parser()->thread_list_path;
+    urlString = urlString.replace("%g", grp->id());
+    if (parser()->supportsThreadPages()) {
+        if (page < 0)
+            page = parser()->thread_list_page_start;
+        urlString = urlString.replace("%p", QString().number(page));
+    }
+    urlString = parser()->forumUrlWithoutEnd() + urlString;
+    return urlString;
+}
+
+QString ParserEngine::getMessageListUrl(const ForumThread *thread, int page) {
+    QString urlString = parser()->view_thread_path;
+    urlString = urlString.replace("%g", thread->group()->id());
+    urlString = urlString.replace("%t", thread->id());
+    if (parser()->supportsMessagePages()) {
+        if (page < 0)
+            page = parser()->view_thread_page_start;
+        urlString = urlString.replace("%p", QString().number(page));
+    }
+    urlString = parser()->forumUrlWithoutEnd() + urlString;
+    return urlString;
+}
+
+void ParserEngine::authenticationRequired(QNetworkReply * reply, QAuthenticator * authenticator) {
+    Q_UNUSED(reply);
+    if(operationInProgress == FSONoOp) return;
+    int forumId = reply->request().attribute(FORUMID_ATTRIBUTE).toInt();
+    if(forumId != subscription()->forumId()) return;
+
+    qDebug() << Q_FUNC_INFO << reply << authenticator;
+    if(waitingForAuthentication) {
+        qDebug() << Q_FUNC_INFO << "Already waiting for authentication - ignoring this.";
+        return;
+    }
+    if(parser()->login_type == ForumParser::LoginTypeHttpAuth) {
+        if (subscription()->username().length() <= 0 || subscription()->password().length() <= 0) {
+            qDebug() << Q_FUNC_INFO << "FAIL: no credentials given for subscription " << subscription()->toString();
+            cancelOperation();
+            emit networkFailure("Server requested for username and password for forum "
+                                + subscription()->alias() + " but you haven't provided them.");
+        } else {
+            qDebug() << Q_FUNC_INFO << "Gave credentials to server";
+            authenticator->setUser(subscription()->username());
+            authenticator->setPassword(subscription()->password());
+        }
+    } else {
+        waitingForAuthentication = true;
+        emit getHttpAuthentication(subscription(), authenticator);
+        if(!authenticator->user().isEmpty()) { // Got authentication directly (from settings)
+            waitingForAuthentication = false;
+        }
+    }
+}
+
+bool ParserEngine::prepareForUse() {
+    if (!cookieFetched) {
+        fetchCookie();
+        return true;
+    }
+    if (!loggedIn && parser()->supportsLogin() && subscription()->username().length() > 0 && subscription()->password().length() > 0) {
+        loginToForum();
+        return true;
+    }
+    return false;
+}
+
+void ParserEngine::nextOperation() {
+    switch (operationInProgress) {
+    case FSOListGroups:
+        doUpdateForum();
+        break;
+    case FSOListThreads:
+        Q_ASSERT(!groupBeingUpdated);
+        doUpdateGroup(groupBeingUpdated);
+        break;
+    case FSOListMessages:
+        Q_ASSERT(!threadBeingUpdated);
+        doUpdateThread(threadBeingUpdated);
+        break;
+    case FSONoOp:
+        break;
+    default:
+        Q_ASSERT(false);
+    }
+}
+
+void ParserEngine::cookieExpired() {
+    cookieFetched = false;
+}
+
+void ParserEngine::setRequestAttributes(QNetworkRequest &req, ForumSessionOperation op) {
+    req.setAttribute(QNetworkRequest::User, op);
+    req.setAttribute(FORUMID_ATTRIBUTE, subscription()->forumId());
+    req.setHeader(QNetworkRequest::ContentTypeHeader, QString("application/x-www-form-urlencoded"));
+    // @todo Make this configurable
+    req.setRawHeader("User-Agent", "Mozilla/5.0 (X11; Linux i686; rv:6.0) Gecko/20100101 Firefox/6.0");
 }

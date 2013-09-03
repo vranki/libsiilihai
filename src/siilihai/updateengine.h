@@ -28,6 +28,18 @@ class ForumMessage;
 class ForumDatabase;
 class CredentialsRequest;
 
+/**
+  * Common parent class for update engines. Handles updating a forum's data (threads, messages, etc).
+  *
+  * State diagram:
+  *
+  * PES_ENGINE_NOT_READY -> REQUESTING_CREDENTIALS <-> IDLE <-> UPDATING
+  *                                    '-->----------------------->------^ ^- ERROR <-'
+  * @see ForumDatabase
+  * @see ForumSession
+  * @see ForumParser
+  */
+
 class UpdateEngine : public QObject
 {
     Q_OBJECT
@@ -35,13 +47,13 @@ class UpdateEngine : public QObject
 public:
     // Remember to sync with stateNames in .cpp
     enum UpdateEngineState {
-        PES_UNKNOWN=0,
-        PES_ENGINE_NOT_READY,
-        PES_IDLE,
-        PES_UPDATING,
-        PES_ERROR
+        UES_UNKNOWN=0,
+        UES_ENGINE_NOT_READY,
+        UES_IDLE,
+        UES_UPDATING,
+        UES_ERROR
     };
-
+    // fd can be null
     UpdateEngine(QObject *parent, ForumDatabase *fd);
     virtual ~UpdateEngine();
     virtual void setSubscription(ForumSubscription *fs);
@@ -98,6 +110,9 @@ protected:
     QQueue<ForumThread*> threadsToUpdateQueue;
     bool updateWhenEngineReady;
     QNetworkAccessManager nam;
+
+    ForumGroup *groupBeingUpdated;
+    ForumThread *threadBeingUpdated;
 private:
     ForumSubscription *fsubscription;
     UpdateEngineState currentState;

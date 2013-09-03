@@ -28,7 +28,7 @@ UpdateEngine::UpdateEngine(QObject *parent, ForumDatabase *fd) :
     updateAll = false;
     forceUpdate = false;
     fsubscription = 0;
-    currentState = PES_ENGINE_NOT_READY;
+    currentState = UES_ENGINE_NOT_READY;
     requestingCredentials = false;
     updateWhenEngineReady = false;
     updateOnlyThread = false;
@@ -49,7 +49,7 @@ void UpdateEngine::setSubscription(ForumSubscription *fs) {
         if(oldSub) {
             disconnect(oldSub, 0, this, 0);
         }
-        setState(PES_ENGINE_NOT_READY);
+        setState(UES_ENGINE_NOT_READY);
     }
 }
 
@@ -65,7 +65,7 @@ void UpdateEngine::subscriptionDeleted() {
     //cancelOperation(); causes trouble
     disconnect(fsubscription, 0, this, 0);
     fsubscription = 0;
-    setState(PES_ENGINE_NOT_READY);
+    setState(UES_ENGINE_NOT_READY);
 }
 
 QNetworkAccessManager * UpdateEngine::networkAccessManager() {
@@ -120,11 +120,10 @@ void UpdateEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages, Foru
     // update thread
     dbThread->setHasMoreMessages(moreAvailable);
     dbThread->commitChanges();
-    fdb->checkSanity();
     if(updateAll) {
         updateNextChangedThread();
     } else {
-        setState(PES_IDLE);
+        setState(UES_IDLE);
         emit forumUpdated(subscription());
     }
 }
@@ -139,7 +138,7 @@ void UpdateEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups, ForumSubsc
     if (tempGroups.size() == 0 && fsubscription->size() > 0) {
         emit updateFailure(fsubscription, "Updating group list for " + subscription()->alias()
                            + " failed. \nCheck your network connection.");
-        setState(PES_ERROR);
+        setState(UES_ERROR);
         return;
     }
     // Diff the group list
@@ -198,13 +197,11 @@ void UpdateEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups, ForumSubsc
     if (updateAll) {
         updateNextChangedGroup();
     } else {
-        setState(PES_IDLE);
+        setState(UES_IDLE);
     }
     if (groupsChanged && dbGroupsWasEmpty) {
         emit(groupListChanged(fsubscription));
     }
-
-    fdb->checkSanity();
 }
 
 
@@ -226,13 +223,13 @@ void UpdateEngine::listThreadsFinished(QList<ForumThread*> &tempThreads, ForumGr
         QString errorMsg = "Found no threads in group " + group->toString() + ".\n Broken parser?";
         emit updateFailure(subscription(), errorMsg);
         group->markToBeUpdated();
-        setState(PES_ERROR);
+        setState(UES_ERROR);
         return;
     }
 
     // Diff the group list
     foreach(ForumThread *serverThread, tempThreads) {
-        ForumThread *dbThread = fdb->getThread(group->subscription()->forumId(), group->id(), serverThread->id());
+        ForumThread *dbThread = fdb ? fdb->getThread(group->subscription()->forumId(), group->id(), serverThread->id()) : 0;
         if (dbThread) {
             dbThread->setName(serverThread->name());
             if ((dbThread->lastchange() != serverThread->lastchange()) || forceUpdate ||
@@ -276,8 +273,6 @@ void UpdateEngine::listThreadsFinished(QList<ForumThread*> &tempThreads, ForumGr
 
     group->markToBeUpdated(false);
 
-    fdb->checkSanity();
-
     if(updateAll)
         updateNextChangedThread();
 
@@ -300,18 +295,18 @@ void UpdateEngine::updateThread(ForumThread *thread, bool force) {
     }
     if(!threadsToUpdateQueue.contains(thread))
         threadsToUpdateQueue.enqueue(thread);
-    setState(PES_UPDATING);
+    setState(UES_UPDATING);
 }
 
 void UpdateEngine::networkFailure(QString message) {
     if(!updateCanceled)
         emit updateFailure(fsubscription, "Updating " + fsubscription->alias() + " failed due to network error:\n\n" + message);
-    setState(PES_ERROR);
+    setState(UES_ERROR);
 }
 
 void UpdateEngine::loginFinishedSlot(ForumSubscription *sub, bool success) {
     if(!success) {
-        setState(PES_ERROR);
+        setState(UES_ERROR);
         cancelOperation();
     }
     emit loginFinished(sub, success);
@@ -323,7 +318,7 @@ void UpdateEngine::updateNextChangedGroup() {
     Q_ASSERT(updateAll);
     Q_ASSERT(!subscription()->beingSynced());
     Q_ASSERT(!updateCanceled);
-
+    Q_ASSERT(!threadBeingUpdated);
     if(!updateOnlyThread) {
         foreach(ForumGroup *group, subscription()->values()) {
             if(group->needsToBeUpdated() && group->isSubscribed()) {
@@ -335,7 +330,7 @@ void UpdateEngine::updateNextChangedGroup() {
     //  qDebug() << Q_FUNC_INFO << "No more changed groups - end of update.";
     updateAll = false;
     Q_ASSERT(threadsToUpdateQueue.isEmpty());
-    setState(PES_IDLE);
+    setState(UES_IDLE);
     emit forumUpdated(subscription());
     updateCurrentProgress();
 }
@@ -343,6 +338,7 @@ void UpdateEngine::updateNextChangedGroup() {
 void UpdateEngine::updateNextChangedThread() {
     Q_ASSERT(!subscription()->beingSynced());
     Q_ASSERT(!updateCanceled);
+    Q_ASSERT(!threadBeingUpdated);
 
     if (!threadsToUpdateQueue.isEmpty()) {
         ForumThread *thread = threadsToUpdateQueue.dequeue();
@@ -358,13 +354,13 @@ void UpdateEngine::updateNextChangedThread() {
 
 void UpdateEngine::cancelOperation() {
     updateCanceled = true;
-    if(currentState==PES_IDLE || currentState==PES_ERROR) return;
+    if(currentState==UES_IDLE || currentState==UES_ERROR) return;
     updateAll = false;
     foreach(ForumGroup *group, subscription()->values())
         group->markToBeUpdated(false);
     threadsToUpdateQueue.clear();
-    if(currentState==PES_UPDATING)
-        setState(PES_IDLE);
+    if(currentState==UES_UPDATING)
+        setState(UES_IDLE);
     if(requestingCredentials)
         emit loginFinished(subscription(), false);
     requestingCredentials = false;
@@ -384,8 +380,8 @@ void UpdateEngine::setState(UpdateEngineState newState) {
     if(subscription())
         qDebug() << Q_FUNC_INFO << subscription()->alias() << stateNames[oldState] << " -> " << stateNames[newState];
     //
-    if(newState==PES_UPDATING) {
-        Q_ASSERT(oldState==PES_IDLE || oldState==PES_ERROR);
+    if(newState==UES_UPDATING) {
+        Q_ASSERT(oldState==UES_IDLE || oldState==UES_ERROR);
         Q_ASSERT(subscription());
         updateWhenEngineReady = false;
         if(subscription() && subscription()->authenticated()
@@ -402,18 +398,18 @@ void UpdateEngine::setState(UpdateEngineState newState) {
             continueUpdate();
         }
     }
-    if(newState==PES_IDLE) {
+    if(newState==UES_IDLE) {
         subscription()->setBeingUpdated(false);
         if(updateWhenEngineReady) {
             updateForum(forceUpdate);
             return;
         }
     }
-    if(newState==PES_ENGINE_NOT_READY) {
+    if(newState==UES_ENGINE_NOT_READY) {
         if(subscription())
             cancelOperation();
     }
-    if(newState==PES_ERROR) {
+    if(newState==UES_ERROR) {
         subscription()->setScheduledForUpdate(false);
         subscription()->setBeingUpdated(false);
         cancelOperation();
@@ -436,7 +432,7 @@ void UpdateEngine::credentialsEntered(CredentialsRequest* cr) {
         subscription()->setAuthenticated(false);
     }
     // Start updating when credentials entered
-    if(currentState==PES_UPDATING) {
+    if(currentState==UES_UPDATING) {
         qDebug() << Q_FUNC_INFO << "resuming update now";
         updateGroupList();
     }
@@ -452,10 +448,10 @@ void UpdateEngine::updateForum(bool force) {
     updateOnlyThread = false;
     updateCanceled = false;
     updateAll = true; // Update whole forum
-    if(state()==PES_ENGINE_NOT_READY) {
+    if(state()==UES_ENGINE_NOT_READY) {
         updateWhenEngineReady = true;
     } else {
-        setState(PES_UPDATING);
+        setState(UES_UPDATING);
     }
 }
 
@@ -464,8 +460,8 @@ void UpdateEngine::updateGroupList() {
     updateOnlyThread = false;
     updateCanceled = false;
     updateWhenEngineReady = true;
-    if(state() != PES_ENGINE_NOT_READY) {
-        setState(PES_UPDATING);
+    if(state() != UES_ENGINE_NOT_READY) {
+        setState(UES_UPDATING);
     }
 }
 

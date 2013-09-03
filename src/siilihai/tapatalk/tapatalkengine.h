@@ -59,10 +59,7 @@ private:
     QString valueElementToString(QDomElement valueElement); // Value should be something like <value><int>29</int></value>
     ForumSubscriptionTapaTalk *subscriptionTapaTalk() const;
     void convertBodyToHtml(ForumMessage *msg); // convert [url=][/url] etc to real html
-
     QString connectorUrl;
-    ForumGroup *groupBeingUpdated;
-    ForumThread *threadBeingUpdated;
     bool loggedIn;
     // TapaTalk sends only 50 messages per request, so we must use "pages" to update longer threads
     int currentMessagePage;

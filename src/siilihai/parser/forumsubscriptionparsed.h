@@ -26,8 +26,8 @@ class ForumSubscriptionParsed : public ForumSubscription
 
 public:
     explicit ForumSubscriptionParsed(QObject *parent=0, bool temp=true);
-    void setParser(int parser);
-    int parser() const;
+    void setParserId(int parserId);
+    int parserId() const;
     void setParserEngine(ParserEngine *eng);
     virtual void copyFrom(ForumSubscription * o);
     ParserEngine *parserEngine() const;
