@@ -31,18 +31,17 @@ static const QString operationNames[] = {"(null)", "NoOp", "Login", "FetchCookie
 
 ParserEngine::ParserEngine(QObject *parent, ForumDatabase *fd, ParserManager *pm, QNetworkAccessManager *n) :
     UpdateEngine(parent, fd), parserManager(pm), nam(n) {
-    /*
-    connect(&session, SIGNAL(listGroupsFinished(QList<ForumGroup*>&, ForumSubscription *)), this, SLOT(listGroupsFinished(QList<ForumGroup*>&, ForumSubscription *)));
-    connect(&session, SIGNAL(listThreadsFinished(QList<ForumThread*>&, ForumGroup*)), this, SLOT(listThreadsFinished(QList<ForumThread*>&, ForumGroup*)));
-    connect(&session, SIGNAL(listMessagesFinished(QList<ForumMessage*>&, ForumThread*, bool)),
+
+    connect(this, SIGNAL(listGroupsFinished(QList<ForumGroup*>&, ForumSubscription *)), this, SLOT(listGroupsFinished(QList<ForumGroup*>&, ForumSubscription *)));
+    connect(this, SIGNAL(listThreadsFinished(QList<ForumThread*>&, ForumGroup*)), this, SLOT(listThreadsFinished(QList<ForumThread*>&, ForumGroup*)));
+    connect(this, SIGNAL(listMessagesFinished(QList<ForumMessage*>&, ForumThread*, bool)),
             this, SLOT(listMessagesFinished(QList<ForumMessage*>&, ForumThread*, bool)));
-    connect(&session, SIGNAL(networkFailure(QString)), this, SLOT(networkFailure(QString)));
-    connect(&session, SIGNAL(getHttpAuthentication(ForumSubscription*, QAuthenticator*)), this, SIGNAL(getHttpAuthentication(ForumSubscription*,QAuthenticator*)));
-    connect(&session, SIGNAL(loginFinished(ForumSubscription *,bool)), this, SLOT(loginFinishedSlot(ForumSubscription *,bool)));
-            */
-    connect(parserManager, SIGNAL(parserUpdated(ForumParser*)), this, SLOT(parserUpdated(ForumParser*)));
+    connect(this, SIGNAL(networkFailure(QString)), this, SLOT(networkFailure(QString)));
+    connect(this, SIGNAL(loginFinished(ForumSubscription *,bool)), this, SLOT(loginFinishedSlot(ForumSubscription *,bool)));
     connect(this, SIGNAL(stateChanged(UpdateEngine::UpdateEngineState,UpdateEngine::UpdateEngineState)),
             this, SLOT(updateParserIfError(UpdateEngine::UpdateEngineState,UpdateEngine::UpdateEngineState)));
+    if(parserManager)
+        connect(parserManager, SIGNAL(parserUpdated(ForumParser*)), this, SLOT(parserUpdated(ForumParser*)));
 
     if(!nam)
         nam = new QNetworkAccessManager(this);
@@ -51,11 +50,11 @@ ParserEngine::ParserEngine(QObject *parent, ForumDatabase *fd, ParserManager *pm
 
     currentParser = 0;
     updatingParser = false;
-    operationInProgress = FSONoOp;
+    operationInProgress = PEONoOp;
     cookieJar = 0;
     currentListPage = 0;
-    patternMatcher = new PatternMatcher(this);
-    loggedIn = false;
+    setPatternMatcher(new PatternMatcher(this));
+    loggedIn = loggingIn = false;
     cookieFetched = false;
     cookieExpiredTimer.setSingleShot(true);
     cookieExpiredTimer.setInterval(10*60*1000);
@@ -72,9 +71,9 @@ void ParserEngine::setParser(ForumParser *fp) {
     currentParser = fp;
     if(fp) {
         if(subscription() && !updatingParser && state()==UES_ENGINE_NOT_READY)  {
-            setState(UES_IDLE);
+            setState(UES_IDLE); // We have both parser & sub
         }
-    } else {
+    } else { // No parser
         if(!updatingParser)
             setState(UES_ENGINE_NOT_READY);
     }
@@ -105,22 +104,19 @@ void ParserEngine::setSubscription(ForumSubscription *fs) {
     }
 }
 
-ForumParser *ParserEngine::parser() const {
-    return currentParser;
+void ParserEngine::setPatternMatcher(PatternMatcher *newPm) {
+    patternMatcher = newPm;
 }
 
-void ParserEngine::initialize(ForumParser *fop, ForumSubscription *fos, PatternMatcher *matcher) {
-    setParser(fop);
-    setSubscription(fos);
-    patternMatcher = matcher;
+ForumParser *ParserEngine::parser() const {
+    return currentParser;
 }
 
 void ParserEngine::parserUpdated(ForumParser *p) {
     Q_ASSERT(p);
     if(subscriptionParsed()->parserId() == p->id()) {
-        qDebug() << Q_FUNC_INFO;
         updatingParser = false;
-        setParser(p);
+        setParser(p); // Changes to idle state if all is good
     }
 }
 
@@ -130,37 +126,38 @@ void ParserEngine::updateParserIfError(UpdateEngine::UpdateEngineState newState,
     }
 }
 
-void ParserEngine::updateThread(ForumThread *thread, bool force) {
-    UpdateEngine::updateThread(thread, force);
-}
-
 void ParserEngine::cancelOperation() {
+    qDebug() << Q_FUNC_INFO << (subscription() ? subscription()->toString() : "(no sub)");
+
     updateAll = false;
     updateCanceled = true;
-    qDebug() << Q_FUNC_INFO;
-    if(operationInProgress == FSOListGroups) {
+    if(operationInProgress == PEOUpdateForum) {
         QList<ForumGroup*> emptyList;
         emit listGroupsFinished(emptyList, subscription());
     }
-    if(operationInProgress == FSOListThreads) {
+    if(operationInProgress == PEOUpdateGroup) {
         QList<ForumThread*> emptyList;
-        emit listThreadsFinished(emptyList, groupBeingUpdated);
+        ForumGroup *updatedGroup = groupBeingUpdated;
+        groupBeingUpdated = 0;
+        emit listThreadsFinished(emptyList, updatedGroup);
     }
 
-    if(operationInProgress == FSOListMessages) {
+    if(operationInProgress == PEOUpdateThread) {
         QList<ForumMessage*> emptyList;
-        emit listMessagesFinished(emptyList, threadBeingUpdated, false);
+        ForumThread *updatedThread = threadBeingUpdated;
+        threadBeingUpdated = 0;
+        emit listMessagesFinished(emptyList, updatedThread, false);
     }
 
-    if(operationInProgress == FSOLogin) emit loginFinished(subscription(), false);
+    if(operationInProgress == PEOLogin) emit loginFinished(subscription(), false);
 
-    operationInProgress = FSONoOp;
+    operationInProgress = PEONoOp;
     cookieFetched = false;
     currentListPage = -1;
-    qDeleteAll(messages);
-    messages.clear();
-    qDeleteAll(threads);
-    threads.clear();
+    qDeleteAll(foundMessages);
+    foundMessages.clear();
+    qDeleteAll(foundThreads);
+    foundThreads.clear();
     groupBeingUpdated = 0;
     threadBeingUpdated = 0;
     waitingForAuthentication = false;
@@ -176,24 +173,47 @@ void ParserEngine::requestCredentials() {
     }
 }
 
+bool ParserEngine::parserMakerMode() {
+    return !parserManager; // @todo smarter way
+}
+
 void ParserEngine::credentialsEntered(CredentialsRequest* cr) {
     if(cr->credentialType==CredentialsRequest::SH_CREDENTIAL_HTTP) {
         Q_ASSERT(waitingForAuthentication);
         qDebug() << Q_FUNC_INFO;
-        statusReport();
         waitingForAuthentication = false;
     }
     UpdateEngine::credentialsEntered(cr);
 }
 
+
+// Avoid using asserts that can break parsermaker here! Put them elsewhere
+void ParserEngine::doUpdateForum() {
+    // Can be noop if cookie was fetched
+    Q_ASSERT(operationInProgress == ParserEngine::PEONoOp || operationInProgress == ParserEngine::PEOUpdateForum);
+    operationInProgress = ParserEngine::PEOUpdateForum;
+
+    if(prepareForUse()) {
+        qDebug() << Q_FUNC_INFO << "Need to fetch cookie etc first, NOT updating yet";
+        return;
+    }
+
+    QNetworkRequest req(QUrl(parser()->forum_url));
+    setRequestAttributes(req, PEOUpdateForum);
+    nam->post(req, emptyData);
+}
+
+// Avoid using asserts that can break parsermaker here! Put them elsewhere
 void ParserEngine::doUpdateGroup(ForumGroup *group) {
     Q_ASSERT(group->isSubscribed());
-    if (operationInProgress != FSONoOp && operationInProgress != FSOListThreads) {
-        //statusReport();
+    Q_ASSERT(!threadBeingUpdated);
+    Q_ASSERT(operationInProgress == ParserEngine::PEONoOp || operationInProgress == ParserEngine::PEOUpdateGroup);
+
+    if (operationInProgress != PEONoOp && operationInProgress != PEOUpdateGroup) {
         qWarning() << Q_FUNC_INFO << "Operation " << operationNames[operationInProgress] << " in progress!! Don't command me yet!";
         return;
     }
-    operationInProgress = FSOListThreads;
+    operationInProgress = PEOUpdateGroup;
     groupBeingUpdated = group;
     currentMessagesUrl = QString::null;
     if(prepareForUse()) return;
@@ -201,34 +221,25 @@ void ParserEngine::doUpdateGroup(ForumGroup *group) {
     listThreadsOnNextPage();
 }
 
-void ParserEngine::doUpdateForum()
-{
-    if (operationInProgress != FSONoOp && operationInProgress != FSOListGroups) {
-        qDebug() << Q_FUNC_INFO << "Operation " << operationNames[operationInProgress] << " in progress!! Don't command me yet! ";
-        return;
-    }
-    operationInProgress = FSOListGroups;
-    if(prepareForUse()) return;
-
-    QNetworkRequest req(QUrl(parser()->forum_url));
-    setRequestAttributes(req, FSOListGroups);
-    nam->post(req, emptyData);
-}
-
+// Avoid using asserts that can break parsermaker here! Put them elsewhere
 void ParserEngine::doUpdateThread(ForumThread *thread)
 {
+    Q_ASSERT(!threadBeingUpdated);
+    // Q_ASSERT(!groupBeingUpdated); don't care
+    Q_ASSERT(operationInProgress == ParserEngine::PEONoOp || operationInProgress == ParserEngine::PEOUpdateThread);
     Q_ASSERT(thread->isSane());
-    if (operationInProgress != FSONoOp &&
-            operationInProgress != FSOListMessages) { // This can be called from nextOperation, after fetchcookie
+
+    if (operationInProgress != PEONoOp &&
+            operationInProgress != PEOUpdateThread) { // This can be called from nextOperation, after fetchcookie
         qWarning() << Q_FUNC_INFO << "Operation " << operationNames[operationInProgress] << " in progress!! Don't command me yet!";
         Q_ASSERT(false);
         return;
     }
-    operationInProgress = FSOListMessages;
+    operationInProgress = PEOUpdateThread;
     threadBeingUpdated = thread;
+    Q_ASSERT(groupBeingUpdated == 0 || groupBeingUpdated == thread->group());
     groupBeingUpdated = thread->group();
-
-    messages.clear();
+    foundMessages.clear();
     moreMessagesAvailable = false;
     if(prepareForUse()) return;
     /* @todo enable this when it's figured out how to add the new messages to
@@ -243,11 +254,6 @@ void ParserEngine::doUpdateThread(ForumThread *thread)
     listMessagesOnNextPage();
 }
 
-ForumSubscriptionParsed *ParserEngine::subscriptionParsed() const
-{
-    return qobject_cast<ForumSubscriptionParsed*>(subscription());
-}
-
 void ParserEngine::networkReply(QNetworkReply *reply) {
     int operationAttribute = reply->request().attribute(QNetworkRequest::User).toInt();
     int forumId = reply->request().attribute(FORUMID_ATTRIBUTE).toInt();
@@ -260,75 +266,53 @@ void ParserEngine::networkReply(QNetworkReply *reply) {
         qDebug( ) << Q_FUNC_INFO << "Waiting for authentication - ignoring this reply";
         return;
     }
-    if(operationAttribute==FSONoOp) {
+    if(operationAttribute==PEONoOp) {
         Q_ASSERT(false);
-    } else if(operationAttribute==FSOLogin) {
+    } else if(operationAttribute==PEOLogin) {
         loginReply(reply);
-    } else if(operationAttribute==FSOFetchCookie) {
+    } else if(operationAttribute==PEOFetchCookie) {
         fetchCookieReply(reply);
-    } else if(operationAttribute==FSOListGroups) {
+    } else if(operationAttribute==PEOUpdateForum) {
         listGroupsReply(reply);
-    } else if(operationAttribute==FSOListThreads) {
+    } else if(operationAttribute==PEOUpdateGroup) {
         listThreadsReply(reply);
-    } else if(operationAttribute==FSOListMessages) {
+    } else if(operationAttribute==PEOUpdateThread) {
         listMessagesReply(reply);
     }
 }
 
-QString ParserEngine::convertCharset(const QByteArray &src) {
-    QString converted;
-    // I don't like this.. Support needed for more!
-    if (parser()->charset == "" || parser()->charset == "utf-8") {
-        converted = QString::fromUtf8(src.data());
-    } else if (parser()->charset == "iso-8859-1" || parser()->charset == "iso-8859-15") {
-        converted = QString::fromLatin1(src.data());
-    } else {
-        qDebug() << Q_FUNC_INFO << "Unknown charset " << parser()->charset << " - assuming UTF-8";
-        converted = QString().fromUtf8(src.data());
-    }
-    // Remove silly newlines
-    converted.replace(QChar(13), QChar(' '));
-    return converted;
+void ParserEngine::fetchCookie() {
+    Q_ASSERT(parser()->forum_url.length() > 0);
+    if (operationInProgress == PEONoOp)
+        return;
+    QNetworkRequest req(QUrl(parser()->forum_url));
+    setRequestAttributes(req, PEOFetchCookie);
+    nam->post(req, emptyData);
 }
 
-void ParserEngine::listGroupsReply(QNetworkReply *reply) {
-    if(operationInProgress == FSONoOp) return;
-    if(operationInProgress != FSOListGroups) {
-        qDebug() << Q_FUNC_INFO << "ALERT!! POSSIBLE BUG: operationInProgress is not FSOListGroups! It is: " << operationInProgress << " ignoring this signal, i hope nothing breaks.";
-        return;
-    }
-    Q_ASSERT(reply->request().attribute(QNetworkRequest::User).toInt() == FSOListGroups);
 
-    QString data = convertCharset(reply->readAll());
+void ParserEngine::fetchCookieReply(QNetworkReply *reply) {
+    if(operationInProgress == PEONoOp) return;
+
     if (reply->error() != QNetworkReply::NoError) {
+        qDebug() << Q_FUNC_INFO << reply->errorString();
         emit(networkFailure(reply->errorString()));
         cancelOperation();
         return;
     }
-    performListGroups(data);
-}
-
-void ParserEngine::performListGroups(QString &html) {
-    // Parser maker may need this
-    if(operationInProgress == FSONoOp) operationInProgress = FSOListGroups;
-    emit receivedHtml(html);
-    QList<ForumGroup*> groups;
-    patternMatcher->setPattern(parser()->group_list_pattern);
-    QList<QHash<QString, QString> > matches = patternMatcher->findMatches(html);
-    QHash<QString, QString> match;
-    foreach (match, matches) {
-        ForumGroup *fg = new ForumGroup(this);
-        fg->setId(match["%a"]);
-        fg->setName(match["%b"]);
-        fg->setLastchange(match["%c"]);
-        groups.append(fg);
-    }
-    operationInProgress = FSONoOp;
-    emit(listGroupsFinished(groups, subscription()));
-    qDeleteAll(groups);
+    if (operationInProgress == PEONoOp)
+        return;
+    cookieFetched = true;
+    cookieExpiredTimer.start();
+    nextOperation();
 }
 
 void ParserEngine::loginToForum() {
+    qDebug() << Q_FUNC_INFO << subscription()->toString();
+    Q_ASSERT(!threadBeingUpdated);
+    Q_ASSERT(!groupBeingUpdated);
+    Q_ASSERT(!loggedIn);
+    Q_ASSERT(!loggingIn);
     if (parser()->login_type == ForumParser::LoginTypeNotSupported) {
         qDebug() << Q_FUNC_INFO << "Login not supproted!";
         emit loginFinished(subscription(), false);
@@ -343,7 +327,7 @@ void ParserEngine::loginToForum() {
     if (parser()->login_type == ForumParser::LoginTypeHttpPost) {
         QNetworkRequest req;
         req.setUrl(loginUrl);
-        setRequestAttributes(req, FSOLogin);
+        setRequestAttributes(req, PEOLogin);
         QHash<QString, QString> params;
         QStringList loginParamPairs = parser()->login_parameters.split(",", QString::SkipEmptyParts);
         foreach(QString paramPair, loginParamPairs) {
@@ -360,7 +344,7 @@ void ParserEngine::loginToForum() {
             }
         }
         loginData = HttpPost::setPostParameters(&req, params);
-
+        loggingIn = true;
         nam->post(req, loginData);
     } else {
         qDebug() << Q_FUNC_INFO << "Sorry, http auth not yet implemented.";
@@ -368,15 +352,17 @@ void ParserEngine::loginToForum() {
 }
 
 void ParserEngine::loginReply(QNetworkReply *reply) {
-    QString data = convertCharset(reply->readAll());
+    qDebug() << Q_FUNC_INFO << subscription()->toString();
+    Q_ASSERT(!loggedIn);
+    Q_ASSERT(loggingIn);
+    loggingIn = false;
 
+    QString data = convertCharset(reply->readAll());
     if (reply->error() != QNetworkReply::NoError) {
         emit(networkFailure(reply->errorString()));
-        loginFinished(subscription(), false);
-        cancelOperation();
+        emit loginFinished(subscription(), false);
         return;
     }
-
     performLogin(data);
 }
 
@@ -386,63 +372,86 @@ void ParserEngine::performLogin(QString &html) {
     bool success = html.contains(parser()->verify_login_pattern);
     //    if(success)
     //        qDebug() << Q_FUNC_INFO << "found in html at " << html.indexOf(parser()->verify_login_pattern);
-    emit loginFinished(subscription(), success);
     loggedIn = success;
-    if(loggedIn) {
-        nextOperation();
-    } else {
-        cancelOperation();
-        qDebug() << Q_FUNC_INFO << "Login failed - cancelling ops!";
-    }
+    emit loginFinished(subscription(), success);
+    // Rest is handled in UpdateEngine
 }
 
-void ParserEngine::fetchCookie() {
-    Q_ASSERT(parser()->forum_url.length() > 0);
-    if (operationInProgress == FSONoOp)
+void ParserEngine::listGroupsReply(QNetworkReply *reply) {
+    if(subscription())
+        qDebug() << Q_FUNC_INFO << subscription()->toString();
+    Q_ASSERT(!threadBeingUpdated);
+    Q_ASSERT(!groupBeingUpdated);
+    if(operationInProgress == PEONoOp) return;
+    if(operationInProgress != PEOUpdateForum) {
+        qWarning() << Q_FUNC_INFO << "ALERT!! POSSIBLE BUG: operationInProgress is not FSOListGroups! It is: " << operationInProgress << " ignoring this signal, i hope nothing breaks.";
+        Q_ASSERT(false);
         return;
-    QNetworkRequest req(QUrl(parser()->forum_url));
-    setRequestAttributes(req, FSOFetchCookie);
-    nam->post(req, emptyData);
-}
+    }
+    Q_ASSERT(reply->request().attribute(QNetworkRequest::User).toInt() == PEOUpdateForum);
 
-
-void ParserEngine::fetchCookieReply(QNetworkReply *reply) {
-    if(operationInProgress == FSONoOp) return;
-
+    QString data = convertCharset(reply->readAll());
     if (reply->error() != QNetworkReply::NoError) {
-        qDebug() << Q_FUNC_INFO << reply->errorString();
         emit(networkFailure(reply->errorString()));
         cancelOperation();
         return;
     }
-    if (operationInProgress == FSONoOp)
-        return;
-    /*
- QList<QNetworkCookie> cookies = cookieJar->cookiesForUrl(QUrl(
-   parser()->forum_url));
- for (int i = 0; i < cookies.size(); i++) {
-  qDebug() << "\t" << cookies[i].name();
- }
- */
-    cookieFetched = true;
-    cookieExpiredTimer.start();
-    nextOperation();
+    performListGroups(data);
 }
+
+void ParserEngine::performListGroups(QString &html) {
+    Q_ASSERT(!threadBeingUpdated);
+    Q_ASSERT(!groupBeingUpdated);
+    // Parser maker may need this
+    if(operationInProgress == PEONoOp) operationInProgress = PEOUpdateForum;
+    emit receivedHtml(html);
+    QList<ForumGroup*> groups;
+    patternMatcher->setPattern(parser()->group_list_pattern);
+    QList<QHash<QString, QString> > matches = patternMatcher->findMatches(html);
+    QHash<QString, QString> match;
+    foreach (match, matches) {
+        ForumGroup *fg = new ForumGroup(this);
+        fg->setId(match["%a"]);
+        fg->setName(match["%b"]);
+        fg->setLastchange(match["%c"]);
+        groups.append(fg);
+    }
+    operationInProgress = PEONoOp;
+    emit(listGroupsFinished(groups, subscription()));
+    qDeleteAll(groups);
+}
+
+
 void ParserEngine::listThreadsOnNextPage() {
-    Q_ASSERT(operationInProgress==FSOListThreads);
-    if (operationInProgress != FSOListThreads)
+    Q_ASSERT(operationInProgress==PEOUpdateGroup);
+    if (operationInProgress != PEOUpdateGroup)
         return;
 
     QString urlString = getThreadListUrl(groupBeingUpdated, currentListPage);
     QNetworkRequest req;
     req.setUrl(QUrl(urlString));
-    setRequestAttributes(req, FSOListThreads);
+    setRequestAttributes(req, PEOUpdateGroup);
     nam->post(req, emptyData);
+}
+
+void ParserEngine::listThreadsReply(QNetworkReply *reply) {
+    if(operationInProgress == PEONoOp) return;
+    Q_ASSERT(groupBeingUpdated);
+    Q_ASSERT(!threadBeingUpdated);
+    Q_ASSERT(operationInProgress == PEOUpdateGroup);
+    Q_ASSERT(reply->request().attribute(QNetworkRequest::User).toInt()==PEOUpdateGroup);
+    if (reply->error() != QNetworkReply::NoError) {
+        emit(networkFailure(reply->errorString()));
+        cancelOperation();
+        return;
+    }
+    QString data = convertCharset(reply->readAll());
+    performListThreads(data);
 }
 
 void ParserEngine::performListThreads(QString &html) {
     // Parser maker may need this
-    if(operationInProgress == FSONoOp) operationInProgress = FSOListThreads;
+    if(operationInProgress == PEONoOp) operationInProgress = PEOUpdateGroup;
     QList<ForumThread*> newThreads;
     emit receivedHtml(html);
     patternMatcher->setPattern(parser()->thread_list_pattern);
@@ -469,7 +478,7 @@ void ParserEngine::performListThreads(QString &html) {
     while(!newThreads.isEmpty()) {
         ForumThread *newThread = newThreads.takeFirst();
         bool threadFound = false;
-        foreach (ForumThread *thread, threads) {
+        foreach (ForumThread *thread, foundThreads) {
             if (newThread->id() == thread->id()) {
                 threadFound = true;
             }
@@ -479,9 +488,9 @@ void ParserEngine::performListThreads(QString &html) {
             newThread = 0;
         } else {
             newThreadsFound = true;
-            newThread->setOrdernum(threads.size());
-            if (threads.size() < subscription()->latestThreads()) {
-                threads.append(newThread);
+            newThread->setOrdernum(foundThreads.size());
+            if (foundThreads.size() < subscription()->latestThreads()) {
+                foundThreads.append(newThread);
                 newThread = 0;
             } else {
                 //                qDebug() << "Number of threads exceeding maximum latest threads limit - not adding "
@@ -509,16 +518,18 @@ void ParserEngine::performListThreads(QString &html) {
         finished = true;
     }
     if (finished) {
-        operationInProgress = FSONoOp;
-        emit listThreadsFinished(threads, groupBeingUpdated);
-        qDeleteAll(threads);
-        threads.clear();
+        operationInProgress = PEONoOp;
+        ForumGroup *updatedGroup = groupBeingUpdated;
+        groupBeingUpdated = 0;
+        emit listThreadsFinished(foundThreads, updatedGroup);
+        qDeleteAll(foundThreads);
+        foundThreads.clear();
     }
 }
 
 void ParserEngine::listMessagesOnNextPage() {
-    Q_ASSERT(operationInProgress==FSOListMessages);
-    if (operationInProgress != FSOListMessages) {
+    Q_ASSERT(operationInProgress==PEOUpdateThread);
+    if (operationInProgress != PEOUpdateThread) {
         Q_ASSERT(false);
         return;
     }
@@ -527,29 +538,15 @@ void ParserEngine::listMessagesOnNextPage() {
 
     QNetworkRequest req;
     req.setUrl(QUrl(urlString));
-    setRequestAttributes(req, FSOListMessages);
+    setRequestAttributes(req, PEOUpdateThread);
 
     nam->post(req, emptyData);
 }
 
-void ParserEngine::listThreadsReply(QNetworkReply *reply) {
-    if(operationInProgress == FSONoOp) return;
-    Q_ASSERT(groupBeingUpdated);
-    Q_ASSERT(operationInProgress == FSOListThreads);
-    Q_ASSERT(reply->request().attribute(QNetworkRequest::User).toInt()==FSOListThreads);
-    if (reply->error() != QNetworkReply::NoError) {
-        emit(networkFailure(reply->errorString()));
-        cancelOperation();
-        return;
-    }
-    QString data = convertCharset(reply->readAll());
-    performListThreads(data);
-}
-
 void ParserEngine::listMessagesReply(QNetworkReply *reply) {
-    if(operationInProgress == FSONoOp) return;
-    Q_ASSERT(operationInProgress == FSOListMessages);
-    Q_ASSERT(reply->request().attribute(QNetworkRequest::User).toInt() == FSOListMessages);
+    if(operationInProgress == PEONoOp) return;
+    Q_ASSERT(operationInProgress == PEOUpdateThread);
+    Q_ASSERT(reply->request().attribute(QNetworkRequest::User).toInt() == PEOUpdateThread);
     if (reply->error() != QNetworkReply::NoError) {
         emit(networkFailure(reply->errorString()));
         cancelOperation();
@@ -561,13 +558,13 @@ void ParserEngine::listMessagesReply(QNetworkReply *reply) {
 
 void ParserEngine::performListMessages(QString &html) {
     // Parser maker may need this
-    if(operationInProgress == FSONoOp) operationInProgress = FSOListMessages;
-    Q_ASSERT(operationInProgress == FSOListMessages);
+    if(operationInProgress == PEONoOp) operationInProgress = PEOUpdateThread;
+    Q_ASSERT(operationInProgress == PEOUpdateThread);
     //    qDebug() << Q_FUNC_INFO << html;
     QList<ForumMessage*> newMessages;
     Q_ASSERT(threadBeingUpdated->isSane());
     emit receivedHtml(html);
-    operationInProgress = FSOListMessages;
+    operationInProgress = PEOUpdateThread;
     patternMatcher->setPattern(parser()->message_list_pattern);
     QList<QHash<QString, QString> > matches = patternMatcher->findMatches(html);
     QHash<QString, QString> match;
@@ -599,8 +596,8 @@ void ParserEngine::performListMessages(QString &html) {
     while(!newMessages.isEmpty()) {
         ForumMessage *newMessage = newMessages.takeFirst();
         bool messageFound = false;
-        for(int idx=0;idx < messages.size() && !messageFound;idx++) {
-            ForumMessage *message = messages.value(idx);
+        for(int idx=0;idx < foundMessages.size() && !messageFound;idx++) {
+            ForumMessage *message = foundMessages.value(idx);
             if (newMessage->id() == message->id()) {
                 messageFound = true;
             }
@@ -612,10 +609,10 @@ void ParserEngine::performListMessages(QString &html) {
         } else {
             // Message not in messages - add it if possible
             newMessagesFound = true;
-            newMessage->setOrdernum(messages.size());
+            newMessage->setOrdernum(foundMessages.size());
             // Check if message limit has reached
-            if (messages.size() < threadBeingUpdated->getMessagesCount()) {
-                messages.append(newMessage);
+            if (foundMessages.size() < threadBeingUpdated->getMessagesCount()) {
+                foundMessages.append(newMessage);
                 newMessage = 0;
             } else {
                 //  qDebug() << "Number of messages exceeding maximum latest messages limit - not adding.";
@@ -644,10 +641,12 @@ void ParserEngine::performListMessages(QString &html) {
     }
 
     if(finished) {
-        operationInProgress = FSONoOp;
-        emit listMessagesFinished(messages, threadBeingUpdated, moreMessagesAvailable);
-        qDeleteAll(messages);
-        messages.clear();
+        operationInProgress = PEONoOp;
+        ForumThread *threadUpdated = threadBeingUpdated;
+        threadBeingUpdated = 0;
+        emit listMessagesFinished(foundMessages, threadUpdated, moreMessagesAvailable);
+        qDeleteAll(foundMessages);
+        foundMessages.clear();
     } else {
         // Help keep UI responsive
         //QCoreApplication::processEvents();
@@ -656,18 +655,18 @@ void ParserEngine::performListMessages(QString &html) {
 
 QString ParserEngine::statusReport() {
     QString op;
-    if (operationInProgress == FSONoOp)
+    if (operationInProgress == PEONoOp)
         op = "NoOp";
-    if (operationInProgress == FSOListGroups)
+    if (operationInProgress == PEOUpdateForum)
         op = "ListGroups";
-    if (operationInProgress == FSOListThreads)
+    if (operationInProgress == PEOUpdateGroup)
         op = "UpdateThreads";
-    if (operationInProgress == FSOListMessages)
+    if (operationInProgress == PEOUpdateThread)
         op = "UpdateMessages";
 
     return "Operation: " + operationNames[operationInProgress] + " in " + parser()->toString() + "\n" + "Threads: "
-            + QString().number(threads.size()) + "\n" + "Messages: "
-            + QString().number(messages.size()) + "\n" + "Page: "
+            + QString().number(foundThreads.size()) + "\n" + "Messages: "
+            + QString().number(foundMessages.size()) + "\n" + "Page: "
             + QString().number(currentListPage)/* + "\n" + "Group: "
                                    + currentGroup->toString() + "\n" + "Thread: "
                                                         + currentThread->toString() + "\n"*/;
@@ -715,7 +714,7 @@ QString ParserEngine::getMessageListUrl(const ForumThread *thread, int page) {
 
 void ParserEngine::authenticationRequired(QNetworkReply * reply, QAuthenticator * authenticator) {
     Q_UNUSED(reply);
-    if(operationInProgress == FSONoOp) return;
+    if(operationInProgress == PEONoOp) return;
     int forumId = reply->request().attribute(FORUMID_ATTRIBUTE).toInt();
     if(forumId != subscription()->forumId()) return;
 
@@ -749,8 +748,10 @@ bool ParserEngine::prepareForUse() {
         fetchCookie();
         return true;
     }
-    if (!loggedIn && parser()->supportsLogin() && subscription()->username().length() > 0 && subscription()->password().length() > 0) {
-        loginToForum();
+    if (!loggedIn && parser()->supportsLogin() && subscription()->username().length() > 0
+            && subscription()->password().length() > 0) {
+        if(!loggingIn)
+            loginToForum();
         return true;
     }
     return false;
@@ -758,18 +759,23 @@ bool ParserEngine::prepareForUse() {
 
 void ParserEngine::nextOperation() {
     switch (operationInProgress) {
-    case FSOListGroups:
+    case PEOUpdateForum:
+        Q_ASSERT(!groupBeingUpdated);
+        Q_ASSERT(!threadBeingUpdated);
+        Q_ASSERT(state() == UES_UPDATING || parserMakerMode());
         doUpdateForum();
         break;
-    case FSOListThreads:
-        Q_ASSERT(!groupBeingUpdated);
+    case PEOUpdateGroup:
+        Q_ASSERT(groupBeingUpdated);
+        Q_ASSERT(state() == UES_UPDATING || parserMakerMode());
         doUpdateGroup(groupBeingUpdated);
         break;
-    case FSOListMessages:
+    case PEOUpdateThread:
         Q_ASSERT(!threadBeingUpdated);
+        Q_ASSERT(state() == UES_UPDATING || parserMakerMode());
         doUpdateThread(threadBeingUpdated);
         break;
-    case FSONoOp:
+    case PEONoOp:
         break;
     default:
         Q_ASSERT(false);
@@ -780,10 +786,31 @@ void ParserEngine::cookieExpired() {
     cookieFetched = false;
 }
 
-void ParserEngine::setRequestAttributes(QNetworkRequest &req, ForumSessionOperation op) {
+void ParserEngine::setRequestAttributes(QNetworkRequest &req, ParserEngineOperation op) {
     req.setAttribute(QNetworkRequest::User, op);
     req.setAttribute(FORUMID_ATTRIBUTE, subscription()->forumId());
     req.setHeader(QNetworkRequest::ContentTypeHeader, QString("application/x-www-form-urlencoded"));
     // @todo Make this configurable
     req.setRawHeader("User-Agent", "Mozilla/5.0 (X11; Linux i686; rv:6.0) Gecko/20100101 Firefox/6.0");
+}
+
+QString ParserEngine::convertCharset(const QByteArray &src) {
+    QString converted;
+    // I don't like this.. Support needed for more!
+    if (parser()->charset == "" || parser()->charset == "utf-8") {
+        converted = QString::fromUtf8(src.data());
+    } else if (parser()->charset == "iso-8859-1" || parser()->charset == "iso-8859-15") {
+        converted = QString::fromLatin1(src.data());
+    } else {
+        qDebug() << Q_FUNC_INFO << "Unknown charset " << parser()->charset << " - assuming UTF-8";
+        converted = QString().fromUtf8(src.data());
+    }
+    // Remove silly newlines
+    converted.replace(QChar(13), QChar(' '));
+    return converted;
+}
+
+ForumSubscriptionParsed *ParserEngine::subscriptionParsed() const
+{
+    return qobject_cast<ForumSubscriptionParsed*>(subscription());
 }

@@ -165,6 +165,10 @@ void TapaTalkEngine::doUpdateGroup(ForumGroup *group)
 }
 
 void TapaTalkEngine::replyUpdateGroup(QNetworkReply *reply) {
+    if(!groupBeingUpdated) {
+        qDebug() << Q_FUNC_INFO << "We are not updating group currently - ignoring this";
+        return;
+    }
     Q_ASSERT(groupBeingUpdated);
     QList<ForumThread*> threads;
     if (reply->error() != QNetworkReply::NoError) {
@@ -274,10 +278,16 @@ void TapaTalkEngine::updateCurrentThreadPage() {
 }
 
 void TapaTalkEngine::replyUpdateThread(QNetworkReply *reply) {
+    if(!threadBeingUpdated) {
+        qDebug() << Q_FUNC_INFO << "We are not updating thread currently - ignoring this";
+        return;
+    }
     if (reply->error() != QNetworkReply::NoError) {
-        qDebug() << Q_FUNC_INFO << reply->errorString();
+        emit networkFailure(QString("Updating thread %1 failed: %2").arg(threadBeingUpdated->toString()).arg(reply->errorString()));
 
-        listMessagesFinished(messages, threadBeingUpdated, false);
+        ForumThread *updatedThread = threadBeingUpdated;
+        threadBeingUpdated=0;
+        listMessagesFinished(messages, updatedThread, false);
         return;
     }
 
