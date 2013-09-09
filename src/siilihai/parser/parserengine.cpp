@@ -468,7 +468,7 @@ void ParserEngine::performListThreads(QString &html) {
         if (ft->isSane()) {
             newThreads.append(ft);
         } else {
-            qDebug() << Q_FUNC_INFO << "Incomplete thread, not adding";
+            qDebug() << Q_FUNC_INFO << "Incomplete thread in " << subscription()->toString() << ", not adding";
             // Q_ASSERT(false);
         }
     }
@@ -587,7 +587,7 @@ void ParserEngine::performListMessages(QString &html) {
         if (fm->isSane()) {
             newMessages.append(fm);
         } else {
-            qDebug() << Q_FUNC_INFO << "Incomplete message, not adding";
+            qDebug() << Q_FUNC_INFO << "Incomplete message in " << subscription()->toString() << ", not adding";
             // Q_ASSERT(false);
         }
     }
