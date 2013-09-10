@@ -95,6 +95,12 @@ void UpdateEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups, ForumSubsc
         foreach(ForumGroup *dbGroup, fsubscription->values()) {
             if (dbGroup->id() == tempGroup->id()) {
                 foundInDb = true;
+
+                if(!dbGroup->isSubscribed()) { // If not subscribed, just update the group in db
+                    tempGroup->setSubscribed(false);
+                    dbGroup->copyFrom(tempGroup);
+                    dbGroup->commitChanges();
+                }
                 if((dbGroup->isSubscribed() &&
                     ((dbGroup->lastchange() != tempGroup->lastchange()) || forceUpdate ||
                      dbGroup->isEmpty() || dbGroup->needsToBeUpdated()))) {

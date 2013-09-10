@@ -5,6 +5,14 @@
 class ForumSubscriptionTapaTalk;
 class QDomElement;
 class QDomDocument;
+
+
+// Helper struct to aid getting full name of a group
+struct GroupHierarchyItem {
+    QString name;
+    QString parentId;
+};
+
 /**
  * @brief The TapaTalkEngine class implements a UpdateEngine for
  * TapaTalk forum protocol.
@@ -47,14 +55,20 @@ private:
     void replyUpdateThread(QNetworkReply *reply);
     void replyLogin(QNetworkReply *reply);
     QString getValueFromStruct(QDomElement dataValueElement, QString name);
-    void getGroups(QDomElement dataValueElement, QList<ForumGroup *> *grps);
-    void getChildGroups(QDomElement dataValueElement, QList<ForumGroup *> *grps);
+    void getGroups(QDomElement dataValueElement, QList<ForumGroup *> *grps, QMap<QString, GroupHierarchyItem> &groupHierarchy);
+    void getChildGroups(QDomElement dataValueElement, QList<ForumGroup *> *grps, QMap<QString, GroupHierarchyItem> &groupHierarchy);
 
     void getThreads(QDomElement dataValueElement, QList<ForumThread *> *threads);
     void getMessages(QDomElement dataValueElement, QList<ForumMessage *> *messages);
 
     bool loginIfNeeded(); // True if it is needed first
     void createMethodCall(QDomDocument &doc, QString method, QList<QPair<QString, QString> > &params);
+
+    // Creates full groupname ("Rootgroup / SubGroup / name")
+    QString groupHierarchyString(QMap<QString, GroupHierarchyItem> &groupHierarchy, QString id);
+    // Creates full groupnames for all groups in grps
+    void fixGroupNames(QList<ForumGroup *> *grps, QMap<QString, GroupHierarchyItem> &groupHierarchy);
+
     QDomElement findMemberValueElement(QDomElement dataValueElement, QString memberName);
     QString valueElementToString(QDomElement valueElement); // Value should be something like <value><int>29</int></value>
     ForumSubscriptionTapaTalk *subscriptionTapaTalk() const;

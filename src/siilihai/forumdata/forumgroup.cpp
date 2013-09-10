@@ -35,6 +35,7 @@ void ForumGroup::copyFrom(ForumGroup * o) {
     setSubscribed(o->isSubscribed());
     setChangeset(o->changeset());
     setHasChanged(o->hasChanged());
+    setHierarchy(o->hierarchy());
 }
 
 ForumGroup::~ForumGroup() {
@@ -137,6 +138,16 @@ void ForumGroup::markRead(bool read) {
         foreach(ForumMessage *msg, ft->values()) {
             msg->setRead(read);
         }
-        QCoreApplication::processEvents();
+    }
+}
+
+QString ForumGroup::hierarchy() const {
+    return _hierarchy;
+}
+
+void ForumGroup::setHierarchy(QString newHierarchy) {
+    if (_hierarchy != newHierarchy) {
+        _hierarchy = newHierarchy;
+        _propertiesChanged = true;
     }
 }

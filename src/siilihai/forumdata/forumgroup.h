@@ -29,6 +29,8 @@ class ForumGroup : public ForumDataItem, public QMap<QString, ForumThread*> {
     Q_OBJECT
 
     Q_PROPERTY(QString name READ name WRITE setName NOTIFY changed)
+    // This contains tehe parent groups of the group (if known)
+    Q_PROPERTY(QString hierarchy READ hierarchy WRITE setHierarchy NOTIFY changed)
     Q_PROPERTY(QString displayName READ displayName NOTIFY changed)
     Q_PROPERTY(QString id READ id WRITE setId NOTIFY changed)
     Q_PROPERTY(int unreadCount READ unreadCount NOTIFY unreadCountChanged)
@@ -40,18 +42,23 @@ public:
     virtual QString toString() const;
     bool isSane() const;
     ForumSubscription *subscription() const;
-    void setSubscription(ForumSubscription *sub);
     bool isSubscribed() const;
     int changeset() const;
     bool hasChanged() const;
+    bool isTemp();
+    virtual void markToBeUpdated(bool toBe=true);
+    QString hierarchy() const;
+
+public slots:
+    void setHierarchy(QString arg);
+    void setSubscription(ForumSubscription *sub);
     void setSubscribed(bool s);
     void setChangeset(int cs);
     void setHasChanged(bool hc);
-    bool isTemp();
     void addThread(ForumThread* thr, bool affectsSync = true, bool incrementUnreads = true);
     void removeThread(ForumThread* thr, bool affectsSync = true);
-    virtual void markToBeUpdated(bool toBe=true);
     void markRead(bool read=true);
+
 signals:
     void changed();
     void unreadCountChanged();
@@ -64,6 +71,7 @@ private:
     Q_DISABLE_COPY(ForumGroup);
     ForumSubscription *_subscription;
     QString _lastchange;
+    QString _hierarchy;
     bool _subscribed;
     int _changeset;
     bool _hasChanged;

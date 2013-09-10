@@ -12,6 +12,7 @@
 #include <QByteArray>
 #include <QRegExp>
 
+
 TapaTalkEngine::TapaTalkEngine(ForumDatabase *fd, QObject *parent) :
     UpdateEngine(parent, fd)
 {
@@ -101,6 +102,7 @@ void TapaTalkEngine::probeUrl(QUrl url)
     createMethodCall(doc, "get_config", params);
 
     QByteArray requestData = doc.toByteArray();
+    req.setHeader(QNetworkRequest::ContentTypeHeader, QString("application/x-www-form-urlencoded"));
     req.setAttribute(QNetworkRequest::User, TTO_Probe);
     nam.post(req, requestData);
 }
@@ -140,6 +142,7 @@ void TapaTalkEngine::doUpdateForum() {
 
     QByteArray requestData = doc.toByteArray();
     req.setAttribute(QNetworkRequest::User, TTO_ListGroups);
+    req.setHeader(QNetworkRequest::ContentTypeHeader, QString("application/x-www-form-urlencoded"));
     nam.post(req, requestData);
 }
 
@@ -161,6 +164,7 @@ void TapaTalkEngine::doUpdateGroup(ForumGroup *group)
 
     QByteArray requestData = doc.toByteArray();
     req.setAttribute(QNetworkRequest::User, TTO_UpdateGroup);
+    req.setHeader(QNetworkRequest::ContentTypeHeader, QString("application/x-www-form-urlencoded"));
     nam.post(req, requestData);
 }
 
@@ -184,27 +188,26 @@ void TapaTalkEngine::replyUpdateGroup(QNetworkReply *reply) {
 
     QDomElement paramValueElement = doc.firstChildElement("methodResponse").firstChildElement("params").firstChildElement("param").firstChildElement("value");
     QDomElement topicsValueElement = findMemberValueElement(paramValueElement, "topics");
+    QString topicCountString = getValueFromStruct(paramValueElement, "total_topic_num");
+    Q_ASSERT(!topicCountString.isEmpty());
+    bool isok = true;
+    int topicCount = topicCountString.toInt(&isok);
+    Q_ASSERT(isok);
     QDomElement dataElement = topicsValueElement.firstChildElement("array").firstChildElement("data");
 
-    /*
-     @todo got here something like and dataElement is null:
-
-      "<?xml version="1.0" encoding="UTF-8"?>\n<methodResponse>\n<params>\n<param>\n<value><struct>\n<member>
-<name>total_topic_num</name>\n<value><int>0</int></value>\n</member>\n
-<member><name>prefixes</name>\n<value><array>\n<data>\n</data>\n</array></value>\n</member>\n
-<member><name>can_upload</name>\n<value><boolean>0</boolean></value>\n</member>\n
-<member><name>can_post</name>\n<value><boolean>0</boolean></value>\n</member>\n</struct>
-</value>\n</param>\n</params>\n</methodResponse>"
-
-     **/
-
-    if(dataElement.nodeName() == "data") {
-        getThreads(dataElement, &threads);
-    } else {
-        qDebug() << Q_FUNC_INFO << docs;
-        emit updateFailure(subscription(), "Error while updating group " + groupBeingUpdated->name() + "\nUnexpected TapatTalk reply.");
-        setState(UES_ERROR);
+    if(topicCount > 0) {
+        if(dataElement.nodeName() == "data") {
+            getThreads(dataElement, &threads);
+        } else {
+            qDebug() << Q_FUNC_INFO << docs;
+            emit updateFailure(subscription(), "Error while updating group " + groupBeingUpdated->name() + "\nUnexpected TapatTalk reply.\nThis is a bug in Siilihai or TapaTalk server.\nSee console for details.");
+            setState(UES_ERROR);
+        }
+        if(threads.isEmpty()) {
+            qDebug() << Q_FUNC_INFO << "Couldn't get any threads in group " << groupBeingUpdated->name() << ". Received XML: \n\n" << docs << "\n\n";
+        }
     }
+
     ForumGroup *groupThatWasBeingUpdated = groupBeingUpdated;
     groupBeingUpdated = 0;
     listThreadsFinished(threads, groupThatWasBeingUpdated);
@@ -235,7 +238,7 @@ void TapaTalkEngine::getThreads(QDomElement arrayDataElement, QList<ForumThread 
             dataValueElement = dataValueElement.nextSiblingElement();
         }
     } else {
-        emit networkFailure("Unexpected TapaTalk reply while updating threads");
+        emit networkFailure("Unexpected TapaTalk reply while updating threads. This is a bug in Siilihai or TapaTalk server.\nSee console for details.");
         setState(UpdateEngine::UES_ERROR);
     }
 }
@@ -274,6 +277,7 @@ void TapaTalkEngine::updateCurrentThreadPage() {
     QByteArray requestData = doc.toByteArray();
 
     req.setAttribute(QNetworkRequest::User, TTO_UpdateThread);
+    req.setHeader(QNetworkRequest::ContentTypeHeader, QString("application/x-www-form-urlencoded"));
     nam.post(req, requestData);
 }
 
@@ -308,6 +312,10 @@ void TapaTalkEngine::replyUpdateThread(QNetworkReply *reply) {
         currentMessagePage++;
         updateCurrentThreadPage();
     } else {
+        if(messages.isEmpty()) {
+            qDebug() << Q_FUNC_INFO << "Couldn't get any messages in thread " << threadBeingUpdated->name() << ". Received XML: \n\n" << docs << "\n\n";
+        }
+
         ForumThread *updatedThread = threadBeingUpdated;
         threadBeingUpdated=0;
         listMessagesFinished(messages, updatedThread, totalPostNum > messages.size());
@@ -335,6 +343,7 @@ bool TapaTalkEngine::loginIfNeeded() {
     // qDebug() << Q_FUNC_INFO << "TX: " << doc.toString();
 
     req.setAttribute(QNetworkRequest::User, TTO_Login);
+    req.setHeader(QNetworkRequest::ContentTypeHeader, QString("application/x-www-form-urlencoded"));
     nam.post(req, requestData);
 
     return true;
@@ -416,25 +425,15 @@ void TapaTalkEngine::networkReply(QNetworkReply *reply)
 void TapaTalkEngine::replyListGroups(QNetworkReply *reply)
 {
     QList<ForumGroup*> grps;
+    // Contais group id and hierarchy item for getting full name
+    QMap<QString, GroupHierarchyItem> groupHierarchy;
+
     if (reply->error() != QNetworkReply::NoError) {
         qDebug() << Q_FUNC_INFO << reply->errorString();
         listGroupsFinished(grps, subscription());
         return;
     }
     QString docs = QString().fromUtf8(reply->readAll());
-
-    /*
-     * In case of error (Authentication req'd) docs would now be:
-     * We could display the result_text to user here..
-     *
-    "<?xml version="1.0" encoding="UTF-8"?>\n<methodResponse>\n<params>\n<param>\n<value><struct>\n<member>
-<name>result</name>\n<value><boolean>0</boolean></value>\n</member>\n<member>
-<name>result_text</name>\n<value>
-<base64>WW91IGFyZSBub3QgbG9nZ2VkIGluIG9yIHlvdSBkbyBub3QgaGF2ZSBwZXJtaXNzaW9uIHRvIGRvIHRoaXMgYWN0aW9uLg==</base64>
-</value>\n</member>\n</struct></value>\n</param>\n</params>\n</methodResponse>"
-    */
-
-
     QDomDocument doc;
     doc.setContent(docs);
     QDomElement resultElement = doc.firstChildElement("methodResponse").firstChildElement("params").firstChildElement("param").firstChildElement("value");
@@ -443,9 +442,11 @@ void TapaTalkEngine::replyListGroups(QNetworkReply *reply)
     if(result.isEmpty() || result != "0") { // Getting list succeeded
         QDomElement arrayDataElement = doc.firstChildElement("methodResponse").firstChildElement("params").firstChildElement("param").firstChildElement("value").firstChildElement("array").firstChildElement("data");
         if(arrayDataElement.nodeName()=="data") {
-            getGroups(arrayDataElement, &grps);
+            getGroups(arrayDataElement, &grps, groupHierarchy);
+            fixGroupNames(&grps, groupHierarchy);
         } else {
-            qDebug() << Q_FUNC_INFO << "Expected data element in response, got " << arrayDataElement.nodeName();
+            emit updateFailure(subscription(), "Unexpected TapaTalk response while listing groups.\nThis is a bug in Siilihai or server. Check console");
+            qDebug() << Q_FUNC_INFO << "Expected data element in response, got " << arrayDataElement.nodeName() << ". Full xml: \n\n" << docs << "\n\n";
         }
     } else { // Getting list failed
         QString resultText = getValueFromStruct(resultElement, "result_text");
@@ -457,17 +458,26 @@ void TapaTalkEngine::replyListGroups(QNetworkReply *reply)
     qDeleteAll(grps);
 }
 
-void TapaTalkEngine::getGroups(QDomElement arrayDataElement, QList<ForumGroup *> *grps) {
+void TapaTalkEngine::getGroups(QDomElement arrayDataElement, QList<ForumGroup *> *grps, QMap<QString, GroupHierarchyItem> &groupHierarchy) {
     Q_ASSERT(arrayDataElement.nodeName()=="data");
+
     QDomElement arrayValueElement = arrayDataElement.firstChildElement("value");
     while(!arrayValueElement.isNull()) {
         QString groupId = getValueFromStruct(arrayValueElement, "forum_id");
+        QString parentId = getValueFromStruct(arrayValueElement, "parent_id");
         QString groupName = getValueFromStruct(arrayValueElement, "forum_name");
         QString subOnly = getValueFromStruct(arrayValueElement, "sub_only");
         // QString newPosts = getValueFromStruct(arrayValueElement, "new_post");
 
+        GroupHierarchyItem ghi;
+        ghi.name = groupName;
+        ghi.parentId = parentId;
+
+        groupHierarchy.insert(groupId, ghi);
+
         if(subOnly=="0" || subOnly.isEmpty()) { // Add only leaf groups
             ForumGroup *newGroup = new ForumGroup(this, true);
+
             newGroup->setName(groupName);
             newGroup->setId(groupId);
             newGroup->setLastchange(QString::number(rand()));
@@ -481,7 +491,7 @@ void TapaTalkEngine::getGroups(QDomElement arrayDataElement, QList<ForumGroup *>
 
             grps->append(newGroup);
         }
-        getChildGroups(arrayValueElement, grps);
+        getChildGroups(arrayValueElement, grps, groupHierarchy);
         arrayValueElement = arrayValueElement.nextSiblingElement();
     }
 }
@@ -549,14 +559,42 @@ void TapaTalkEngine::createMethodCall(QDomDocument & doc, QString method, QList<
     }
 }
 
-void TapaTalkEngine::getChildGroups(QDomElement arrayValueElement, QList<ForumGroup *> *grps)
+QString TapaTalkEngine::groupHierarchyString(QMap<QString, GroupHierarchyItem> &groupHierarchy, QString id) {
+    QString fullHierarchy;
+    Q_ASSERT(groupHierarchy.contains(id));
+    GroupHierarchyItem ghi = groupHierarchy.value(id);
+
+    // Nice.. both of these seem to mean no parent
+    while(ghi.parentId != "-1" && ghi.parentId != "0") {
+        if(!groupHierarchy.contains(ghi.parentId)) {
+            return "PARENT NOT FOUND! / " + fullHierarchy;
+        }
+        ghi = groupHierarchy.value(ghi.parentId);
+        if(fullHierarchy.isEmpty()) {
+            fullHierarchy = ghi.name;
+        } else {
+            fullHierarchy = ghi.name + " / " + fullHierarchy;
+        }
+    }
+    return fullHierarchy;
+}
+
+void TapaTalkEngine::fixGroupNames(QList<ForumGroup *> *grps, QMap<QString, GroupHierarchyItem> &groupHierarchy)
+{
+    foreach(ForumGroup *grp, *grps) {
+        QString hierarchy = groupHierarchyString(groupHierarchy, grp->id());
+        grp->setHierarchy(hierarchy);
+    }
+}
+
+void TapaTalkEngine::getChildGroups(QDomElement arrayValueElement, QList<ForumGroup *> *grps, QMap<QString, GroupHierarchyItem> &groupHierarchy)
 {
     Q_ASSERT(arrayValueElement.nodeName()=="value");
     QDomElement valueElement = findMemberValueElement(arrayValueElement, "child");
     if(!valueElement.isNull()) {
         QDomElement dataElement = valueElement.firstChildElement("array").firstChildElement("data");
         if(!dataElement.isNull()) {
-            getGroups(dataElement, grps);
+            getGroups(dataElement, grps, groupHierarchy);
         }
     }
 }

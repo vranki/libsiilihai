@@ -22,6 +22,7 @@ class ForumRequest;
 
 #define GRP_GROUP "group"
 #define GRP_SUBSCRIBED "subscribed"
+#define GRP_HIERARCHY "hierarchy"
 
 #define THR_THREAD "thread"
 #define THR_HASMOREMESSAGES "has_more_messages"

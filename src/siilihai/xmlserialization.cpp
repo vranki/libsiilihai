@@ -19,6 +19,7 @@ void XmlSerialization::serialize(ForumGroup *grp, QDomElement &parent, QDomDocum
     QDomElement newElement = doc.createElement(GRP_GROUP);
     appendForumDataItemValues(grp, newElement, doc);
     appendValue(COMMON_CHANGESET, QString::number(grp->changeset()), newElement, doc);
+    appendValue(GRP_HIERARCHY, grp->hierarchy(), newElement, doc);
     if(grp->isSubscribed())
         newElement.setAttribute(GRP_SUBSCRIBED, "true");
 
@@ -98,6 +99,7 @@ ForumGroup* XmlSerialization::readGroup(QDomElement &element, ForumSubscription 
     readForumDataItemValues(grp, element);
     grp->setSubscribed(!element.attribute(GRP_SUBSCRIBED).isNull());
     grp->setChangeset(QString(element.firstChildElement(COMMON_CHANGESET).text()).toInt());
+    grp->setHierarchy(element.attribute(GRP_HIERARCHY));
     if(grp->name()==UNKNOWN_SUBJECT) grp->markToBeUpdated();
     if(grp->isSubscribed()) {
         QDomElement threadElement = element.firstChildElement(THR_THREAD);
