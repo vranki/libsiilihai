@@ -48,6 +48,8 @@ void TapaTalkEngine::convertBodyToHtml(ForumMessage *msg)
     QString newBody = origBody;
     newBody = newBody.replace("[/url]", "</a>");
     newBody = newBody.replace("[/URL]", "</a>");
+    newBody = newBody.replace("[URL]", "[url]");
+    newBody = newBody.replace("[URL=", "[url=");
     newBody = newBody.replace("[IMG]", "[img]");
     newBody = newBody.replace("[img]", "<br/><img src=\"");
     newBody = newBody.replace("[/IMG]", "[/img]");
@@ -63,7 +65,7 @@ void TapaTalkEngine::convertBodyToHtml(ForumMessage *msg)
     newBody = newBody.replace("Â", ""); // WTF is this character doing in some posts.
     newBody = newBody.replace("\n", "<br/>");
 
-    // Replace [url] and [URL]
+    // Replace [url=]
     // @todo do more smartly
     int urlPosition = -1;
     do {
@@ -76,14 +78,17 @@ void TapaTalkEngine::convertBodyToHtml(ForumMessage *msg)
             }
         }
     } while(urlPosition >= 0);
+
+    // Replace [url]http://foobar</a> with <a href="http://foobar">http://foobar</a>
     urlPosition = -1;
     do {
-        urlPosition = newBody.indexOf("[URL=");
+        urlPosition = newBody.indexOf("[url]");
         if(urlPosition >= 0) {
-            newBody = newBody.replace(urlPosition, 5, "<a href=\"");
-            int closetag = newBody.indexOf("]", urlPosition);
-            if(closetag >= 0) {
-                newBody = newBody.replace(closetag, 1, "\">");
+            int urlEndPosition = newBody.indexOf("</a>", urlPosition);
+            if(urlEndPosition >= urlPosition) {
+                QString urlAddress = newBody.mid(urlPosition + 5, urlEndPosition - urlPosition - 5);
+                urlAddress = "<a href=\"" + urlAddress + "\">";
+                newBody = newBody.replace(urlPosition, 5, urlAddress);
             }
         }
     } while(urlPosition >= 0);

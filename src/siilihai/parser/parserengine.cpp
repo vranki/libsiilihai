@@ -771,7 +771,7 @@ void ParserEngine::nextOperation() {
         doUpdateGroup(groupBeingUpdated);
         break;
     case PEOUpdateThread:
-        Q_ASSERT(!threadBeingUpdated);
+        Q_ASSERT(threadBeingUpdated);
         Q_ASSERT(state() == UES_UPDATING || parserMakerMode());
         doUpdateThread(threadBeingUpdated);
         break;
