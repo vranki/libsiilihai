@@ -439,7 +439,7 @@ void UpdateEngine::credentialsEntered(CredentialsRequest* cr) {
 }
 
 void UpdateEngine::updateForum(bool force) {
-    qDebug() << Q_FUNC_INFO << " force: " << force;
+    qDebug() << Q_FUNC_INFO << " force: " << force << subscription()->toString();
     Q_ASSERT(fsubscription);
     Q_ASSERT(!fsubscription->beingSynced());
     Q_ASSERT(!fsubscription->scheduledForSync());

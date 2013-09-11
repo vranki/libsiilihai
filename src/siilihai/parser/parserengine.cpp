@@ -31,15 +31,15 @@ static const QString operationNames[] = {"(null)", "NoOp", "Login", "FetchCookie
 
 ParserEngine::ParserEngine(QObject *parent, ForumDatabase *fd, ParserManager *pm, QNetworkAccessManager *n) :
     UpdateEngine(parent, fd), parserManager(pm), nam(n) {
-    /*
-    connect(&session, SIGNAL(listGroupsFinished(QList<ForumGroup*>&, ForumSubscription *)), this, SLOT(listGroupsFinished(QList<ForumGroup*>&, ForumSubscription *)));
-    connect(&session, SIGNAL(listThreadsFinished(QList<ForumThread*>&, ForumGroup*)), this, SLOT(listThreadsFinished(QList<ForumThread*>&, ForumGroup*)));
-    connect(&session, SIGNAL(listMessagesFinished(QList<ForumMessage*>&, ForumThread*, bool)),
+
+    connect(this, SIGNAL(listGroupsFinished(QList<ForumGroup*>&, ForumSubscription *)), this, SLOT(listGroupsFinished(QList<ForumGroup*>&, ForumSubscription *)));
+    connect(this, SIGNAL(listThreadsFinished(QList<ForumThread*>&, ForumGroup*)), this, SLOT(listThreadsFinished(QList<ForumThread*>&, ForumGroup*)));
+    connect(this, SIGNAL(listMessagesFinished(QList<ForumMessage*>&, ForumThread*, bool)),
             this, SLOT(listMessagesFinished(QList<ForumMessage*>&, ForumThread*, bool)));
-    connect(&session, SIGNAL(networkFailure(QString)), this, SLOT(networkFailure(QString)));
-    connect(&session, SIGNAL(getHttpAuthentication(ForumSubscription*, QAuthenticator*)), this, SIGNAL(getHttpAuthentication(ForumSubscription*,QAuthenticator*)));
-    connect(&session, SIGNAL(loginFinished(ForumSubscription *,bool)), this, SLOT(loginFinishedSlot(ForumSubscription *,bool)));
-            */
+    connect(this, SIGNAL(networkFailure(QString)), this, SLOT(networkFailure(QString)));
+    connect(this, SIGNAL(getHttpAuthentication(ForumSubscription*, QAuthenticator*)), this, SIGNAL(getHttpAuthentication(ForumSubscription*,QAuthenticator*)));
+    connect(this, SIGNAL(loginFinished(ForumSubscription *,bool)), this, SLOT(loginFinishedSlot(ForumSubscription *,bool)));
+
     connect(parserManager, SIGNAL(parserUpdated(ForumParser*)), this, SLOT(parserUpdated(ForumParser*)));
     connect(this, SIGNAL(stateChanged(UpdateEngine::UpdateEngineState,UpdateEngine::UpdateEngineState)),
             this, SLOT(updateParserIfError(UpdateEngine::UpdateEngineState,UpdateEngine::UpdateEngineState)));
