@@ -552,8 +552,13 @@ void ClientLogic::updateThread(ForumThread* thread, bool force) {
     ForumSubscription *sub = thread->group()->subscription();
     Q_ASSERT(sub);
     Q_ASSERT(engines.contains(sub));
+
+    // Are we too strict? Show dialog if not possible yet?
     if(thread->group()->subscription()->beingSynced()) return;
     if(thread->group()->subscription()->scheduledForSync()) return;
+    if(thread->group()->subscription()->scheduledForUpdate()) return;
+    if(sub->updateEngine()->state() != UpdateEngine::UES_IDLE) return;
+
     engines.value(sub)->updateThread(thread, force);
 }
 

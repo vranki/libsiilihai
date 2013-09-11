@@ -35,6 +35,7 @@ void ForumGroup::copyFrom(ForumGroup * o) {
     setSubscribed(o->isSubscribed());
     setChangeset(o->changeset());
     setHasChanged(o->hasChanged());
+    setHierarchy(o->hierarchy());
 }
 
 ForumGroup::~ForumGroup() {
@@ -52,7 +53,7 @@ void ForumGroup::addThread(ForumThread* thr, bool affectsSync, bool incrementUnr
 
 void ForumGroup::removeThread(ForumThread* thr, bool affectsSync) {
     Q_ASSERT(thr->group() == this);
-    qDebug() << Q_FUNC_INFO << thr->toString();
+    // qDebug() << Q_FUNC_INFO << thr->toString();
     if(affectsSync && (thr->size() - thr->unreadCount()) > 0)  setHasChanged(true);
     int urc = thr->unreadCount();
     incrementUnreadCount(-urc);
@@ -137,6 +138,16 @@ void ForumGroup::markRead(bool read) {
         foreach(ForumMessage *msg, ft->values()) {
             msg->setRead(read);
         }
-        QCoreApplication::processEvents();
+    }
+}
+
+QString ForumGroup::hierarchy() const {
+    return _hierarchy;
+}
+
+void ForumGroup::setHierarchy(QString newHierarchy) {
+    if (_hierarchy != newHierarchy) {
+        _hierarchy = newHierarchy;
+        _propertiesChanged = true;
     }
 }

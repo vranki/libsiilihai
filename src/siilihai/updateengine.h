@@ -36,8 +36,8 @@ class CredentialsRequest;
   * PES_ENGINE_NOT_READY -> REQUESTING_CREDENTIALS <-> IDLE <-> UPDATING
   *                                    '-->----------------------->------^ ^- ERROR <-'
   * @see ForumDatabase
-  * @see ForumSession
-  * @see ForumParser
+  *
+  * @todo pool network requests and cancel them properly.
   */
 
 class UpdateEngine : public QObject
@@ -57,9 +57,12 @@ public:
     UpdateEngine(QObject *parent, ForumDatabase *fd);
     virtual ~UpdateEngine();
     virtual void setSubscription(ForumSubscription *fs);
+
+    // These are the main update functions called by UI. Call only for IDLE engine.
     virtual void updateGroupList();
     virtual void updateForum(bool force=false);
     virtual void updateThread(ForumThread *thread, bool force=false);
+
     UpdateEngine::UpdateEngineState state();
     ForumSubscription* subscription() const;
     QNetworkAccessManager *networkAccessManager();
@@ -111,8 +114,8 @@ protected:
     bool updateWhenEngineReady;
     QNetworkAccessManager nam;
 
-    ForumGroup *groupBeingUpdated;
-    ForumThread *threadBeingUpdated;
+    ForumGroup *groupBeingUpdated; // Can be null if updating only thread
+    ForumThread *threadBeingUpdated; // Must be null if not updating a thread
 private:
     ForumSubscription *fsubscription;
     UpdateEngineState currentState;

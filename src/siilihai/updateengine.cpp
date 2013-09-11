@@ -33,6 +33,8 @@ UpdateEngine::UpdateEngine(QObject *parent, ForumDatabase *fd) :
     updateWhenEngineReady = false;
     updateOnlyThread = false;
     updateCanceled = true;
+    threadBeingUpdated = 0;
+    groupBeingUpdated = 0;
 }
 
 UpdateEngine::~UpdateEngine() {
@@ -71,67 +73,12 @@ void UpdateEngine::subscriptionDeleted() {
 QNetworkAccessManager * UpdateEngine::networkAccessManager() {
     return &nam;
 }
-
-void UpdateEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages, ForumThread *dbThread, bool moreAvailable) {
-    Q_ASSERT(dbThread);
-    Q_ASSERT(dbThread->isSane());
-    Q_ASSERT(!dbThread->isTemp());
-    Q_ASSERT(dbThread->group()->isSubscribed());
-    if(updateCanceled) return;
-
-    dbThread->markToBeUpdated(false);
-    if(tempMessages.size()==0) qDebug() << Q_FUNC_INFO << "got 0 messages in thread " << dbThread->toString();
-    bool messagesChanged = false;
-    foreach (ForumMessage *tempMessage, tempMessages) {
-        bool foundInDb = false;
-        foreach (ForumMessage *dbMessage, dbThread->values()) {
-            if (dbMessage->id() == tempMessage->id()) {
-                foundInDb = true;
-                bool wasRead = dbMessage->isRead();
-                dbMessage->copyFrom(tempMessage);
-                if(wasRead) dbMessage->setRead(true, false);
-                dbMessage->markToBeUpdated(false);
-                dbMessage->commitChanges();
-            }
-        }
-        if (!foundInDb) {
-            messagesChanged = true;
-            ForumMessage *newMessage = new ForumMessage(dbThread, false);
-            newMessage->copyFrom(tempMessage);
-            newMessage->markToBeUpdated(false);
-            dbThread->addMessage(newMessage);
-        }
-    }
-
-    // check for DELETED threads
-    foreach (ForumMessage *dbmessage, dbThread->values()) {
-        bool messageFound = false;
-        foreach (ForumMessage *tempMsg, tempMessages) {
-            if (dbmessage->id() == tempMsg->id()) {
-                messageFound = true;
-            }
-        }
-        if (!messageFound) { // @todo don't delete, if tempMessages doesn't start from first page!!
-            // @todo are ordernums ok then? This is probably causing a bug.
-            messagesChanged = true;
-            dbThread->removeMessage(dbmessage);
-        }
-    }
-    // update thread
-    dbThread->setHasMoreMessages(moreAvailable);
-    dbThread->commitChanges();
-    if(updateAll) {
-        updateNextChangedThread();
-    } else {
-        setState(UES_IDLE);
-        emit forumUpdated(subscription());
-    }
-}
-
 void UpdateEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups, ForumSubscription *updatedSub) {
+    if(updateCanceled) return;
     if(!fsubscription) return;
     Q_ASSERT(updatedSub);
-    if(updateCanceled) return;
+    Q_ASSERT(!groupBeingUpdated);
+    Q_ASSERT(!threadBeingUpdated);
 
     bool dbGroupsWasEmpty = fsubscription->isEmpty();
     fsubscription->markToBeUpdated(false);
@@ -148,6 +95,12 @@ void UpdateEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups, ForumSubsc
         foreach(ForumGroup *dbGroup, fsubscription->values()) {
             if (dbGroup->id() == tempGroup->id()) {
                 foundInDb = true;
+
+                if(!dbGroup->isSubscribed()) { // If not subscribed, just update the group in db
+                    tempGroup->setSubscribed(false);
+                    dbGroup->copyFrom(tempGroup);
+                    dbGroup->commitChanges();
+                }
                 if((dbGroup->isSubscribed() &&
                     ((dbGroup->lastchange() != tempGroup->lastchange()) || forceUpdate ||
                      dbGroup->isEmpty() || dbGroup->needsToBeUpdated()))) {
@@ -207,9 +160,11 @@ void UpdateEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups, ForumSubsc
 
 void UpdateEngine::listThreadsFinished(QList<ForumThread*> &tempThreads, ForumGroup *group) {
     Q_ASSERT(group);
-    Q_ASSERT(!group->isTemp());
+    // Q_ASSERT(!group->isTemp()); temp groups used with parsermaker
     Q_ASSERT(group->isSane());
     Q_ASSERT(!group->subscription()->beingSynced());
+    Q_ASSERT(!groupBeingUpdated);
+    Q_ASSERT(!threadBeingUpdated);
     if(updateCanceled) return;
 
     threadsToUpdateQueue.clear();
@@ -272,30 +227,71 @@ void UpdateEngine::listThreadsFinished(QList<ForumThread*> &tempThreads, ForumGr
         thr->group()->removeThread(thr);
 
     group->markToBeUpdated(false);
+    threadBeingUpdated = 0;
 
     if(updateAll)
         updateNextChangedThread();
-
 }
 
-void UpdateEngine::updateThread(ForumThread *thread, bool force) {
-    Q_ASSERT(fsubscription);
-    Q_ASSERT(thread);
-    Q_ASSERT(!thread->group()->subscription()->beingSynced());
-    Q_ASSERT(!thread->group()->subscription()->scheduledForSync());
 
-    forceUpdate = force;
-    updateAll = true;
-    updateOnlyThread = true;
-    updateCanceled = false;
+void UpdateEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages, ForumThread *dbThread, bool moreAvailable) {
+    Q_ASSERT(dbThread);
+    Q_ASSERT(dbThread->isSane());
+    // Q_ASSERT(!dbThread->isTemp()); temp threads used with parsermaker
+    Q_ASSERT(dbThread->group()->isSubscribed());
+    // Q_ASSERT(groupBeingUpdated); can be null or set
+    Q_ASSERT(!threadBeingUpdated);
+    if(updateCanceled) return;
 
-    if(force) {
-        thread->setLastPage(0);
-        thread->markToBeUpdated();
+    dbThread->markToBeUpdated(false);
+    if(tempMessages.size()==0) qDebug() << Q_FUNC_INFO << "got 0 messages in thread " << dbThread->toString();
+    bool messagesChanged = false;
+    foreach (ForumMessage *tempMessage, tempMessages) {
+        bool foundInDb = false;
+        foreach (ForumMessage *dbMessage, dbThread->values()) {
+            if (dbMessage->id() == tempMessage->id()) {
+                foundInDb = true;
+                bool wasRead = dbMessage->isRead();
+                dbMessage->copyFrom(tempMessage);
+                if(wasRead) dbMessage->setRead(true, false);
+                dbMessage->markToBeUpdated(false);
+                dbMessage->commitChanges();
+            }
+        }
+        if (!foundInDb) {
+            messagesChanged = true;
+            ForumMessage *newMessage = new ForumMessage(dbThread, false);
+            newMessage->copyFrom(tempMessage);
+            newMessage->markToBeUpdated(false);
+            dbThread->addMessage(newMessage);
+        }
     }
-    if(!threadsToUpdateQueue.contains(thread))
-        threadsToUpdateQueue.enqueue(thread);
-    setState(UES_UPDATING);
+
+    // check for DELETED threads
+    foreach (ForumMessage *dbmessage, dbThread->values()) {
+        bool messageFound = false;
+        foreach (ForumMessage *tempMsg, tempMessages) {
+            if (dbmessage->id() == tempMsg->id()) {
+                messageFound = true;
+            }
+        }
+        if (!messageFound) { // @todo don't delete, if tempMessages doesn't start from first page!!
+            // @todo are ordernums ok then? This is probably causing a bug.
+            messagesChanged = true;
+            dbThread->removeMessage(dbmessage);
+        }
+    }
+    // update thread
+    dbThread->setHasMoreMessages(moreAvailable);
+    dbThread->commitChanges();
+    threadBeingUpdated = 0;
+    if(updateAll) {
+        updateNextChangedThread();
+    } else {
+        groupBeingUpdated = 0;
+        setState(UES_IDLE);
+        emit forumUpdated(subscription());
+    }
 }
 
 void UpdateEngine::networkFailure(QString message) {
@@ -305,11 +301,14 @@ void UpdateEngine::networkFailure(QString message) {
 }
 
 void UpdateEngine::loginFinishedSlot(ForumSubscription *sub, bool success) {
+    if(state()!=UES_UPDATING) {
+        qDebug() << Q_FUNC_INFO << "We're not updating so i'll ignore this as a old reply";
+        return;
+    }
     if(!success) {
         setState(UES_ERROR);
         cancelOperation();
     }
-    emit loginFinished(sub, success);
     if(success)
         continueUpdate();
 }
@@ -319,6 +318,9 @@ void UpdateEngine::updateNextChangedGroup() {
     Q_ASSERT(!subscription()->beingSynced());
     Q_ASSERT(!updateCanceled);
     Q_ASSERT(!threadBeingUpdated);
+    Q_ASSERT(!groupBeingUpdated);
+    Q_ASSERT(state() == UES_UPDATING);
+
     if(!updateOnlyThread) {
         foreach(ForumGroup *group, subscription()->values()) {
             if(group->needsToBeUpdated() && group->isSubscribed()) {
@@ -339,14 +341,16 @@ void UpdateEngine::updateNextChangedThread() {
     Q_ASSERT(!subscription()->beingSynced());
     Q_ASSERT(!updateCanceled);
     Q_ASSERT(!threadBeingUpdated);
+    Q_ASSERT(state() == UES_UPDATING);
 
     if (!threadsToUpdateQueue.isEmpty()) {
         ForumThread *thread = threadsToUpdateQueue.dequeue();
         if(forceUpdate)
             thread->setLastPage(0);
-        qDebug() << Q_FUNC_INFO << threadsToUpdateQueue.size() << " threads to update in queue";
         doUpdateThread(thread);
     } else {
+        threadBeingUpdated = 0;
+        groupBeingUpdated = 0;
         updateNextChangedGroup();
     }
     updateCurrentProgress();
@@ -364,6 +368,8 @@ void UpdateEngine::cancelOperation() {
     if(requestingCredentials)
         emit loginFinished(subscription(), false);
     requestingCredentials = false;
+    threadBeingUpdated = 0;
+    groupBeingUpdated = 0;
 }
 
 void UpdateEngine::updateCurrentProgress() {
@@ -443,6 +449,8 @@ void UpdateEngine::updateForum(bool force) {
     Q_ASSERT(fsubscription);
     Q_ASSERT(!fsubscription->beingSynced());
     Q_ASSERT(!fsubscription->scheduledForSync());
+    Q_ASSERT(!groupBeingUpdated);
+    Q_ASSERT(!threadBeingUpdated);
 
     forceUpdate = force;
     updateOnlyThread = false;
@@ -455,11 +463,39 @@ void UpdateEngine::updateForum(bool force) {
     }
 }
 
+
+void UpdateEngine::updateThread(ForumThread *thread, bool force) {
+    Q_ASSERT(fsubscription);
+    Q_ASSERT(thread);
+    Q_ASSERT(!thread->group()->subscription()->beingSynced());
+    Q_ASSERT(!thread->group()->subscription()->scheduledForSync());
+    Q_ASSERT(!groupBeingUpdated);
+    Q_ASSERT(!threadBeingUpdated);
+    Q_ASSERT(currentState==UES_IDLE);
+
+    forceUpdate = force;
+    updateAll = true;
+    updateOnlyThread = true;
+    updateCanceled = false;
+
+    if(force) {
+        thread->setLastPage(0);
+        thread->markToBeUpdated();
+    }
+    if(!threadsToUpdateQueue.contains(thread))
+        threadsToUpdateQueue.enqueue(thread);
+
+    setState(UES_UPDATING);
+}
+
 void UpdateEngine::updateGroupList() {
     updateAll = false; // Just the group list
     updateOnlyThread = false;
     updateCanceled = false;
     updateWhenEngineReady = true;
+    Q_ASSERT(!groupBeingUpdated);
+    Q_ASSERT(!threadBeingUpdated);
+
     if(state() != UES_ENGINE_NOT_READY) {
         setState(UES_UPDATING);
     }
@@ -469,6 +505,9 @@ void UpdateEngine::continueUpdate() {
     if(updateOnlyThread) {
         updateNextChangedThread();
     } else {
+        Q_ASSERT(!groupBeingUpdated);
+        Q_ASSERT(!threadBeingUpdated);
+        Q_ASSERT(state() == UES_UPDATING);
         doUpdateForum();
     }
 }

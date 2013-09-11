@@ -38,14 +38,15 @@ class ParserEngine : public UpdateEngine {
 public:
     ParserEngine(QObject *parent=0, ForumDatabase *fd=0, ParserManager *pm=0, QNetworkAccessManager *n=0);
     virtual ~ParserEngine();
+    // Sets the parser to be used. Ownership does not change.
     void setParser(ForumParser *fp);
-
-    virtual void setSubscription(ForumSubscription *fs);
-    virtual void updateThread(ForumThread *thread, bool force=false);
     ForumParser *parser() const;
+    // Sets the forumsubsctiption to be used. Ownership does not change. Set to null for no subscription.
+    virtual void setSubscription(ForumSubscription *fs);
 
-    // Needed by parsermaker
-    void initialize(ForumParser *fop, ForumSubscription *fos, PatternMatcher *matcher=0);
+     // Used by parsermaker
+    void setPatternMatcher(PatternMatcher *newPm);
+
     void listGroups();
     void listThreads(ForumGroup *group);
     void listMessages(ForumThread *thread);
@@ -73,8 +74,8 @@ private slots:
 
 signals:
     void listGroupsFinished(QList<ForumGroup*> &groups, ForumSubscription *sub);
-    void listThreadsFinished(QList<ForumThread*> &threads, ForumGroup *group); // Will be deleted
-    void listMessagesFinished(QList<ForumMessage*> &messages, ForumThread *thread, bool moreAvailable);
+    void listThreadsFinished(QList<ForumThread*> &foundThreads, ForumGroup *group); // Will be deleted
+    void listMessagesFinished(QList<ForumMessage*> &foundMessages, ForumThread *thread, bool moreAvailable);
     void networkFailure(QString message);
     void loginFinished(ForumSubscription *sub, bool success);
     void receivedHtml(const QString &data);
@@ -84,9 +85,10 @@ signals:
 protected:
     virtual void requestCredentials();
 private:
-    enum ForumSessionOperation { FSONoOp=1, FSOLogin, FSOFetchCookie, FSOListGroups, FSOListThreads, FSOListMessages };
-
+    enum ParserEngineOperation { PEONoOp=1, PEOLogin, PEOFetchCookie, PEOUpdateForum, PEOUpdateGroup, PEOUpdateThread };
+    bool parserMakerMode(); // Returns true if running in parser maker - less strict sanity tests
     void performLogin(QString &html);
+    // Returns the subscription as ForumSubscriptionParsed instance
     ForumSubscriptionParsed *subscriptionParsed() const;
     ForumParser *currentParser;
     ParserManager *parserManager;
@@ -103,21 +105,21 @@ private:
     void fetchCookie();
     void listThreadsOnNextPage();
     void listMessagesOnNextPage();
-    void setRequestAttributes(QNetworkRequest &req, ForumSessionOperation op);
+    void setRequestAttributes(QNetworkRequest &req, ParserEngineOperation op);
 
     QString convertCharset(const QByteArray &src);
     QString statusReport();
     PatternMatcher *patternMatcher;
     QNetworkAccessManager *nam;
     QByteArray emptyData, loginData;
-    bool cookieFetched, loggedIn;
-    ForumSessionOperation operationInProgress;
+    bool cookieFetched, loggedIn, loggingIn;
+    ParserEngineOperation operationInProgress;
     QNetworkCookieJar *cookieJar;
     int currentListPage;
 
     // @todo consider changing to QVectors
-    QList<ForumThread*> threads; // Threads in currentGroup
-    QList<ForumMessage*> messages; // Represents messages in thread listMessages
+    QList<ForumThread*> foundThreads; // Threads in currentGroup
+    QList<ForumMessage*> foundMessages; // Represents messages in thread listMessages
 
     bool moreMessagesAvailable; // True if thread would have more messages but limit stops search
     QString currentMessagesUrl;

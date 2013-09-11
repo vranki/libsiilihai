@@ -46,8 +46,7 @@ parser.files += siilihai/parser/parserreport.h \
     siilihai/parser/forumparser.h \
     siilihai/parser/forumsubscriptionparsed.h \
     siilihai/parser/parsermanager.h \
-    siilihai/parser/patternmatcher.h \
-    siilihai/parser/forumsession.h
+    siilihai/parser/patternmatcher.h
 
 parser.path += $$headers.path/parser
 
@@ -93,7 +92,6 @@ SOURCES += siilihai/syncmaster.cpp \
     siilihai/forumprobe.cpp \
     siilihai/parser/forumsubscriptionparsed.cpp \
     siilihai/parser/parsermanager.cpp \
-    siilihai/parser/forumsession.cpp \
     siilihai/parser/parserengine.cpp \
     siilihai/parser/forumparser.cpp \
     siilihai/parser/patternmatcher.cpp \

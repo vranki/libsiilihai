@@ -26,7 +26,6 @@
 #include "siilihai/forumdatabase/forumdatabasexml.h"
 #include "siilihai/parser/forumparser.h"
 #include "siilihai/forumdata/forumsubscription.h"
-#include "siilihai/parser/forumsession.h"
 #include "siilihai/parser/parserengine.h"
 #include "siilihai/httppost.h"
 #include "siilihai/syncmaster.h"

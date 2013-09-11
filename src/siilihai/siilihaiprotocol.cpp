@@ -113,6 +113,7 @@ void SiilihaiProtocol::login(QString user, QString pass) {
     params.insert("clientversion", CLIENT_VERSION);
     loginData = HttpPost::setPostParameters(&req, params);
     req.setAttribute(QNetworkRequest::User, SPOLogin);
+    req.setHeader(QNetworkRequest::ContentTypeHeader, QString("application/x-www-form-urlencoded"));
     nam.post(req, loginData);
 }
 
@@ -150,6 +151,7 @@ void SiilihaiProtocol::registerUser(QString user, QString pass, QString email, b
     params.insert("clientversion", CLIENT_VERSION);
     registerData = HttpPost::setPostParameters(&req, params);
     req.setAttribute(QNetworkRequest::User, SPORegisterUser);
+    req.setHeader(QNetworkRequest::ContentTypeHeader, QString("application/x-www-form-urlencoded"));
     nam.post(req, registerData);
 }
 
@@ -161,6 +163,7 @@ void SiilihaiProtocol::listForums() {
     }
     listForumsData = HttpPost::setPostParameters(&req, params);
     req.setAttribute(QNetworkRequest::User, SPOListForums);
+    req.setHeader(QNetworkRequest::ContentTypeHeader, QString("application/x-www-form-urlencoded"));
     nam.post(req, listForumsData);
 }
 
@@ -199,6 +202,7 @@ void SiilihaiProtocol::listRequests() {
     }
     listRequestsData = HttpPost::setPostParameters(&req, params);
     req.setAttribute(QNetworkRequest::User, SPOListRequests);
+    req.setHeader(QNetworkRequest::ContentTypeHeader, QString("application/x-www-form-urlencoded"));
     nam.post(req, listRequestsData);
 }
 
@@ -231,6 +235,7 @@ void SiilihaiProtocol::getParser(const int id) {
 
     getParserData = HttpPost::setPostParameters(&req, params);
     req.setAttribute(QNetworkRequest::User, SPOGetParser);
+    req.setHeader(QNetworkRequest::ContentTypeHeader, QString("application/x-www-form-urlencoded"));
     nam.post(req, getParserData);
 }
 
@@ -273,6 +278,7 @@ void SiilihaiProtocol::subscribeForum(ForumSubscription *fs, bool unsubscribe) {
     subscribeForumData = HttpPost::setPostParameters(&req, params);
     forumBeingSubscribed = fs;
     req.setAttribute(QNetworkRequest::User, SPOSubscribeForum);
+    req.setHeader(QNetworkRequest::ContentTypeHeader, QString("application/x-www-form-urlencoded"));
     nam.post(req, subscribeForumData);
 }
 
@@ -368,6 +374,7 @@ void SiilihaiProtocol::saveParser(const ForumParser *parser) {
 
     saveParserData = HttpPost::setPostParameters(&req, params);
     req.setAttribute(QNetworkRequest::User, SPOSaveParser);
+    req.setHeader(QNetworkRequest::ContentTypeHeader, QString("application/x-www-form-urlencoded"));
     nam.post(req, saveParserData);
 }
 
