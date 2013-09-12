@@ -37,7 +37,6 @@ ParserEngine::ParserEngine(QObject *parent, ForumDatabase *fd, ParserManager *pm
     connect(this, SIGNAL(listMessagesFinished(QList<ForumMessage*>&, ForumThread*, bool)),
             this, SLOT(listMessagesFinished(QList<ForumMessage*>&, ForumThread*, bool)));
     connect(this, SIGNAL(networkFailure(QString)), this, SLOT(networkFailure(QString)));
-    connect(this, SIGNAL(getHttpAuthentication(ForumSubscription*, QAuthenticator*)), this, SIGNAL(getHttpAuthentication(ForumSubscription*,QAuthenticator*)));
     connect(this, SIGNAL(loginFinished(ForumSubscription *,bool)), this, SLOT(loginFinishedSlot(ForumSubscription *,bool)));
     connect(this, SIGNAL(stateChanged(UpdateEngine::UpdateEngineState,UpdateEngine::UpdateEngineState)),
             this, SLOT(updateParserIfError(UpdateEngine::UpdateEngineState,UpdateEngine::UpdateEngineState)));

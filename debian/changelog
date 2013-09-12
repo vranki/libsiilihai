@@ -1,3 +1,10 @@
+libsiilihai (2.2.12) raring; urgency=low
+
+  * More update engine refactoring & bugfixing
+  * Group hierarchy support
+
+ -- Ville Ranki <ville.ranki@iki.fi>  Wed, 11 Sep 2013 12:34:56 +0300
+
 libsiilihai (2.2.11) raring; urgency=low
 
   * Update engine refactoring & bugfixing
