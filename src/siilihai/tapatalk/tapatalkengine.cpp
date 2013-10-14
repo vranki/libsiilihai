@@ -181,7 +181,8 @@ void TapaTalkEngine::replyUpdateGroup(QNetworkReply *reply) {
     Q_ASSERT(groupBeingUpdated);
     QList<ForumThread*> threads;
     if (reply->error() != QNetworkReply::NoError) {
-        qDebug() << Q_FUNC_INFO << reply->errorString();
+        qDebug() << Q_FUNC_INFO << reply->errorString() << QString().fromUtf8(reply->readAll());
+        emit updateFailure(subscription(), "Error while updating group " + groupBeingUpdated->name() + "\nUnexpected TapatTalk reply.\nThis is a bug in Siilihai or TapaTalk server.\n" + reply->errorString());
         ForumGroup *updatedGroup = groupBeingUpdated;
         groupBeingUpdated = 0; // Update finished so clear this.
         listThreadsFinished(threads, updatedGroup);
