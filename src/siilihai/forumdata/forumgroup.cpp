@@ -94,7 +94,16 @@ void ForumGroup::setSubscribed(bool s) {
     if(s==_subscribed) return;
     _subscribed = s;
     _propertiesChanged = true;
-    subscription()->incrementUnreadCount(-unreadCount());
+
+     // @todo is this correct??
+    if(_subscribed) {
+        subscription()->incrementUnreadCount(unreadCount());
+    } else {
+        subscription()->incrementUnreadCount(-unreadCount());
+        incrementUnreadCount(-unreadCount());
+        Q_ASSERT(unreadCount() == 0);
+    }
+    //
     emit changed();
 }
 
@@ -125,6 +134,11 @@ void ForumGroup::emitChanged() {
 
 void ForumGroup::emitUnreadCountChanged() {
     emit unreadCountChanged();
+}
+
+void ForumGroup::incrementUnreadCount(int urc) {
+    Q_ASSERT(isSubscribed() || urc==0);
+    ForumDataItem::incrementUnreadCount(urc);
 }
 
 void ForumGroup::markToBeUpdated(bool toBe) {
