@@ -223,9 +223,10 @@ void ParserEngine::doUpdateGroup(ForumGroup *group) {
 }
 
 // Avoid using asserts that can break parsermaker here! Put them elsewhere
+// Remember, this can be called after fetchcookie sometimes!
 void ParserEngine::doUpdateThread(ForumThread *thread)
 {
-    Q_ASSERT(!threadBeingUpdated);
+    Q_ASSERT(!threadBeingUpdated || thread == threadBeingUpdated);
     // Q_ASSERT(!groupBeingUpdated); don't care
     Q_ASSERT(operationInProgress == ParserEngine::PEONoOp || operationInProgress == ParserEngine::PEOUpdateThread);
     Q_ASSERT(thread->isSane());
