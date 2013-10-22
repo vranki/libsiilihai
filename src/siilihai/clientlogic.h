@@ -45,7 +45,7 @@ public:
 signals:
 
 public slots:
-    virtual void launchSiilihai();
+    virtual void launchSiilihai(bool offline=false);
     virtual void updateClicked();
     virtual void updateClicked(ForumSubscription* forumid, bool force=false);
     virtual void haltSiilihai();

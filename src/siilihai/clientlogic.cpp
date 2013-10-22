@@ -27,7 +27,7 @@ ClientLogic::ClientLogic(QObject *parent) : QObject(parent), currentState(SH_OFF
     connect(&syncmaster, SIGNAL(syncProgress(float, QString)), this, SLOT(syncProgress(float, QString)));
 }
 
-void ClientLogic::launchSiilihai() {
+void ClientLogic::launchSiilihai(bool offline) {
     changeState(SH_STARTED);
     settings = new QSettings(getDataFilePath() + "/siilihai_settings.ini", QSettings::IniFormat, this);
 
@@ -79,7 +79,11 @@ void ClientLogic::launchSiilihai() {
         showLoginWizard();
     } else {
         showMainWindow();
-        tryLogin();
+        if(!offline) {
+            tryLogin();
+        } else {
+            offlineModeSet(true);
+        }
     }
 }
 
@@ -234,8 +238,7 @@ void ClientLogic::updateClicked(ForumSubscription* sub , bool force) {
         return;
     }
     UpdateEngine *engine = engines.value(sub);
-    if(engine &&
-            (engine->state()==UpdateEngine::UES_IDLE || engine->state()==UpdateEngine::UES_ERROR)
+    if(engine && (engine->state()==UpdateEngine::UES_IDLE || engine->state()==UpdateEngine::UES_ERROR)
             && currentState != SH_OFFLINE && currentState != SH_STARTED) {
         sub->setScheduledForUpdate(false);
         subscriptionsToUpdateLeft.removeAll(sub);
