@@ -95,7 +95,16 @@ void ForumGroup::setSubscribed(bool s) {
     _subscribed = s;
     _propertiesChanged = true;
 
-     // @todo is this correct??
+    // If not subscribed, remove all child threads
+    if(!_subscribed) {
+        while(!isEmpty())
+            removeThread(begin().value(), false);
+    } else {
+        subscription()->incrementUnreadCount(unreadCount());
+    }
+    // @todo is this correct??
+    /*
+     no, i think
     if(_subscribed) {
         subscription()->incrementUnreadCount(unreadCount());
     } else {
@@ -103,6 +112,7 @@ void ForumGroup::setSubscribed(bool s) {
         incrementUnreadCount(-unreadCount());
         Q_ASSERT(unreadCount() == 0);
     }
+    */
     //
     emit changed();
 }
