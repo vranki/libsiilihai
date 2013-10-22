@@ -440,7 +440,8 @@ void UpdateEngine::credentialsEntered(CredentialsRequest* cr) {
     // Start updating when credentials entered
     if(currentState==UES_UPDATING) {
         qDebug() << Q_FUNC_INFO << "resuming update now";
-        updateGroupList();
+        // updateGroupList();
+        continueUpdate();
     }
 }
 

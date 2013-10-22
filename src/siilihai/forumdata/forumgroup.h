@@ -47,6 +47,7 @@ public:
     bool hasChanged() const;
     bool isTemp();
     virtual void markToBeUpdated(bool toBe=true);
+    virtual void incrementUnreadCount(int urc);
     QString hierarchy() const;
 
 public slots:

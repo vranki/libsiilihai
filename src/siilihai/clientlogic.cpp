@@ -454,7 +454,7 @@ void ClientLogic::moreMessagesRequested(ForumThread* thread) {
     Q_ASSERT(thread);
     UpdateEngine *engine = engines.value(thread->group()->subscription());
     Q_ASSERT(engine);
-    if(engine->state() == UpdateEngine::UES_UPDATING) return;
+    if(engine->state() != UpdateEngine::UES_IDLE) return;
     if(thread->group()->subscription()->beingSynced()) return;
     if(thread->group()->subscription()->scheduledForSync()) return;
 
