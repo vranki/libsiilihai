@@ -5,6 +5,12 @@
 #include <QSettings>
 #include <QQueue>
 
+#if QT_VERSION >= 0x050000
+#include <QStandardPaths>
+#else
+#include <QDesktopServices>
+#endif
+
 #include "updateengine.h"
 #include "forumdatabase/forumdatabasexml.h"
 #include "syncmaster.h"
@@ -40,14 +46,13 @@ public:
         SH_ENDSYNC,
         SH_STOREDB
     } currentState;
-    explicit ClientLogic(QObject *parent = 0);
 
-signals:
+    explicit ClientLogic(QObject *parent = 0);
 
 public slots:
     virtual void launchSiilihai(bool offline=false);
-    virtual void updateClicked();
-    virtual void updateClicked(ForumSubscription* forumid, bool force=false);
+    // Call with 0 subscription to update all
+    virtual void updateClicked(ForumSubscription* sub=0, bool force=false);
     virtual void haltSiilihai();
     virtual void cancelClicked();
     virtual void syncFinished(bool success, QString message);
@@ -79,7 +84,7 @@ protected slots:
     virtual void subscriptionDeleted(QObject* subobj);
     virtual void getHttpAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator);
     virtual void getForumAuthentication(ForumSubscription *fsub);
-    virtual void showSubscribeGroup(ForumSubscription* ) {};
+    virtual void showSubscribeGroup(ForumSubscription* ) {}
     virtual void unregisterSiilihai();
     void forumAdded(ForumSubscription *fs); // Ownership won't change
     void moreMessagesRequested(ForumThread* thread);
@@ -119,6 +124,7 @@ private:
     bool endSyncDone;
     bool firstRun;
     QQueue<CredentialsRequest*> credentialsRequests;
+
 };
 
 #endif // CLIENTLOGIC_H

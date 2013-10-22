@@ -58,6 +58,8 @@ void ClientLogic::launchSiilihai(bool offline) {
 
     QString databaseFileName = getDataFilePath() + "/siilihai_forums.xml";
 
+    qDebug() << Q_FUNC_INFO << "Using data files under " << getDataFilePath();
+
     if(firstRun) {
         forumDatabase.openDatabase(databaseFileName); // Fails
     } else {
@@ -111,7 +113,11 @@ void ClientLogic::haltSiilihai() {
 }
 
 QString ClientLogic::getDataFilePath() {
-    return ".";
+#if QT_VERSION < 0x050000
+    return QDesktopServices::storageLocation(QDesktopServices::DataLocation);
+#else
+    return QStandardPaths::writableLocation(QStandardPaths::DataLocation);
+#endif
 }
 
 void ClientLogic::settingsChanged(bool byUser) {
@@ -191,13 +197,6 @@ void ClientLogic::changeState(siilihai_states newState) {
     }
 }
 
-void ClientLogic::updateClicked() {
-    if(currentState != SH_READY) return;
-    foreach(UpdateEngine* engine, engines.values()) {
-        updateForum(engine->subscription());
-    }
-}
-
 void ClientLogic::updateForum(ForumSubscription *sub) {
     if(!engines.contains(sub)) return; // Can happen if quitting
 
@@ -232,19 +231,25 @@ void ClientLogic::updateForum(ForumSubscription *sub) {
 void ClientLogic::updateClicked(ForumSubscription* sub , bool force) {
     if(currentState != SH_READY) return;
 
-    Q_ASSERT(engines.contains(sub));
-    if(sub->scheduledForSync() || sub->beingSynced()) {
-        qDebug() << Q_FUNC_INFO << sub->toString() << "syncing, not updating";
-        return;
-    }
-    UpdateEngine *engine = engines.value(sub);
-    if(engine && (engine->state()==UpdateEngine::UES_IDLE || engine->state()==UpdateEngine::UES_ERROR)
-            && currentState != SH_OFFLINE && currentState != SH_STARTED) {
-        sub->setScheduledForUpdate(false);
-        subscriptionsToUpdateLeft.removeAll(sub);
-        subscriptionsNotUpdated.remove(sub);
-        Q_ASSERT(!engine->subscription()->beingSynced());
-        engine->updateForum(force);
+    if(sub) {
+        Q_ASSERT(engines.contains(sub));
+        if(sub->scheduledForSync() || sub->beingSynced()) {
+            qDebug() << Q_FUNC_INFO << sub->toString() << "syncing, not updating";
+            return;
+        }
+        UpdateEngine *engine = engines.value(sub);
+        if(engine && (engine->state()==UpdateEngine::UES_IDLE || engine->state()==UpdateEngine::UES_ERROR)
+                && currentState != SH_OFFLINE && currentState != SH_STARTED) {
+            sub->setScheduledForUpdate(false);
+            subscriptionsToUpdateLeft.removeAll(sub);
+            subscriptionsNotUpdated.remove(sub);
+            Q_ASSERT(!engine->subscription()->beingSynced());
+            engine->updateForum(force);
+        }
+    } else { // Update all
+        foreach(UpdateEngine* engine, engines.values()) {
+            updateForum(engine->subscription());
+        }
     }
 }
 

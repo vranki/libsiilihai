@@ -173,5 +173,6 @@ void ForumGroup::setHierarchy(QString newHierarchy) {
     if (_hierarchy != newHierarchy) {
         _hierarchy = newHierarchy;
         _propertiesChanged = true;
+        emitChanged();
     }
 }

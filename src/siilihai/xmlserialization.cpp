@@ -99,7 +99,7 @@ ForumGroup* XmlSerialization::readGroup(QDomElement &element, ForumSubscription 
     readForumDataItemValues(grp, element);
     grp->setSubscribed(!element.attribute(GRP_SUBSCRIBED).isNull());
     grp->setChangeset(QString(element.firstChildElement(COMMON_CHANGESET).text()).toInt());
-    grp->setHierarchy(element.attribute(GRP_HIERARCHY));
+    grp->setHierarchy(element.firstChildElement(GRP_HIERARCHY).text());
     if(grp->name()==UNKNOWN_SUBJECT) grp->markToBeUpdated();
     if(grp->isSubscribed()) {
         QDomElement threadElement = element.firstChildElement(THR_THREAD);
