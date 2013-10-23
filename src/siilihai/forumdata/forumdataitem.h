@@ -31,7 +31,7 @@ protected:
     virtual void emitUnreadCountChanged()=0;
     bool _propertiesChanged;
 private:
-    Q_DISABLE_COPY(ForumDataItem);
+    Q_DISABLE_COPY(ForumDataItem)
     QString _name;
     QString _id;
     QString _lastchange;

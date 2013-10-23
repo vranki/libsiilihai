@@ -29,7 +29,7 @@ class ForumGroup : public ForumDataItem, public QMap<QString, ForumThread*> {
     Q_OBJECT
 
     Q_PROPERTY(QString name READ name WRITE setName NOTIFY changed)
-    // This contains tehe parent groups of the group (if known)
+    // This contains the parent groups of the group (if known)
     Q_PROPERTY(QString hierarchy READ hierarchy WRITE setHierarchy NOTIFY changed)
     Q_PROPERTY(QString displayName READ displayName NOTIFY changed)
     Q_PROPERTY(QString id READ id WRITE setId NOTIFY changed)
