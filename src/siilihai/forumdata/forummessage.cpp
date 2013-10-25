@@ -80,6 +80,7 @@ QString ForumMessage::authorCleaned() const {
 }
 
 QString ForumMessage::body() const { return _body; }
+
 bool ForumMessage::isRead() const { return _read; }
 
 QString ForumMessage::displayName() const {

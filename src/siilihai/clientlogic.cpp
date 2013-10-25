@@ -20,11 +20,24 @@ ClientLogic::ClientLogic(QObject *parent) : QObject(parent), currentState(SH_OFF
     firstRun = true;
     dbStored = false;
     srand ( time(NULL) );
+
+    statusMsgTimer.setSingleShot(true);
+    connect(&statusMsgTimer, SIGNAL(timeout()), this, SLOT(clearStatusMessage()));
+
     // Make sure Siilihai::subscriptionFound is called first to get ParserEngine
     connect(&forumDatabase, SIGNAL(subscriptionFound(ForumSubscription*)), this, SLOT(subscriptionFound(ForumSubscription*)));
     connect(&forumDatabase, SIGNAL(databaseStored()), this, SLOT(databaseStored()), Qt::QueuedConnection);
     connect(&protocol, SIGNAL(userSettingsReceived(bool,UserSettings*)), this, SLOT(userSettingsReceived(bool,UserSettings*)));
     connect(&syncmaster, SIGNAL(syncProgress(float, QString)), this, SLOT(syncProgress(float, QString)));
+}
+
+QString ClientLogic::statusMessage() const
+{
+    return statusMsg;
+}
+
+ClientLogic::siilihai_states ClientLogic::state() const {
+    return currentState;
 }
 
 void ClientLogic::launchSiilihai(bool offline) {
@@ -150,6 +163,10 @@ void ClientLogic::tryLogin() {
 
 void ClientLogic::accountlessLoginFinished() {
     loginFinished(true, "", false);
+}
+
+void ClientLogic::clearStatusMessage() {
+    showStatusMessage();
 }
 
 void ClientLogic::changeState(siilihai_states newState) {
@@ -568,6 +585,14 @@ void ClientLogic::updateThread(ForumThread* thread, bool force) {
     if(sub->updateEngine()->state() != UpdateEngine::UES_IDLE) return;
 
     engines.value(sub)->updateThread(thread, force);
+}
+
+void ClientLogic::showStatusMessage(QString message) {
+    if (statusMsg != message) {
+        statusMsg = message;
+        emit statusMessageChanged(message);
+        if(!message.isEmpty()) statusMsgTimer.start(5000);
+    }
 }
 
 void ClientLogic::forumLoginFinished(ForumSubscription *sub, bool success) {

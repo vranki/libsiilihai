@@ -245,7 +245,7 @@ void UpdateEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages, Foru
 
     dbThread->markToBeUpdated(false);
     if(tempMessages.size()==0) qDebug() << Q_FUNC_INFO << "got 0 messages in thread " << dbThread->toString();
-    bool messagesChanged = false;
+    bool messagesChanged = false; // @todo this is not used anywhere.. should be deleted?
     foreach (ForumMessage *tempMessage, tempMessages) {
         bool foundInDb = false;
         foreach (ForumMessage *dbMessage, dbThread->values()) {

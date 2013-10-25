@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QSettings>
 #include <QQueue>
+#include <QTimer>
 
 #if QT_VERSION >= 0x050000
 #include <QStandardPaths>
@@ -34,7 +35,7 @@ class ParserManager;
 class ClientLogic : public QObject
 {
     Q_OBJECT
-
+    Q_PROPERTY(QString statusMessage READ statusMessage WRITE showStatusMessage NOTIFY statusMessageChanged)
 public:
 
     enum siilihai_states {
@@ -45,9 +46,11 @@ public:
         SH_READY,
         SH_ENDSYNC,
         SH_STOREDB
-    } currentState;
+    };
 
     explicit ClientLogic(QObject *parent = 0);
+    QString statusMessage() const;
+    siilihai_states state() const;
 
 public slots:
     virtual void launchSiilihai(bool offline=false);
@@ -63,6 +66,9 @@ public slots:
     virtual void unsubscribeForum(ForumSubscription* fs);
     virtual void updateGroupSubscriptions(ForumSubscription *sub);
     virtual void updateAllParsers();
+
+signals:
+    void statusMessageChanged(QString message);
 
 protected:
     virtual QString getDataFilePath();
@@ -86,6 +92,7 @@ protected slots:
     virtual void getForumAuthentication(ForumSubscription *fsub);
     virtual void showSubscribeGroup(ForumSubscription* ) {}
     virtual void unregisterSiilihai();
+    virtual void showStatusMessage(QString message=QString::null);
     void forumAdded(ForumSubscription *fs); // Ownership won't change
     void moreMessagesRequested(ForumThread* thread);
     void unsubscribeGroup(ForumGroup *group);
@@ -93,7 +100,6 @@ protected slots:
     virtual void updateThread(ForumThread* thread, bool force=false);
 private slots:
     virtual void subscribeForum()=0;
-    virtual void showStatusMessage(QString message)=0;
     virtual void parserEngineStateChanged(UpdateEngine::UpdateEngineState newState,
                                           UpdateEngine::UpdateEngineState oldState);
     void syncProgress(float progress, QString message);
@@ -107,6 +113,7 @@ private slots:
     void forumLoginFinished(ForumSubscription *sub, bool success);
     void credentialsEntered(bool store); // from CredentialsRequest
     void accountlessLoginFinished(); // Delayed login success (useless?)
+    void clearStatusMessage();
 protected:
     CredentialsRequest* currentCredentialsRequest; // If being asked
 private:
@@ -114,6 +121,8 @@ private:
     void showNextCredentialsDialog();
     int busyForumCount();
     void createEngineForSubscription(ForumSubscription *newFs);
+
+    siilihai_states currentState;
     QHash <ForumSubscription*, UpdateEngine*> engines;
     QList<ForumSubscription*> subscriptionsToUpdateLeft;
     QSet<UpdateEngine*> busyParserEngines;
@@ -124,7 +133,8 @@ private:
     bool endSyncDone;
     bool firstRun;
     QQueue<CredentialsRequest*> credentialsRequests;
-
+    QString statusMsg; // One-liner describing current status
+    QTimer statusMsgTimer; // Hides the message after a short delay
 };
 
 #endif // CLIENTLOGIC_H
