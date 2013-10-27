@@ -313,7 +313,23 @@ void TapaTalkEngine::replyUpdateThread(QNetworkReply *reply) {
     int totalPostNum = totalPostNumString.toInt();
     qDebug() << Q_FUNC_INFO << "Got " << messages.size() << " messages now, total" << totalPostNum << ", limit " << threadBeingUpdated->getMessagesCount();
     if(messages.size() < threadBeingUpdated->getMessagesCount() &&
-            messages.size() < totalPostNum) {
+            messages.size() < totalPostNum && (currentMessagePage+1) * 50 < threadBeingUpdated->getMessagesCount()) {
+        /*
+        The last in previous if is a bit strange.. For some reason a server returned 102 messages although tried to fetch messages 100-110.
+        Consider it defense against buggy server implementation. I hope it breaks nothing.
+
+void TapaTalkEngine::replyUpdateThread(QNetworkReply*) Got  100  messages now, total 102 , limit  110
+void TapaTalkEngine::updateCurrentThreadPage() Getting messages  100  to  110  in  "81/335/412244: X-Plane 10 HD Mesh v2 - PREVIEW"
+[New Thread 0x7fff89e39700 (LWP 12490)]
+void MessageViewWidget::messageSelected(ForumMessage*) Selected message  "1/6/2439/7974: Re: Olisikohan aika tehdä joululahjatilaus ihan itselle/ Read:0" Unreads:  1 1 1
+void TapaTalkEngine::replyUpdateThread(QNetworkReply*) Got  100  messages now, total 102 , limit  110
+void TapaTalkEngine::updateCurrentThreadPage() Getting messages  150  to  110  in  "81/335/412244: X-Plane 10 HD Mesh v2 - PREVIEW"
+ASSERT: "firstMessage < lastMessage" in file siilihai/tapatalk/tapatalkengine.cpp, line 270
+
+
+        */
+
+
         // Need to get next page of messages
         currentMessagePage++;
         updateCurrentThreadPage();

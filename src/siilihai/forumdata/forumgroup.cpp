@@ -92,16 +92,16 @@ void ForumGroup::setSubscription(ForumSubscription *sub) {
 
 void ForumGroup::setSubscribed(bool s) {
     if(s==_subscribed) return;
-    _subscribed = s;
-    _propertiesChanged = true;
 
     // If not subscribed, remove all child threads
-    if(!_subscribed) {
+    if(!s) {
         while(!isEmpty())
             removeThread(begin().value(), false);
     } else {
         subscription()->incrementUnreadCount(unreadCount());
     }
+    _subscribed = s;
+    _propertiesChanged = true;
     // @todo is this correct??
     /*
      no, i think
