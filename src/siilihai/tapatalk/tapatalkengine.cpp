@@ -522,6 +522,7 @@ QString TapaTalkEngine::getValueFromStruct(QDomElement arrayValueElement, QStrin
     Q_ASSERT(arrayValueElement.nodeName()=="value");
 
     QDomElement valueElement = findMemberValueElement(arrayValueElement, name);
+    if(valueElement.isNull()) return ""; // Avoid warning about null element
     return valueElementToString(valueElement);
 }
 
