@@ -357,8 +357,11 @@ void ClientLogic::loginFinished(bool success, QString motd, bool sync) {
             changeState(SH_READY);
         }
     } else {
-        errorDialog("Error: Login failed. Check your username, password and network connection.\nWorking offline.");
-        changeState(SH_OFFLINE);
+        errorDialog("Error: Login failed. Check your username, password and network connection.");
+        // @todo this happens also on first run if logging in with wrong u/p.
+        // using login as network test sucks anyway.
+
+        // changeState(SH_OFFLINE);
     }
 }
 
