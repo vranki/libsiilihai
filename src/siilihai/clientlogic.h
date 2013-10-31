@@ -90,9 +90,9 @@ protected slots:
     virtual void subscriptionDeleted(QObject* subobj);
     virtual void getHttpAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator);
     virtual void getForumAuthentication(ForumSubscription *fsub);
-    virtual void showSubscribeGroup(ForumSubscription* ) {}
     virtual void unregisterSiilihai();
     virtual void showStatusMessage(QString message=QString::null);
+    virtual void groupListChanged(ForumSubscription* sub) {}; // Show group subscription dialog or whatever
     void forumAdded(ForumSubscription *fs); // Ownership won't change
     void moreMessagesRequested(ForumThread* thread);
     void unsubscribeGroup(ForumGroup *group);

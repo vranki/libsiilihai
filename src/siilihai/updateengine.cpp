@@ -306,6 +306,7 @@ void UpdateEngine::loginFinishedSlot(ForumSubscription *sub, bool success) {
         return;
     }
     if(!success) {
+        emit networkFailure("Login failed.");
         setState(UES_ERROR);
         cancelOperation();
     }
