@@ -76,7 +76,6 @@ signals:
     void listGroupsFinished(QList<ForumGroup*> &groups, ForumSubscription *sub);
     void listThreadsFinished(QList<ForumThread*> &foundThreads, ForumGroup *group); // Will be deleted
     void listMessagesFinished(QList<ForumMessage*> &foundMessages, ForumThread *thread, bool moreAvailable);
-    void networkFailure(QString message);
     void loginFinished(ForumSubscription *sub, bool success);
     void receivedHtml(const QString &data);
     // Asynchronous

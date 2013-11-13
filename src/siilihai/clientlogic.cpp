@@ -470,9 +470,12 @@ void ClientLogic::userSettingsReceived(bool success, UserSettings *newSettings) 
     }
 }
 
-void ClientLogic::updateFailure(ForumSubscription* sub, QString msg) {
-    settings->setValue(QString("authentication/%1/failed").arg(sub->forumId()), "true");
-    errorDialog(sub->alias() + "\n" + msg);
+void ClientLogic::updateFailure(ForumSubscription* fsub, QString msg) {
+    QString key = QString("authentication/%1/failed").arg(fsub->forumId());
+    qDebug() << Q_FUNC_INFO << "was: " << settings->value(key).toString();
+    settings->setValue(key, "true");
+    qDebug() << Q_FUNC_INFO << "now: " << settings->value(key).toString();
+    errorDialog(fsub->alias() + "\n" + msg);
 }
 
 void ClientLogic::moreMessagesRequested(ForumThread* thread) {
@@ -617,13 +620,17 @@ void ClientLogic::getHttpAuthentication(ForumSubscription *fsub, QAuthenticator 
     bool failed = false;
     QString gname = QString().number(fsub->forumId());
     settings->beginGroup("authentication");
-    if(settings->contains(QString("%1/username").arg(gname))) {
-        qDebug() << Q_FUNC_INFO << "reading u/p from settings";
-        if(authenticator) {
+
+    // Must exist and be longer than zero
+    if(settings->contains(QString("%1/username").arg(gname)) &&
+            settings->value(QString("%1/username").arg(gname)).toString().length() > 0) {
+        QString key = QString("%1/failed").arg(fsub->forumId());
+        if(settings->value(key).toString() == "true") failed = true;
+        if(authenticator && !failed) {
+            qDebug() << Q_FUNC_INFO << "reading u/p from settings";
             authenticator->setUser(settings->value(QString("%1/username").arg(gname)).toString());
             authenticator->setPassword(settings->value(QString("%1/password").arg(gname)).toString());
         }
-        if(settings->value(QString("authentication/%1/failed").arg(gname)).toString() == "true") failed = true;
     }
     settings->endGroup();
     if(!authenticator || authenticator->user().isNull() || failed) { // Ask user the credentials
@@ -653,7 +660,7 @@ void ClientLogic::showNextCredentialsDialog() {
     if(credentialsRequests.isEmpty()) return;
     currentCredentialsRequest = credentialsRequests.takeFirst();
     connect(currentCredentialsRequest, SIGNAL(credentialsEntered(bool)), this, SLOT(credentialsEntered(bool)));
-    showCredentialsDialog(currentCredentialsRequest);
+    showCredentialsDialog();
 }
 
 
@@ -663,7 +670,6 @@ void ClientLogic::credentialsEntered(bool store) {
     Q_ASSERT(engines.value(currentCredentialsRequest->subscription));
     qDebug() << Q_FUNC_INFO << store << currentCredentialsRequest->authenticator.user();
     if(store) {
-        //        ForumParser::ForumLoginType loginType = parserManager->getParser(currentCredentialsRequest->subscription->parser())->login_type;
         if(cr->credentialType == CredentialsRequest::SH_CREDENTIAL_HTTP) {
             qDebug() << Q_FUNC_INFO << "storing into settings";
             settings->beginGroup("authentication");

@@ -35,6 +35,7 @@ UpdateEngine::UpdateEngine(QObject *parent, ForumDatabase *fd) :
     updateCanceled = true;
     threadBeingUpdated = 0;
     groupBeingUpdated = 0;
+    authenticationRetries = 0;
 }
 
 UpdateEngine::~UpdateEngine() {
@@ -83,9 +84,8 @@ void UpdateEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups, ForumSubsc
     bool dbGroupsWasEmpty = fsubscription->isEmpty();
     fsubscription->markToBeUpdated(false);
     if (tempGroups.size() == 0 && fsubscription->size() > 0) {
-        emit updateFailure(fsubscription, "Updating group list for " + subscription()->alias()
-                           + " failed. \nCheck your network connection.");
-        setState(UES_ERROR);
+        networkFailure("Updating group list for " + subscription()->alias()
+                       + " failed. \nCheck your network connection.");
         return;
     }
     // Diff the group list
@@ -176,9 +176,8 @@ void UpdateEngine::listThreadsFinished(QList<ForumThread*> &tempThreads, ForumGr
 
     if (tempThreads.isEmpty() && !group->isEmpty()) {
         QString errorMsg = "Found no threads in group " + group->toString() + ".\n Broken parser?";
-        emit updateFailure(subscription(), errorMsg);
         group->markToBeUpdated();
-        setState(UES_ERROR);
+        networkFailure(errorMsg);
         return;
     }
 
@@ -306,9 +305,7 @@ void UpdateEngine::loginFinishedSlot(ForumSubscription *sub, bool success) {
         return;
     }
     if(!success) {
-        emit networkFailure("Login failed.");
-        setState(UES_ERROR);
-        cancelOperation();
+        networkFailure("Login failed.");
     }
     if(success)
         continueUpdate();
@@ -371,6 +368,7 @@ void UpdateEngine::cancelOperation() {
     requestingCredentials = false;
     threadBeingUpdated = 0;
     groupBeingUpdated = 0;
+    authenticationRetries = 0;
 }
 
 void UpdateEngine::updateCurrentProgress() {
@@ -391,7 +389,7 @@ void UpdateEngine::setState(UpdateEngineState newState) {
         Q_ASSERT(oldState==UES_IDLE || oldState==UES_ERROR);
         Q_ASSERT(subscription());
         updateWhenEngineReady = false;
-        if(subscription() && subscription()->authenticated()
+        if(subscription() && subscription()->isAuthenticated()
                 && subscription()->username().isEmpty()
                 && !requestingCredentials) {
             qDebug() << Q_FUNC_INFO << "Forum " << subscription()->alias() << "requires authentication. Asking for it. U:"
@@ -431,17 +429,25 @@ void UpdateEngine::requestCredentials() {
 
 void UpdateEngine::credentialsEntered(CredentialsRequest* cr) {
     requestingCredentials = false;
-    if(cr->authenticator.user().length() > 0) {
-        subscription()->setUsername(cr->authenticator.user());
-        subscription()->setPassword(cr->authenticator.password());
-        subscription()->setAuthenticated(true);
-    } else {
-        subscription()->setAuthenticated(false);
+    if(cr->credentialType == CredentialsRequest::SH_CREDENTIAL_FORUM) {
+        if(cr->authenticator.user().length() > 0) {
+            subscription()->setUsername(cr->authenticator.user());
+            subscription()->setPassword(cr->authenticator.password());
+            subscription()->setAuthenticated(true);
+            authenticationRetries++;
+            if(authenticationRetries > 3) {
+                qDebug() << Q_FUNC_INFO << "Too many credential retries - erroring";
+                networkFailure("Authentication failed");
+            }
+        } else {
+            subscription()->setAuthenticated(false);
+        }
+    } else { // HTTP creds
+
     }
     // Start updating when credentials entered
     if(currentState==UES_UPDATING) {
         qDebug() << Q_FUNC_INFO << "resuming update now";
-        // updateGroupList();
         continueUpdate();
     }
 }
@@ -458,6 +464,7 @@ void UpdateEngine::updateForum(bool force) {
     updateOnlyThread = false;
     updateCanceled = false;
     updateAll = true; // Update whole forum
+    authenticationRetries = 0;
     if(state()==UES_ENGINE_NOT_READY) {
         updateWhenEngineReady = true;
     } else {

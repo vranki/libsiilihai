@@ -66,6 +66,7 @@ public slots:
     virtual void unsubscribeForum(ForumSubscription* fs);
     virtual void updateGroupSubscriptions(ForumSubscription *sub);
     virtual void updateAllParsers();
+    virtual void unregisterSiilihai();
 
 signals:
     void statusMessageChanged(QString message);
@@ -74,7 +75,7 @@ protected:
     virtual QString getDataFilePath();
     virtual void settingsChanged(bool byUser);
     virtual void showLoginWizard()=0;
-    virtual void showCredentialsDialog(CredentialsRequest *cr)=0;
+    virtual void showCredentialsDialog()=0; // currentCredentialsRequest contains the request here
     virtual void changeState(siilihai_states newState);
     virtual void closeUi()=0;
     virtual void loginWizardFinished();
@@ -90,7 +91,6 @@ protected slots:
     virtual void subscriptionDeleted(QObject* subobj);
     virtual void getHttpAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator);
     virtual void getForumAuthentication(ForumSubscription *fsub);
-    virtual void unregisterSiilihai();
     virtual void showStatusMessage(QString message=QString::null);
     virtual void groupListChanged(ForumSubscription* sub) {}; // Show group subscription dialog or whatever
     void forumAdded(ForumSubscription *fs); // Ownership won't change

@@ -50,9 +50,12 @@ class ForumSubscription : public QObject, public QMap<QString, ForumGroup*>, pub
     Q_PROPERTY(bool beingUpdated READ beingUpdated WRITE setBeingUpdated NOTIFY changed)
     Q_PROPERTY(bool beingSynced READ beingSynced WRITE setBeingSynced NOTIFY changed)
     Q_PROPERTY(bool scheduledForUpdate READ scheduledForUpdate WRITE setScheduledForUpdate NOTIFY changed)
-    Q_PROPERTY(bool supportsLogin READ supportsLogin WRITE setSupportsLogin NOTIFY changed)
-    Q_PROPERTY(QString faviconUrl READ faviconUrl() NOTIFY changed)
     Q_PROPERTY(QUrl forumUrl READ forumUrl WRITE setForumUrl NOTIFY changed)
+    Q_PROPERTY(bool supportsLogin READ supportsLogin WRITE setSupportsLogin NOTIFY changed)
+    Q_PROPERTY(QString username READ username WRITE setUsername NOTIFY changed)
+    Q_PROPERTY(QString password READ password WRITE setPassword NOTIFY changed)
+    Q_PROPERTY(bool isAuthenticated READ isAuthenticated WRITE setAuthenticated NOTIFY changed)
+    Q_PROPERTY(QString faviconUrl READ faviconUrl() NOTIFY changed)
 public:
     enum ForumProvider {
         FP_NONE=0, // Error in practice..
@@ -82,7 +85,7 @@ public:
     QString password() const;
     int latestThreads() const;
     int latestMessages() const;
-    bool authenticated() const; // True if username & password should be set
+    bool isAuthenticated() const; // True if username & password should be set
     int unreadCount() const;
     bool isTemp() const;
     UpdateEngine *updateEngine() const;
@@ -127,6 +130,8 @@ private:
     QString _password;
     unsigned int _latestThreads;
     unsigned int _latestMessages;
+    // authenticated means forum authentication. HTTP authentication is
+    // handled automatically!
     bool _authenticated, _supportsLogin;
     int _unreadCount;
     bool _temp, _groupListChanged;

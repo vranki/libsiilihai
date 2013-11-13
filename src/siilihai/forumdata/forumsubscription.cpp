@@ -40,7 +40,7 @@ void ForumSubscription::copyFrom(ForumSubscription * other) {
     setPassword(other->password());
     setLatestThreads(other->latestThreads());
     setLatestMessages(other->latestMessages());
-    setAuthenticated(other->authenticated());
+    setAuthenticated(other->isAuthenticated());
     setSupportsLogin(other->supportsLogin());
     setForumUrl(other->forumUrl());
 }
@@ -98,7 +98,7 @@ int ForumSubscription::latestMessages() const {
     return _latestMessages;
 }
 
-bool ForumSubscription::authenticated() const {
+bool ForumSubscription::isAuthenticated() const {
     return _authenticated;
 }
 

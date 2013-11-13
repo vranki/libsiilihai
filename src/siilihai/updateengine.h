@@ -33,7 +33,7 @@ class CredentialsRequest;
   *
   * State diagram:
   *
-  * PES_ENGINE_NOT_READY -> REQUESTING_CREDENTIALS <-> IDLE <-> UPDATING
+  * PES_ENGINE_NOT_READY -> REQUESTING_CREDENTIALS                   <-> IDLE <-> UPDATING
   *                                    '-->----------------------->------^ ^- ERROR <-'
   * @see ForumDatabase
   *
@@ -75,7 +75,7 @@ signals:
     void groupListChanged(ForumSubscription *forum);
     void forumUpdated(ForumSubscription *forum);
     void statusChanged(ForumSubscription *forum, float progress);
-    void updateFailure(ForumSubscription *forum, QString message);
+    void updateFailure(ForumSubscription *forum, QString message); // Non-fatal, causes a error dialog
     void getHttpAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator); // Asynchronous
     void getForumAuthentication(ForumSubscription *fsub); // Asynchronous
     void loginFinished(ForumSubscription *sub, bool success);
@@ -87,7 +87,7 @@ protected slots:
     void listMessagesFinished(QList<ForumMessage*> &messages, ForumThread *thread, bool moreAvailable);
     void listGroupsFinished(QList<ForumGroup*> &groups, ForumSubscription *updatedSub); // These have subscription() as 0
     void listThreadsFinished(QList<ForumThread*> &threads, ForumGroup *group); // These have group() as 0
-    void networkFailure(QString message);
+    void networkFailure(QString message); // Critical error causing state to change to ERROR
     void loginFinishedSlot(ForumSubscription *sub, bool success);
     void subscriptionDeleted();
 
@@ -109,6 +109,7 @@ protected:
     bool updateOnlyThread;
     bool requestingCredentials;
     bool updateCanceled;
+    int authenticationRetries; // How many times authentication has been tried
     ForumDatabase *fdb;
     QQueue<ForumThread*> threadsToUpdateQueue;
     bool updateWhenEngineReady;

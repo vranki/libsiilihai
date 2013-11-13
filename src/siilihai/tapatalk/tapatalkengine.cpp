@@ -206,8 +206,7 @@ void TapaTalkEngine::replyUpdateGroup(QNetworkReply *reply) {
             getThreads(dataElement, &threads);
         } else {
             qDebug() << Q_FUNC_INFO << docs;
-            emit updateFailure(subscription(), "Error while updating group " + groupBeingUpdated->name() + "\nUnexpected TapatTalk reply.\nThis is a bug in Siilihai or TapaTalk server.\nSee console for details.");
-            setState(UES_ERROR);
+            networkFailure("Error while updating group " + groupBeingUpdated->name() + "\nUnexpected TapatTalk reply.\nThis is a bug in Siilihai or TapaTalk server.\nSee console for details.");
         }
         if(threads.isEmpty()) {
             qDebug() << Q_FUNC_INFO << "Couldn't get any threads in group " << groupBeingUpdated->name() << ". Received XML: \n\n" << docs << "\n\n";
@@ -244,8 +243,7 @@ void TapaTalkEngine::getThreads(QDomElement arrayDataElement, QList<ForumThread 
             dataValueElement = dataValueElement.nextSiblingElement();
         }
     } else {
-        emit networkFailure("Unexpected TapaTalk reply while updating threads. This is a bug in Siilihai or TapaTalk server.\nSee console for details.");
-        setState(UpdateEngine::UES_ERROR);
+        networkFailure("Unexpected TapaTalk reply while updating threads. This is a bug in Siilihai or TapaTalk server.\nSee console for details.");
     }
 }
 
@@ -293,7 +291,7 @@ void TapaTalkEngine::replyUpdateThread(QNetworkReply *reply) {
         return;
     }
     if (reply->error() != QNetworkReply::NoError) {
-        emit networkFailure(QString("Updating thread %1 failed: %2").arg(threadBeingUpdated->toString()).arg(reply->errorString()));
+        networkFailure(QString("Updating thread %1 failed: %2").arg(threadBeingUpdated->toString()).arg(reply->errorString()));
 
         ForumThread *updatedThread = threadBeingUpdated;
         threadBeingUpdated=0;
@@ -348,7 +346,7 @@ ASSERT: "firstMessage < lastMessage" in file siilihai/tapatalk/tapatalkengine.cp
 
 bool TapaTalkEngine::loginIfNeeded() {
     if(loggedIn) return false;
-    if(!subscription()->authenticated()) return false;
+    if(!subscription()->isAuthenticated()) return false;
 
     QNetworkRequest req(connectorUrl);
 
@@ -374,8 +372,8 @@ bool TapaTalkEngine::loginIfNeeded() {
 void TapaTalkEngine::replyLogin(QNetworkReply *reply) {
     if (reply->error() != QNetworkReply::NoError) {
         qDebug() << Q_FUNC_INFO << reply->errorString();
-        emit networkFailure(reply->errorString());
         loginFinishedSlot(subscription(), false);
+        networkFailure(reply->errorString());
         return;
     }
     QString docs = QString().fromUtf8(reply->readAll());
@@ -392,8 +390,7 @@ void TapaTalkEngine::replyLogin(QNetworkReply *reply) {
         loginFinishedSlot(subscription(), loggedIn);
     } else {
         qDebug() << Q_FUNC_INFO << "Error in TapaTalk login reply:" << docs;
-        emit networkFailure("Received unexpected TapaTalk login reply.\nSee console for details.");
-        setState(UpdateEngine::UES_ERROR);
+        networkFailure("Received unexpected TapaTalk login reply.\nSee console for details.");
     }
 }
 
@@ -473,8 +470,7 @@ void TapaTalkEngine::replyListGroups(QNetworkReply *reply)
     } else { // Getting list failed
         QString resultText = getValueFromStruct(resultElement, "result_text");
         if(resultText.isEmpty()) resultText = "Updating TapaTalk group list failed (no result text)";
-        emit updateFailure(subscription(), resultText);
-        setState(UpdateEngine::UES_ERROR);
+        networkFailure(resultText);
     }
     listGroupsFinished(grps, subscription());
     qDeleteAll(grps);

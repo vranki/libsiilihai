@@ -36,7 +36,6 @@ ParserEngine::ParserEngine(QObject *parent, ForumDatabase *fd, ParserManager *pm
     connect(this, SIGNAL(listThreadsFinished(QList<ForumThread*>&, ForumGroup*)), this, SLOT(listThreadsFinished(QList<ForumThread*>&, ForumGroup*)));
     connect(this, SIGNAL(listMessagesFinished(QList<ForumMessage*>&, ForumThread*, bool)),
             this, SLOT(listMessagesFinished(QList<ForumMessage*>&, ForumThread*, bool)));
-    connect(this, SIGNAL(networkFailure(QString)), this, SLOT(networkFailure(QString)));
     connect(this, SIGNAL(loginFinished(ForumSubscription *,bool)), this, SLOT(loginFinishedSlot(ForumSubscription *,bool)));
     connect(this, SIGNAL(stateChanged(UpdateEngine::UpdateEngineState,UpdateEngine::UpdateEngineState)),
             this, SLOT(updateParserIfError(UpdateEngine::UpdateEngineState,UpdateEngine::UpdateEngineState)));
@@ -298,8 +297,11 @@ void ParserEngine::fetchCookieReply(QNetworkReply *reply) {
 
     if (reply->error() != QNetworkReply::NoError) {
         qDebug() << Q_FUNC_INFO << reply->errorString();
-        emit(networkFailure(reply->errorString()));
-        cancelOperation();
+        if(reply->error() == QNetworkReply::AuthenticationRequiredError) {
+            emit updateFailure(subscription(), "Authentication required");
+        } else {
+            networkFailure(reply->errorString());
+        }
         return;
     }
     if (operationInProgress == PEONoOp)
@@ -361,8 +363,8 @@ void ParserEngine::loginReply(QNetworkReply *reply) {
 
     QString data = convertCharset(reply->readAll());
     if (reply->error() != QNetworkReply::NoError) {
-        emit(networkFailure(reply->errorString()));
         emit loginFinished(subscription(), false);
+        networkFailure(reply->errorString());
         return;
     }
     performLogin(data);
@@ -394,8 +396,7 @@ void ParserEngine::listGroupsReply(QNetworkReply *reply) {
 
     QString data = convertCharset(reply->readAll());
     if (reply->error() != QNetworkReply::NoError) {
-        emit(networkFailure(reply->errorString()));
-        cancelOperation();
+        networkFailure(reply->errorString());
         return;
     }
     performListGroups(data);
@@ -443,8 +444,7 @@ void ParserEngine::listThreadsReply(QNetworkReply *reply) {
     Q_ASSERT(operationInProgress == PEOUpdateGroup);
     Q_ASSERT(reply->request().attribute(QNetworkRequest::User).toInt()==PEOUpdateGroup);
     if (reply->error() != QNetworkReply::NoError) {
-        emit(networkFailure(reply->errorString()));
-        cancelOperation();
+        networkFailure(reply->errorString());
         return;
     }
     QString data = convertCharset(reply->readAll());
@@ -550,8 +550,7 @@ void ParserEngine::listMessagesReply(QNetworkReply *reply) {
     Q_ASSERT(operationInProgress == PEOUpdateThread);
     Q_ASSERT(reply->request().attribute(QNetworkRequest::User).toInt() == PEOUpdateThread);
     if (reply->error() != QNetworkReply::NoError) {
-        emit(networkFailure(reply->errorString()));
-        cancelOperation();
+        networkFailure(reply->errorString());
         return;
     }
     QString data = convertCharset(reply->readAll());
@@ -721,6 +720,13 @@ void ParserEngine::authenticationRequired(QNetworkReply * reply, QAuthenticator 
     if(forumId != subscription()->forumId()) return;
 
     qDebug() << Q_FUNC_INFO << reply << authenticator;
+    authenticationRetries++;
+    if(authenticationRetries > 3) {
+        qDebug() << Q_FUNC_INFO << "Too many credential retries - erroring";
+        networkFailure("Authentication failed");
+        return;
+    }
+
     if(waitingForAuthentication) {
         qDebug() << Q_FUNC_INFO << "Already waiting for authentication - ignoring this.";
         return;
@@ -728,8 +734,7 @@ void ParserEngine::authenticationRequired(QNetworkReply * reply, QAuthenticator 
     if(parser()->login_type == ForumParser::LoginTypeHttpAuth) {
         if (subscription()->username().length() <= 0 || subscription()->password().length() <= 0) {
             qDebug() << Q_FUNC_INFO << "FAIL: no credentials given for subscription " << subscription()->toString();
-            cancelOperation();
-            emit networkFailure("Server requested for username and password for forum "
+            networkFailure("Server requested for username and password for forum "
                                 + subscription()->alias() + " but you haven't provided them.");
         } else {
             qDebug() << Q_FUNC_INFO << "Gave credentials to server";
