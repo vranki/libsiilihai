@@ -304,11 +304,11 @@ void UpdateEngine::loginFinishedSlot(ForumSubscription *sub, bool success) {
         qDebug() << Q_FUNC_INFO << "We're not updating so i'll ignore this as a old reply";
         return;
     }
-    if(!success) {
-        networkFailure("Login failed.");
-    }
-    if(success)
+    if(success) {
         continueUpdate();
+    } else {
+        requestCredentials();
+    }
 }
 
 void UpdateEngine::updateNextChangedGroup() {
