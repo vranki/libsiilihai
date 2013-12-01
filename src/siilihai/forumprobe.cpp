@@ -1,5 +1,6 @@
 #include "forumprobe.h"
 #include "tapatalk/tapatalkengine.h"
+#include "messageformatting.h"
 
 ForumProbe::ForumProbe(QObject *parent, SiilihaiProtocol &proto) :
     QObject(parent), protocol(proto), currentEngine(0), probedSub(0) {
@@ -81,7 +82,7 @@ void ForumProbe::finishedSlot(QNetworkReply *reply) {
             int titleEnd = html.indexOf("</", titleBegin);
             QString title = html.mid(titleBegin + 7, titleEnd - titleBegin - 7);
             qDebug() << Q_FUNC_INFO << "title:" << title;
-            probedSub->setAlias(title);
+            probedSub->setAlias(MessageFormatting::stripHtml(title));
             Q_ASSERT(probedSub->provider() != ForumSubscription::FP_NONE);
         }
         emit probeResults(probedSub);

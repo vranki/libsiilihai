@@ -1,3 +1,9 @@
+libsiilihai (2.2.15) raring; urgency=low
+
+  * Minor tuning
+
+ -- Ville Ranki <ville.ranki@iki.fi>  Sun, 01 Dec 2013 12:34:56 +0300
+
 libsiilihai (2.2.14-1) raring; urgency=low
 
   * Re-release with some bug fix
