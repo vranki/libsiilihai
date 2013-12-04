@@ -507,15 +507,20 @@ void ClientLogic::forumUpdateNeeded(ForumSubscription *fs) {
 
 void ClientLogic::unregisterSiilihai() {
     cancelClicked();
-    forumDatabase.resetDatabase();
-    settings->remove("account/username");
-    settings->remove("account/password");
-    settings->remove("account/noaccount");
-    settings->remove("first_run");
-    forumDatabase.storeDatabase();
     usettings.setSyncEnabled(false);
-    errorDialog("Siilihai has been unregistered and will now quit.");
+    dbStored = true;
     haltSiilihai();
+    forumDatabase.resetDatabase();
+    forumDatabase.storeDatabase();
+    settings->clear();
+    settings->sync();
+}
+
+// Called when app about to quit - handle upsync & quitting
+void ClientLogic::aboutToQuit() {
+    qDebug() << Q_FUNC_INFO;
+//    QEventLoop eventLoop;
+//    eventLoop.exec();
 }
 
 void ClientLogic::databaseStored() {

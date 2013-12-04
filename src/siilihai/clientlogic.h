@@ -67,6 +67,7 @@ public slots:
     virtual void updateGroupSubscriptions(ForumSubscription *sub);
     virtual void updateAllParsers();
     virtual void unregisterSiilihai();
+    virtual void aboutToQuit();
 
 signals:
     void statusMessageChanged(QString message);
