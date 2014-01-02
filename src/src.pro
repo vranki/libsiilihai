@@ -37,7 +37,8 @@ headers.files += \
     siilihai/messageformatting.h \
     siilihai/credentialsrequest.h \
     siilihai/forumprobe.h \
-    siilihai/updateengine.h
+    siilihai/updateengine.h \
+    siilihai/siilihaisettings.h
 headers.path = $$[QT_INSTALL_PREFIX]/include/siilihai
 
 parser.files += siilihai/parser/parserreport.h \
@@ -90,6 +91,7 @@ SOURCES += siilihai/syncmaster.cpp \
     siilihai/credentialsrequest.cpp \
     siilihai/updateengine.cpp \
     siilihai/forumprobe.cpp \
+    siilihai/siilihaisettings.cpp \
     siilihai/parser/forumsubscriptionparsed.cpp \
     siilihai/parser/parsermanager.cpp \
     siilihai/parser/parserengine.cpp \

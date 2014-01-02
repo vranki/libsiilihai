@@ -452,6 +452,10 @@ void UpdateEngine::credentialsEntered(CredentialsRequest* cr) {
     }
 }
 
+bool UpdateEngine::postMessage(ForumGroup *grp, ForumThread *thr, QString subject, QString body) {
+    return false;
+}
+
 void UpdateEngine::updateForum(bool force) {
     qDebug() << Q_FUNC_INFO << " force: " << force << subscription()->toString();
     Q_ASSERT(fsubscription);
@@ -495,6 +499,14 @@ void UpdateEngine::updateThread(ForumThread *thread, bool force) {
         threadsToUpdateQueue.enqueue(thread);
 
     setState(UES_UPDATING);
+}
+
+bool UpdateEngine::supportsPosting() {
+    return false;
+}
+
+QString UpdateEngine::convertDate(QString &date) {
+    return date;
 }
 
 void UpdateEngine::updateGroupList() {

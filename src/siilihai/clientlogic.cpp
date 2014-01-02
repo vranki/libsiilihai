@@ -13,6 +13,7 @@
 #include "parser/parserengine.h"
 #include "tapatalk/forumsubscriptiontapatalk.h"
 #include "tapatalk/tapatalkengine.h"
+#include "siilihaisettings.h"
 
 ClientLogic::ClientLogic(QObject *parent) : QObject(parent), currentState(SH_OFFLINE), settings(0), forumDatabase(this), syncmaster(this, forumDatabase, protocol),
     parserManager(0), currentCredentialsRequest(0) {
@@ -42,12 +43,12 @@ ClientLogic::siilihai_states ClientLogic::state() const {
 
 void ClientLogic::launchSiilihai(bool offline) {
     changeState(SH_STARTED);
-    settings = new QSettings(getDataFilePath() + "/siilihai_settings.ini", QSettings::IniFormat, this);
+    settings = createSettings();
 
-    firstRun = settings->value("first_run", true).toBool();
-    settings->setValue("first_run", false);
+    firstRun = settings->firstRun();
+    settings->setFirstRun(false);
 
-    QString proxy = settings->value("preferences/http_proxy", "").toString();
+    QString proxy = settings->httpProxy();
     if (!proxy.isEmpty()) {
         QUrl proxyUrl = QUrl(proxy);
         if (proxyUrl.isValid()) {
@@ -67,7 +68,7 @@ void ClientLogic::launchSiilihai(bool offline) {
     settingsChanged(false);
     connect(&syncmaster, SIGNAL(syncFinished(bool, QString)), this, SLOT(syncFinished(bool, QString)));
 
-    protocol.setBaseURL(settings->value("network/baseurl", BASEURL).toString());
+    protocol.setBaseURL(settings->baseUrl());
 
     QString databaseFileName = getDataFilePath() + "/siilihai_forums.xml";
 
@@ -76,7 +77,7 @@ void ClientLogic::launchSiilihai(bool offline) {
     if(firstRun) {
         forumDatabase.openDatabase(databaseFileName); // Fails
     } else {
-        int currentSchemaVersion = settings->value("forum_database_schema", 0).toInt();
+        int currentSchemaVersion = settings->databaseSchema();
         if(forumDatabase.schemaVersion() != currentSchemaVersion) {
             errorDialog("The database schema has been changed. Your forum database will be reset. Sorry. ");
             forumDatabase.openDatabase(databaseFileName, false);
@@ -87,10 +88,10 @@ void ClientLogic::launchSiilihai(bool offline) {
             }
         }
     }
-    settings->setValue("forum_database_schema", forumDatabase.schemaVersion());
+    settings->setDatabaseSchema(forumDatabase.schemaVersion());
     settings->sync();
 
-    if (settings->value("account/username", "").toString().isEmpty() && !noAccount()) {
+    if (settings->username().isEmpty() && !noAccount()) {
         showLoginWizard();
     } else {
         showMainWindow();
@@ -157,8 +158,7 @@ void ClientLogic::tryLogin() {
     }
 
     connect(&protocol, SIGNAL(loginFinished(bool, QString,bool)), this, SLOT(loginFinished(bool, QString,bool)));
-    protocol.login(settings->value("account/username", "").toString(),
-                   settings->value("account/password", "").toString());
+    protocol.login(settings->username(), settings->password());
 }
 
 void ClientLogic::accountlessLoginFinished() {
@@ -167,6 +167,10 @@ void ClientLogic::accountlessLoginFinished() {
 
 void ClientLogic::clearStatusMessage() {
     showStatusMessage();
+}
+
+SiilihaiSettings *ClientLogic::createSettings() {
+    return new SiilihaiSettings(getDataFilePath() + "/siilihai_settings.ini", QSettings::IniFormat, this);
 }
 
 void ClientLogic::changeState(siilihai_states newState) {
@@ -184,12 +188,10 @@ void ClientLogic::changeState(siilihai_states newState) {
     } else if(newState==SH_STARTSYNCING) {
         qDebug() << Q_FUNC_INFO << "Startsync";
         if(usettings.syncEnabled()) {
-            if(settings->value("preferences/update_automatically", true).toBool()) {
                 foreach(ForumSubscription *sub, forumDatabase.values()) {
                     sub->setScheduledForUpdate(true);
                 }
                 connect(&syncmaster, SIGNAL(syncFinishedFor(ForumSubscription*)), this, SLOT(updateForum(ForumSubscription*)));
-            }
             syncmaster.startSync();
         }
     } else if(newState==SH_ENDSYNC) {
@@ -205,7 +207,7 @@ void ClientLogic::changeState(siilihai_states newState) {
         dbStored = true;
     } else if(newState==SH_READY) {
         qDebug() << Q_FUNC_INFO << "Ready";
-        if(!usettings.syncEnabled() && settings->value("preferences/update_automatically", true).toBool())
+        if(!usettings.syncEnabled())
             updateClicked();
 
         if (forumDatabase.isEmpty()) { // Display subscribe dialog if none subscribed
@@ -417,6 +419,7 @@ void ClientLogic::createEngineForSubscription(ForumSubscription *newFs) {
     connect(ue, SIGNAL(stateChanged(UpdateEngine::UpdateEngineState, UpdateEngine::UpdateEngineState)),
             this, SLOT(parserEngineStateChanged(UpdateEngine::UpdateEngineState, UpdateEngine::UpdateEngineState)));
     connect(ue, SIGNAL(updateForumSubscription(ForumSubscription *)), &protocol, SLOT(subscribeForum(ForumSubscription *)));
+    connect(ue, SIGNAL(messagePosted(ForumSubscription*)), this, SLOT(updateClicked(ForumSubscription*)));
 }
 
 void ClientLogic::subscriptionDeleted(QObject* subobj) {
@@ -540,13 +543,12 @@ void ClientLogic::parserEngineStateChanged(UpdateEngine::UpdateEngineState newSt
         showStatusMessage("Updating Forums.. ");
     }
     if(currentState==SH_READY && newState == UpdateEngine::UES_IDLE && oldState != UpdateEngine::UES_UPDATING) {
-        if (settings->value("preferences/update_automatically", true).toBool())
-            updateClicked(engine->subscription());
+        updateClicked(engine->subscription());
     }
 }
 
 void ClientLogic::loginWizardFinished() {
-    if (settings->value("account/username", "").toString().length() == 0 && !noAccount()) {
+    if (settings->username().length() == 0 && !noAccount()) {
         haltSiilihai();
     } else {
         showMainWindow();
@@ -556,7 +558,7 @@ void ClientLogic::loginWizardFinished() {
 }
 
 bool ClientLogic::noAccount() {
-    return settings->value("account/noaccount", false).toBool();
+    return settings->noAccount();
 }
 
 void ClientLogic::subscriptionFound(ForumSubscription *sub) {

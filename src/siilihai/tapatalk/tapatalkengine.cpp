@@ -11,7 +11,7 @@
 #include <QString>
 #include <QByteArray>
 #include <QRegExp>
-
+#include <QDateTime>
 
 TapaTalkEngine::TapaTalkEngine(ForumDatabase *fd, QObject *parent) :
     UpdateEngine(parent, fd)
@@ -95,6 +95,19 @@ void TapaTalkEngine::convertBodyToHtml(ForumMessage *msg)
 
     // newBody.append("----- <pre>" + origBody + "</pre>");
     msg->setBody(newBody);
+}
+
+bool TapaTalkEngine::supportsPosting() {
+    return true;
+}
+
+// Convert to proper ISO 8601 and then to local default format
+QString TapaTalkEngine::convertDate(QString &date) {
+    QString dateFixed = date;
+    dateFixed.insert(6, '-');
+    dateFixed.insert(4, '-');
+    QDateTime qdd = QDateTime::fromString(dateFixed, Qt::ISODate);
+    return qdd.isValid() ? qdd.toString() : date;
 }
 
 void TapaTalkEngine::probeUrl(QUrl url)
@@ -244,6 +257,61 @@ void TapaTalkEngine::getThreads(QDomElement arrayDataElement, QList<ForumThread 
         }
     } else {
         networkFailure("Unexpected TapaTalk reply while updating threads. This is a bug in Siilihai or TapaTalk server.\nSee console for details.");
+    }
+}
+
+
+bool TapaTalkEngine::postMessage(ForumGroup *grp, ForumThread *thr, QString subject, QString body) {
+    Q_ASSERT(!groupBeingUpdated);
+
+    QNetworkRequest req(connectorUrl);
+
+    QList<QPair<QString, QString> > params;
+    params.append(QPair<QString, QString>("string", grp->id()));
+    if(thr) {
+        params.append(QPair<QString, QString>("string", thr->id()));
+    }
+    params.append(QPair<QString, QString>("base64", subject));
+    params.append(QPair<QString, QString>("base64", body));
+
+    QDomDocument doc("");
+    if(thr) {
+        createMethodCall(doc, "reply_post", params);
+    } else {
+        createMethodCall(doc, "new_topic", params);
+    }
+    QByteArray requestData = doc.toByteArray();
+    req.setAttribute(QNetworkRequest::User, TTO_PostMessage);
+    req.setHeader(QNetworkRequest::ContentTypeHeader, QString("application/x-www-form-urlencoded"));
+    nam.post(req, requestData);
+    return true;
+}
+
+
+void TapaTalkEngine::replyPost(QNetworkReply *reply) {
+    if (reply->error() != QNetworkReply::NoError) {
+        qDebug() << Q_FUNC_INFO << reply->errorString();
+        networkFailure(reply->errorString());
+        return;
+    }
+    QString docs = QString().fromUtf8(reply->readAll());
+    qDebug() << Q_FUNC_INFO << "RX:" << docs;
+    QDomDocument doc;
+    doc.setContent(docs);
+
+    QDomElement paramValueElement = doc.firstChildElement("methodResponse").firstChildElement("params").firstChildElement("param").firstChildElement("value");
+    if(!paramValueElement.isNull()) {
+        QString result = getValueFromStruct(paramValueElement, "result");
+        qDebug() << Q_FUNC_INFO << "Result was " << result;
+        if(result!="1") {
+            QString resultText = getValueFromStruct(paramValueElement, "result_text");
+            networkFailure("Sending message failed:\n" + resultText);
+        } else {
+            emit messagePosted(subscription());
+        }
+    } else {
+        qDebug() << Q_FUNC_INFO << "Error in TapaTalk reply:" << docs;
+        networkFailure("Received unexpected TapaTalk reply.\nSee console for details.");
     }
 }
 
@@ -433,9 +501,11 @@ void TapaTalkEngine::networkReply(QNetworkReply *reply)
         replyUpdateThread(reply);
     } else if(operationAttribute==TTO_Probe) {
         replyProbe(reply);
-    }  else if(operationAttribute==TTO_Login) {
+    } else if(operationAttribute==TTO_Login) {
         replyLogin(reply);
-    } else {
+    } else if(operationAttribute==TTO_PostMessage) {
+        replyPost(reply);
+    }else {
         Q_ASSERT(false);
     }
 }

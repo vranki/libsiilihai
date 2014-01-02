@@ -63,6 +63,9 @@ public:
     virtual void updateForum(bool force=false);
     virtual void updateThread(ForumThread *thread, bool force=false);
 
+    virtual bool supportsPosting(); // Returns true if this engine can post new threads & messages
+    virtual QString convertDate(QString &date); // Convert date to human-readable format
+
     UpdateEngine::UpdateEngineState state();
     ForumSubscription* subscription() const;
     QNetworkAccessManager *networkAccessManager();
@@ -70,6 +73,7 @@ public:
 public slots:
     virtual void cancelOperation();
     virtual void credentialsEntered(CredentialsRequest* cr);
+    virtual bool postMessage(ForumGroup *grp, ForumThread *thr, QString subject, QString body);
 signals:
     // Emitted if initially group list was empty but new groups were found.
     void groupListChanged(ForumSubscription *forum);
@@ -82,6 +86,7 @@ signals:
     // Caution: engine's subscription may be null!
     void stateChanged(UpdateEngine::UpdateEngineState newState, UpdateEngine::UpdateEngineState oldState);
     void updateForumSubscription(ForumSubscription *fsub); // Used to request protocol to update subscription
+    void messagePosted(ForumSubscription *sub);
 
 protected slots:
     void listMessagesFinished(QList<ForumMessage*> &messages, ForumThread *thread, bool moreAvailable);
@@ -103,6 +108,7 @@ protected:
     virtual void doUpdateForum()=0;
     virtual void doUpdateGroup(ForumGroup *group)=0;
     virtual void doUpdateThread(ForumThread *thread)=0;
+
 protected:
     bool updateAll; // Set to false to just get group list
     bool forceUpdate; // Update even if no changes
@@ -117,6 +123,7 @@ protected:
 
     ForumGroup *groupBeingUpdated; // Can be null if updating only thread
     ForumThread *threadBeingUpdated; // Must be null if not updating a thread
+
 private:
     ForumSubscription *fsubscription;
     UpdateEngineState currentState;

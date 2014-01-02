@@ -18,7 +18,7 @@
 #include "usersettings.h"
 #include "credentialsrequest.h"
 
-#define BASEURL "http://www.siilihai.com/"
+
 #define MAX_CONCURRENT_UPDATES 2
 
 // State chart:
@@ -31,6 +31,7 @@
 // @todo switch to Qt's state machine
 
 class ParserManager;
+class SiilihaiSettings;
 
 class ClientLogic : public QObject
 {
@@ -82,12 +83,13 @@ protected:
     virtual void loginWizardFinished();
     virtual void showMainWindow()=0;
     virtual bool noAccount(); // True if accountless usage
-    QSettings *settings;
+    SiilihaiSettings *settings;
     ForumDatabaseXml forumDatabase;
     SiilihaiProtocol protocol;
     QString baseUrl;
     SyncMaster syncmaster;
     ParserManager *parserManager;
+
 protected slots:
     virtual void subscriptionDeleted(QObject* subobj);
     virtual void getHttpAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator);
@@ -99,6 +101,7 @@ protected slots:
     void unsubscribeGroup(ForumGroup *group);
     void updateForum(ForumSubscription *sub);
     virtual void updateThread(ForumThread* thread, bool force=false);
+
 private slots:
     virtual void subscribeForum()=0;
     virtual void parserEngineStateChanged(UpdateEngine::UpdateEngineState newState,
@@ -117,6 +120,7 @@ private slots:
     void clearStatusMessage();
 protected:
     CredentialsRequest* currentCredentialsRequest; // If being asked
+    virtual SiilihaiSettings *createSettings(); // Create the settings object to be used. Can be your own subclass.
 private:
     void tryLogin();
     void showNextCredentialsDialog();

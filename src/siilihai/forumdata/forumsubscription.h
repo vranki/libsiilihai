@@ -56,6 +56,7 @@ class ForumSubscription : public QObject, public QMap<QString, ForumGroup*>, pub
     Q_PROPERTY(QString password READ password WRITE setPassword NOTIFY changed)
     Q_PROPERTY(bool isAuthenticated READ isAuthenticated WRITE setAuthenticated NOTIFY changed)
     Q_PROPERTY(QString faviconUrl READ faviconUrl() NOTIFY changed)
+
 public:
     enum ForumProvider {
         FP_NONE=0, // Error in practice..
@@ -113,6 +114,7 @@ public:
     bool supportsLogin() const;
     QString faviconUrl();
     void setProvider(ForumProvider provider); // Use with care!!
+
 signals:
     void changed();
     void unreadCountChanged();

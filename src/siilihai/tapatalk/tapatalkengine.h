@@ -26,17 +26,19 @@ class TapaTalkEngine : public UpdateEngine
     Q_OBJECT
 
     enum TapaTalkOperation {
-        TTO_None=0, TTO_ListGroups, TTO_UpdateGroup, TTO_UpdateThread, TTO_Probe, TTO_Login
+        TTO_None=0, TTO_ListGroups, TTO_UpdateGroup, TTO_UpdateThread, TTO_Probe, TTO_Login, TTO_PostMessage
     };
 
 public:
     explicit TapaTalkEngine(ForumDatabase *fd, QObject *parent);
     virtual void setSubscription(ForumSubscription *fs);
     virtual void probeUrl(QUrl url);
-
+    virtual bool supportsPosting();
+    virtual QString convertDate(QString &date);
+public slots:
+    virtual bool postMessage(ForumGroup *grp, ForumThread *thr, QString subject, QString body);
 signals:
     void urlProbeResults(ForumSubscription *sub);
-public slots:
 
 protected:
     virtual void doUpdateForum();
@@ -54,6 +56,7 @@ private:
     void replyUpdateGroup(QNetworkReply *reply);
     void replyUpdateThread(QNetworkReply *reply);
     void replyLogin(QNetworkReply *reply);
+    void replyPost(QNetworkReply *reply);
     QString getValueFromStruct(QDomElement dataValueElement, QString name);
     void getGroups(QDomElement dataValueElement, QList<ForumGroup *> *grps, QMap<QString, GroupHierarchyItem> &groupHierarchy);
     void getChildGroups(QDomElement dataValueElement, QList<ForumGroup *> *grps, QMap<QString, GroupHierarchyItem> &groupHierarchy);
