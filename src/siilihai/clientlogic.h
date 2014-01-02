@@ -39,7 +39,7 @@ class ClientLogic : public QObject
 public:
 
     enum siilihai_states {
-        SH_STARTED,
+        SH_STARTED=0,
         SH_LOGIN,
         SH_STARTSYNCING,
         SH_OFFLINE,
