@@ -31,6 +31,7 @@ QString MessageFormatting::stripHtml(const QString &txt) {
     newTxt.replace("&#8217;", "'");
     newTxt.replace("&ouml;", "ö");
     newTxt.replace("&auml;", "ä");
+    newTxt.replace("&bull;", "*");
     return newTxt;
 }
 

@@ -17,8 +17,8 @@ QT += core xml network
 QT -= gui
 
 debug {
-    message(Debug build - enabling sanity checks)
-    DEFINES += SANITY_CHECKS
+#    message(Debug build - enabling sanity checks)
+#    DEFINES += SANITY_CHECKS
 }
 
 release {
