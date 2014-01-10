@@ -96,6 +96,7 @@ protected slots:
     virtual void getForumAuthentication(ForumSubscription *fsub);
     virtual void showStatusMessage(QString message=QString::null);
     virtual void groupListChanged(ForumSubscription* sub) {}; // Show group subscription dialog or whatever
+    virtual void forumUpdateNeeded(ForumSubscription *sub); // Sends the updated forum info (authentication etc)
     void forumAdded(ForumSubscription *fs); // Ownership won't change
     void moreMessagesRequested(ForumThread* thread);
     void unsubscribeGroup(ForumGroup *group);
@@ -112,7 +113,6 @@ private slots:
     void subscribeForumFinished(ForumSubscription *sub, bool success);
     void userSettingsReceived(bool success, UserSettings *newSettings);
     void updateFailure(ForumSubscription* sub, QString msg);
-    void forumUpdateNeeded(ForumSubscription *sub); // wat?
     void databaseStored();
     void forumLoginFinished(ForumSubscription *sub, bool success);
     void credentialsEntered(bool store); // from CredentialsRequest

@@ -257,6 +257,7 @@ void SiilihaiProtocol::replyGetParser(QNetworkReply *reply) {
 }
 
 void SiilihaiProtocol::subscribeForum(ForumSubscription *fs, bool unsubscribe) {
+    qDebug() << Q_FUNC_INFO << "unsub: " << unsubscribe << " authenticated: " << fs->isAuthenticated();
     QNetworkRequest req(subscribeForumUrl);
     QHash<QString, QString> params;
     params.insert("forum_id", QString().number(fs->forumId()));
@@ -268,7 +269,7 @@ void SiilihaiProtocol::subscribeForum(ForumSubscription *fs, bool unsubscribe) {
         params.insert("alias", fs->alias());
         params.insert("latest_threads", QString().number(fs->latestThreads()));
         params.insert("latest_messages", QString().number(fs->latestMessages()));
-        if(fs->username().length() > 0) {
+        if(fs->isAuthenticated()) {
             params.insert("authenticated", "yes");
         }
     }

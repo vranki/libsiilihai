@@ -503,9 +503,10 @@ void ClientLogic::unsubscribeGroup(ForumGroup *group) {
 
 void ClientLogic::forumUpdateNeeded(ForumSubscription *fs) {
     qDebug() << Q_FUNC_INFO;
+    Q_ASSERT(fs);
+
     if(!noAccount())
-        protocol.subscribeForum(fs);
-    updateClicked(fs);
+        protocol.subscribeForum(fs); // Resend the forum infos
 }
 
 void ClientLogic::unregisterSiilihai() {
@@ -676,6 +677,9 @@ void ClientLogic::credentialsEntered(bool store) {
     Q_ASSERT(cr==currentCredentialsRequest);
     Q_ASSERT(engines.value(currentCredentialsRequest->subscription));
     qDebug() << Q_FUNC_INFO << store << currentCredentialsRequest->authenticator.user();
+
+    currentCredentialsRequest->subscription->setAuthenticated(!currentCredentialsRequest->authenticator.user().isEmpty());
+
     if(store) {
         if(cr->credentialType == CredentialsRequest::SH_CREDENTIAL_HTTP) {
             qDebug() << Q_FUNC_INFO << "storing into settings";
@@ -693,6 +697,20 @@ void ClientLogic::credentialsEntered(bool store) {
             currentCredentialsRequest->subscription->setPassword(currentCredentialsRequest->authenticator.password());
         }
     }
+    // @todo move to SiilihaiSettings!!
+    if(!currentCredentialsRequest->subscription->isAuthenticated()) {
+        // Remove authentication
+        settings->beginGroup("authentication");
+        settings->remove(QString::number(currentCredentialsRequest->subscription->forumId()));
+        settings->endGroup();
+
+        currentCredentialsRequest->subscription->setUsername(QString::null);
+        currentCredentialsRequest->subscription->setPassword(QString::null);
+    }
+
+    if(!noAccount())
+        protocol.subscribeForum(currentCredentialsRequest->subscription); // Resend the forum infos
+
     UpdateEngine *engine = engines.value(currentCredentialsRequest->subscription);
     engine->credentialsEntered(currentCredentialsRequest);
     currentCredentialsRequest->deleteLater();

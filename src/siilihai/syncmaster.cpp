@@ -96,6 +96,7 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
             dbSub->copyFrom(serverSub);
             dbSub->setUsername(username);
             dbSub->setPassword(password);
+            qDebug() << Q_FUNC_INFO << "auth: " << dbSub->isAuthenticated() << localIsAuthenticated;
             if(localIsAuthenticated) dbSub->setAuthenticated(true);
             // UpdateEngine will get the missing credentials if
             // forum is authenticated but no u/p are known

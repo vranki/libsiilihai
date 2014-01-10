@@ -441,6 +441,7 @@ void UpdateEngine::credentialsEntered(CredentialsRequest* cr) {
             }
         } else {
             subscription()->setAuthenticated(false);
+            subscription()->setGroupListChanged();
         }
     } else { // HTTP creds
 
