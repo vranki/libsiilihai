@@ -520,6 +520,7 @@ void TapaTalkEngine::replyListGroups(QNetworkReply *reply)
     if (reply->error() != QNetworkReply::NoError) {
         qDebug() << Q_FUNC_INFO << reply->errorString();
         listGroupsFinished(grps, subscription());
+        emit updateFailure(subscription(), reply->errorString());
         return;
     }
     QString docs = QString().fromUtf8(reply->readAll());
