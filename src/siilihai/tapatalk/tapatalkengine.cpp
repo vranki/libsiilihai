@@ -89,6 +89,10 @@ void TapaTalkEngine::convertBodyToHtml(ForumMessage *msg)
                 QString urlAddress = newBody.mid(urlPosition + 5, urlEndPosition - urlPosition - 5);
                 urlAddress = "<a href=\"" + urlAddress + "\">";
                 newBody = newBody.replace(urlPosition, 5, urlAddress);
+            } else {
+                // Looks like there is no end tag for this [url]..
+                // quit searching.
+                urlPosition = -1;
             }
         }
     } while(urlPosition >= 0);

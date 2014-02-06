@@ -27,7 +27,7 @@ Description: Debug symbols for Siilihai forum reader support library
 
 Package: libsiilihai2-dev
 Architecture: all
-Depends: libsiilihai2, libqt4-dev
+Depends: libsiilihai2, qtbase5-dev
 Replaces: libsiilihai1-dev
 Pre-Depends: ${misc:Pre-Depends}
 Description: Development files for libsiilihai
