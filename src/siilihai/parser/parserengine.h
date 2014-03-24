@@ -31,6 +31,8 @@ class PatternMatcher;
   * @see UpdateEngine
   * @see ForumDatabase
   * @see ForumParser
+  *
+  * @todo: Pool networkrequests so that they can be canceled properly!
   */
 class ParserEngine : public UpdateEngine {
     Q_OBJECT

@@ -37,6 +37,7 @@ class ClientLogic : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QString statusMessage READ statusMessage WRITE showStatusMessage NOTIFY statusMessageChanged)
+    Q_PROPERTY(bool developerMode READ developerMode WRITE setDeveloperMode NOTIFY developerModeChanged)
 public:
 
     enum siilihai_states {
@@ -52,6 +53,7 @@ public:
     explicit ClientLogic(QObject *parent = 0);
     QString statusMessage() const;
     siilihai_states state() const;
+    Q_INVOKABLE bool developerMode() const;
 
 public slots:
     virtual void launchSiilihai(bool offline=false);
@@ -69,9 +71,12 @@ public slots:
     virtual void updateAllParsers();
     virtual void unregisterSiilihai();
     virtual void aboutToQuit();
+    virtual void setDeveloperMode(bool newDm);
 
 signals:
     void statusMessageChanged(QString message);
+
+    void developerModeChanged(bool arg);
 
 protected:
     virtual QString getDataFilePath();
@@ -140,6 +145,9 @@ private:
     QQueue<CredentialsRequest*> credentialsRequests;
     QString statusMsg; // One-liner describing current status
     QTimer statusMsgTimer; // Hides the message after a short delay
+
+    bool devMode; // Enables some debugging features on UI etc..
+    bool m_developerMode;
 };
 
 #endif // CLIENTLOGIC_H

@@ -20,6 +20,7 @@ ClientLogic::ClientLogic(QObject *parent) : QObject(parent), currentState(SH_OFF
     endSyncDone = false;
     firstRun = true;
     dbStored = false;
+    devMode = 0;
     srand ( time(NULL) );
 
     statusMsgTimer.setSingleShot(true);
@@ -39,6 +40,10 @@ QString ClientLogic::statusMessage() const
 
 ClientLogic::siilihai_states ClientLogic::state() const {
     return currentState;
+}
+
+bool ClientLogic::developerMode() const {
+    return devMode;
 }
 
 void ClientLogic::launchSiilihai(bool offline) {
@@ -525,6 +530,13 @@ void ClientLogic::aboutToQuit() {
     qDebug() << Q_FUNC_INFO;
 //    QEventLoop eventLoop;
 //    eventLoop.exec();
+}
+
+void ClientLogic::setDeveloperMode(bool newDm) {
+    if (devMode != newDm) {
+        devMode = newDm;
+        emit developerModeChanged(newDm);
+    }
 }
 
 void ClientLogic::databaseStored() {

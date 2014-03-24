@@ -92,7 +92,7 @@ public:
     UpdateEngine *updateEngine() const;
     void engineDestroyed(); // Sets engine to 0
     bool hasGroupListChanged() const;
-    void markRead(bool read=true);
+    Q_INVOKABLE void markRead(bool read=true);
     void setBeingUpdated(bool bu);
     void setBeingSynced(bool bs);
     void setScheduledForUpdate(bool su);

@@ -4,6 +4,7 @@
 #include "../forumdata/forumthread.h"
 #include "../forumdata/forummessage.h"
 
+#include <QDebug>
 #include <QNetworkRequest>
 #include <QNetworkReply>
 #include <QByteArray>
@@ -238,7 +239,9 @@ void TapaTalkEngine::replyUpdateGroup(QNetworkReply *reply) {
 
 void TapaTalkEngine::getThreads(QDomElement arrayDataElement, QList<ForumThread *> *threads)
 {
-    Q_ASSERT(arrayDataElement.nodeName()=="data");
+    if(arrayDataElement.nodeName() != "data") {
+        qDebug() << Q_FUNC_INFO << "Error: arrayDataElement node name is not 'data'!!";
+    }
     QDomElement dataValueElement = arrayDataElement.firstChildElement("value");
     if(dataValueElement.nodeName()=="value") {
         while(!dataValueElement.isNull()) {
@@ -357,6 +360,10 @@ void TapaTalkEngine::updateCurrentThreadPage() {
     nam.post(req, requestData);
 }
 
+void TapaTalkEngine::protocolErrorDetected() {
+    networkFailure("Error while updating forum " + subscription()->alias() + "\nUnexpected TapatTalk reply.\nThis is a bug in Siilihai or TapaTalk server.\nSee console for details.");
+}
+
 void TapaTalkEngine::replyUpdateThread(QNetworkReply *reply) {
     if(!threadBeingUpdated) {
         qDebug() << Q_FUNC_INFO << "We are not updating thread currently - ignoring this";
@@ -467,7 +474,11 @@ void TapaTalkEngine::replyLogin(QNetworkReply *reply) {
 }
 
 void TapaTalkEngine::getMessages(QDomElement dataValueElement, QList<ForumMessage *> *messages) {
-    Q_ASSERT(dataValueElement.nodeName()=="value");
+    if(dataValueElement.nodeName()!="value") {
+        qDebug() << Q_FUNC_INFO << "Error: dataValueElement node name is not 'value'!!";
+        protocolErrorDetected();
+        return;
+    }
     QDomElement postsValueElement = findMemberValueElement(dataValueElement, "posts");
     QDomElement arrayDataValueElement = postsValueElement.firstChildElement("array").firstChildElement("data").firstChildElement("value");
     while(!arrayDataValueElement.isNull()) {
@@ -552,7 +563,11 @@ void TapaTalkEngine::replyListGroups(QNetworkReply *reply)
 }
 
 void TapaTalkEngine::getGroups(QDomElement arrayDataElement, QList<ForumGroup *> *grps, QMap<QString, GroupHierarchyItem> &groupHierarchy) {
-    Q_ASSERT(arrayDataElement.nodeName()=="data");
+    if(arrayDataElement.nodeName()!="data") {
+        qDebug() << Q_FUNC_INFO << "Error: arrayDataElement node name is not 'data'!!";
+        protocolErrorDetected();
+        return;
+    }
 
     QDomElement arrayValueElement = arrayDataElement.firstChildElement("value");
     while(!arrayValueElement.isNull()) {
@@ -590,8 +605,11 @@ void TapaTalkEngine::getGroups(QDomElement arrayDataElement, QList<ForumGroup *>
 }
 
 QString TapaTalkEngine::getValueFromStruct(QDomElement arrayValueElement, QString name) {
-    Q_ASSERT(arrayValueElement.nodeName()=="value");
-
+    if(arrayValueElement.nodeName()!="value") {
+        qDebug() << Q_FUNC_INFO << "Error: node name is not 'value'";
+        protocolErrorDetected();
+        return QString::null;
+    }
     QDomElement valueElement = findMemberValueElement(arrayValueElement, name);
     if(valueElement.isNull()) return ""; // Avoid warning about null element
     return valueElementToString(valueElement);
@@ -683,7 +701,11 @@ void TapaTalkEngine::fixGroupNames(QList<ForumGroup *> *grps, QMap<QString, Grou
 
 void TapaTalkEngine::getChildGroups(QDomElement arrayValueElement, QList<ForumGroup *> *grps, QMap<QString, GroupHierarchyItem> &groupHierarchy)
 {
-    Q_ASSERT(arrayValueElement.nodeName()=="value");
+    if(arrayValueElement.nodeName()!="value") {
+        qDebug() << Q_FUNC_INFO << "Error: node name is not 'value'";
+        protocolErrorDetected();
+        return;
+    }
     QDomElement valueElement = findMemberValueElement(arrayValueElement, "child");
     if(!valueElement.isNull()) {
         QDomElement dataElement = valueElement.firstChildElement("array").firstChildElement("data");
@@ -695,7 +717,11 @@ void TapaTalkEngine::getChildGroups(QDomElement arrayValueElement, QList<ForumGr
 
 QDomElement TapaTalkEngine::findMemberValueElement(QDomElement arrayValueElement, QString memberName)
 {
-    Q_ASSERT(arrayValueElement.nodeName()=="value");
+    if(arrayValueElement.nodeName()!="value") {
+        qDebug() << Q_FUNC_INFO << "Error: node name is not 'value'";
+        protocolErrorDetected();
+        return QDomElement();
+    }
     QDomElement structElement = arrayValueElement.firstChildElement("struct");
     QDomElement memberElement = structElement.firstChildElement("member");
     while(!memberElement.isNull()) {

@@ -547,7 +547,7 @@ void ParserEngine::listMessagesOnNextPage() {
 
 void ParserEngine::listMessagesReply(QNetworkReply *reply) {
     if(operationInProgress == PEONoOp) return;
-    Q_ASSERT(operationInProgress == PEOUpdateThread);
+    if(operationInProgress != PEOUpdateThread) return; // Old request (was assert)
     Q_ASSERT(reply->request().attribute(QNetworkRequest::User).toInt() == PEOUpdateThread);
     if (reply->error() != QNetworkReply::NoError) {
         networkFailure(reply->errorString());

@@ -50,6 +50,7 @@ protected:
     virtual void requestCredentials();
 private:
     void updateCurrentThreadPage(); // Get next 50 messages in current thread
+    void protocolErrorDetected(); // Print output & cause networkFailure()
 
     void replyProbe(QNetworkReply *reply);
     void replyListGroups(QNetworkReply *reply);
