@@ -44,7 +44,7 @@ class UpdateEngine;
   */
 class ForumSubscription : public QObject, public QMap<QString, ForumGroup*>, public UpdateableItem  {
     Q_OBJECT
-    Q_PROPERTY(int forumId READ forumId WRITE setForumId NOTIFY changed)
+    Q_PROPERTY(int id READ id WRITE setId NOTIFY changed)
     Q_PROPERTY(QString alias READ alias WRITE setAlias NOTIFY changed)
     Q_PROPERTY(int unreadCount READ unreadCount NOTIFY unreadCountChanged)
     Q_PROPERTY(bool beingUpdated READ beingUpdated WRITE setBeingUpdated NOTIFY changed)
@@ -52,6 +52,7 @@ class ForumSubscription : public QObject, public QMap<QString, ForumGroup*>, pub
     Q_PROPERTY(bool scheduledForUpdate READ scheduledForUpdate WRITE setScheduledForUpdate NOTIFY changed)
     Q_PROPERTY(QUrl forumUrl READ forumUrl WRITE setForumUrl NOTIFY changed)
     Q_PROPERTY(bool supportsLogin READ supportsLogin WRITE setSupportsLogin NOTIFY changed)
+    Q_PROPERTY(bool supportsPosting READ supportsPosting WRITE setSupportsPosting NOTIFY changed)
     Q_PROPERTY(QString username READ username WRITE setUsername NOTIFY changed)
     Q_PROPERTY(QString password READ password WRITE setPassword NOTIFY changed)
     Q_PROPERTY(bool isAuthenticated READ isAuthenticated WRITE setAuthenticated NOTIFY changed)
@@ -79,8 +80,8 @@ public:
     void addGroup(ForumGroup* grp, bool affectsSync=true, bool incrementUnreads = true);
     void removeGroup(ForumGroup* grp, bool affectsSync=true, bool incrementUnreads = true);
     void setGroupListChanged(bool changed=true); // To trigger sending group list update
-    int forumId() const;
-    void setForumId(int newId);
+    int id() const;
+    void setId(int newId);
     QString alias() const;
     QString username() const;
     QString password() const;
@@ -112,15 +113,19 @@ public:
     void setForumUrl(QUrl url);
     void setSupportsLogin(bool sl);
     bool supportsLogin() const;
+    void setSupportsPosting(bool sp);
+    bool supportsPosting() const;
     QString faviconUrl();
     void setProvider(ForumProvider provider); // Use with care!!
 
 signals:
     void changed();
     void unreadCountChanged();
+    void engineChanged();
     void groupRemoved(ForumGroup *grp);
     void groupAdded(ForumGroup *grp);
     void aliasChanged(QString alias);
+
 protected:
     UpdateEngine *_engine;
 
@@ -134,7 +139,7 @@ private:
     unsigned int _latestMessages;
     // authenticated means forum authentication. HTTP authentication is
     // handled automatically!
-    bool _authenticated, _supportsLogin;
+    bool _authenticated, _supportsLogin, _supportsPosting;
     int _unreadCount;
     bool _temp, _groupListChanged;
     // Just for status display

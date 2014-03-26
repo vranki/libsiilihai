@@ -14,6 +14,7 @@
 #include "tapatalk/forumsubscriptiontapatalk.h"
 #include "tapatalk/tapatalkengine.h"
 #include "siilihaisettings.h"
+#include "messageformatting.h"
 
 ClientLogic::ClientLogic(QObject *parent) : QObject(parent), currentState(SH_OFFLINE), settings(0), forumDatabase(this), syncmaster(this, forumDatabase, protocol),
     parserManager(0), currentCredentialsRequest(0) {
@@ -44,6 +45,19 @@ ClientLogic::siilihai_states ClientLogic::state() const {
 
 bool ClientLogic::developerMode() const {
     return devMode;
+}
+
+QString ClientLogic::addReToSubject(QString subject) {
+    if(subject.startsWith("Re:"))
+        return subject;
+    else
+        return "Re: " + subject;
+}
+
+QString ClientLogic::addQuotesToBody(QString body) {
+    body = MessageFormatting::stripHtml(body);
+    body = "[quote]\n" + body + "\n[/quote]\n\n";
+    return body;
 }
 
 void ClientLogic::launchSiilihai(bool offline) {
@@ -374,8 +388,8 @@ void ClientLogic::loginFinished(bool success, QString motd, bool sync) {
 
 // Note: fs *MUST* be a real ForumSubscription derived class, NOT just ForumSubscription with provider set!
 void ClientLogic::forumAdded(ForumSubscription *fs) {
-    Q_ASSERT(fs->forumId());
-    if(forumDatabase.contains(fs->forumId())) {
+    Q_ASSERT(fs->id());
+    if(forumDatabase.contains(fs->id())) {
         errorDialog("You have already subscribed to " + fs->alias());
     } else {
         ForumSubscription *newFs = ForumSubscription::newForProvider(fs->provider(), &forumDatabase, false);
@@ -462,7 +476,7 @@ void ClientLogic::forumUpdated(ForumSubscription* forum) {
 void ClientLogic::subscribeForumFinished(ForumSubscription *sub, bool success) {
     if (!success) {
         errorDialog("Subscribing to forum failed. Please check network connection.");
-        if(forumDatabase.value(sub->forumId()))
+        if(forumDatabase.value(sub->id()))
             forumDatabase.deleteSubscription(sub);
     }
 }
@@ -479,7 +493,7 @@ void ClientLogic::userSettingsReceived(bool success, UserSettings *newSettings) 
 }
 
 void ClientLogic::updateFailure(ForumSubscription* fsub, QString msg) {
-    QString key = QString("authentication/%1/failed").arg(fsub->forumId());
+    QString key = QString("authentication/%1/failed").arg(fsub->id());
     qDebug() << Q_FUNC_INFO << "was: " << settings->value(key).toString();
     settings->setValue(key, "true");
     qDebug() << Q_FUNC_INFO << "now: " << settings->value(key).toString();
@@ -638,13 +652,13 @@ void ClientLogic::unsubscribeForum(ForumSubscription* fs) {
 void ClientLogic::getHttpAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator) {
     qDebug() << Q_FUNC_INFO << fsub->alias();
     bool failed = false;
-    QString gname = QString().number(fsub->forumId());
+    QString gname = QString().number(fsub->id());
     settings->beginGroup("authentication");
 
     // Must exist and be longer than zero
     if(settings->contains(QString("%1/username").arg(gname)) &&
             settings->value(QString("%1/username").arg(gname)).toString().length() > 0) {
-        QString key = QString("%1/failed").arg(fsub->forumId());
+        QString key = QString("%1/failed").arg(fsub->id());
         if(settings->value(key).toString() == "true") failed = true;
         if(authenticator && !failed) {
             qDebug() << Q_FUNC_INFO << "reading u/p from settings";
@@ -696,7 +710,7 @@ void ClientLogic::credentialsEntered(bool store) {
         if(cr->credentialType == CredentialsRequest::SH_CREDENTIAL_HTTP) {
             qDebug() << Q_FUNC_INFO << "storing into settings";
             settings->beginGroup("authentication");
-            settings->beginGroup(QString::number(currentCredentialsRequest->subscription->forumId()));
+            settings->beginGroup(QString::number(currentCredentialsRequest->subscription->id()));
             settings->setValue("username", currentCredentialsRequest->authenticator.user());
             settings->setValue("password", currentCredentialsRequest->authenticator.password());
             settings->setValue("failed", "false");
@@ -713,7 +727,7 @@ void ClientLogic::credentialsEntered(bool store) {
     if(!currentCredentialsRequest->subscription->isAuthenticated()) {
         // Remove authentication
         settings->beginGroup("authentication");
-        settings->remove(QString::number(currentCredentialsRequest->subscription->forumId()));
+        settings->remove(QString::number(currentCredentialsRequest->subscription->id()));
         settings->endGroup();
 
         currentCredentialsRequest->subscription->setUsername(QString::null);

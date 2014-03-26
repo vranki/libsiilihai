@@ -25,6 +25,7 @@ ForumSubscriptionTapaTalk::ForumSubscriptionTapaTalk(QObject *parent, bool temp)
 void ForumSubscriptionTapaTalk::setTapaTalkEngine(TapaTalkEngine *newEngine)
 {
     _engine = newEngine;
+    setSupportsPosting(_engine->supportsPosting());
 }
 
 

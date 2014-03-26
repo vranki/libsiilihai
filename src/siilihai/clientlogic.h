@@ -55,6 +55,10 @@ public:
     siilihai_states state() const;
     Q_INVOKABLE bool developerMode() const;
 
+    // Helpers for message posting
+    Q_INVOKABLE static QString addReToSubject(QString subject); // Adds Re: to subject if needed
+    Q_INVOKABLE static QString addQuotesToBody(QString body); // Strips html and adds [quote] [/quote] around body (will it work everywhere?)
+
 public slots:
     virtual void launchSiilihai(bool offline=false);
     // Call with 0 subscription to update all

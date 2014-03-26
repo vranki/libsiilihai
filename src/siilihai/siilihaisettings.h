@@ -7,6 +7,7 @@
 class SiilihaiSettings : public QSettings
 {
     Q_OBJECT
+    Q_PROPERTY(QString signature READ signature WRITE setSignature NOTIFY signatureChanged)
 public:
     explicit SiilihaiSettings(const QString &fileName, Format format, QObject *parent = 0);
     bool firstRun();
@@ -25,6 +26,8 @@ public:
     bool syncEnabled();
     QString signature();
     void setSignature(QString sig);
+signals:
+    void signatureChanged();
 };
 
 #endif // SIILIHAISETTINGS_H

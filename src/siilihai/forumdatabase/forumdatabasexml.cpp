@@ -72,7 +72,7 @@ bool ForumDatabaseXml::openDatabase(QIODevice *source, bool loadContent) {
                         }
                     }
                 }
-                insert(sub->forumId(), sub);
+                insert(sub->id(), sub);
                 emit subscriptionFound(sub);
             }
             subscriptionElement = subscriptionElement.nextSiblingElement(SUB_SUBSCRIPTION);
@@ -88,7 +88,7 @@ bool ForumDatabaseXml::isStored(){
 }
 
 bool ForumDatabaseXml::addSubscription(ForumSubscription *fs){
-    insert(fs->forumId(), fs);
+    insert(fs->id(), fs);
     emit subscriptionFound(fs);
     checkSanity();
 #ifdef SANITY_CHECKS
@@ -99,7 +99,7 @@ bool ForumDatabaseXml::addSubscription(ForumSubscription *fs){
 }
 
 void ForumDatabaseXml::deleteSubscription(ForumSubscription *sub){
-    remove(sub->forumId());
+    remove(sub->id());
     emit subscriptionRemoved(sub);
     sub->deleteLater();
 }

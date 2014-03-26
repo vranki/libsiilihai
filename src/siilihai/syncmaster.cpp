@@ -78,7 +78,7 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
     fdb.checkSanity();
     // Update local subs
     foreach(ForumSubscription *serverSub, subs) {
-        ForumSubscription *dbSub = fdb.value(serverSub->forumId());
+        ForumSubscription *dbSub = fdb.value(serverSub->id());
         if(!dbSub) { // Whole forum not found in db - add it
             qDebug() << Q_FUNC_INFO << "Forum not in db -  must add it!";
             ForumSubscription *newSub = ForumSubscription::newForProvider(serverSub->provider(), &fdb, false);
@@ -119,7 +119,7 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
     foreach(ForumSubscription *dbSub, fdb.values()) {
         bool found = false;
         foreach(ForumSubscription *serverSub, subs) {
-            if(serverSub->forumId()==dbSub->forumId())
+            if(serverSub->id()==dbSub->id())
                 found = true;
         }
         // Sub in db not found in sync message - delete it
@@ -131,8 +131,8 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
     // Update group lists
     foreach(ForumSubscription *serverSub, subs) {
         foreach(ForumGroup *serverGrp, serverSub->values()) {
-            Q_ASSERT(serverGrp->subscription()->forumId() >= 0 || serverGrp->id().length() > 0);
-            ForumSubscription *dbSub = fdb.value(serverGrp->subscription()->forumId());
+            Q_ASSERT(serverGrp->subscription()->id() >= 0 || serverGrp->id().length() > 0);
+            ForumSubscription *dbSub = fdb.value(serverGrp->subscription()->id());
             Q_ASSERT(dbSub);
 
             ForumGroup *dbGroup = dbSub->value(serverGrp->id());
@@ -224,12 +224,12 @@ void SyncMaster::serverThreadData(ForumThread *tempThread) { // Thread is tempor
     if (tempThread->isSane()) {
         static ForumGroup *lastGroupBeingSynced=0;
         ForumGroup *dbGroup = 0;
-        ForumThread *dbThread = fdb.getThread(tempThread->group()->subscription()->forumId(), tempThread->group()->id(),
+        ForumThread *dbThread = fdb.getThread(tempThread->group()->subscription()->id(), tempThread->group()->id(),
                                               tempThread->id());
         if (dbThread) { // Thread already found, merge it
             dbThread->setChangeset(tempThread->changeset());
         } else { // thread hasn't been found yet!
-            dbGroup = fdb.value(tempThread->group()->subscription()->forumId())->value(tempThread->group()->id());
+            dbGroup = fdb.value(tempThread->group()->subscription()->id())->value(tempThread->group()->id());
             Q_ASSERT(dbGroup);
             Q_ASSERT(!dbGroup->isTemp());
             ForumThread *newThread = new ForumThread(dbGroup, false);
@@ -265,12 +265,12 @@ void SyncMaster::serverMessageData(ForumMessage *tempMessage) { // Temporary obj
     Q_ASSERT(tempMessage);
     if(canceled) return;
     if (tempMessage->isSane()) {
-        ForumMessage *dbMessage = fdb.getMessage(tempMessage->thread()->group()->subscription()->forumId(),
+        ForumMessage *dbMessage = fdb.getMessage(tempMessage->thread()->group()->subscription()->id(),
                                                  tempMessage->thread()->group()->id(), tempMessage->thread()->id(), tempMessage->id());
         if (dbMessage) { // Message already found, merge it
             dbMessage->setRead(tempMessage->isRead());
         } else { // message hasn't been found yet!
-            ForumThread *dbThread = fdb.getThread(tempMessage->thread()->group()->subscription()->forumId(),
+            ForumThread *dbThread = fdb.getThread(tempMessage->thread()->group()->subscription()->id(),
                                                   tempMessage->thread()->group()->id(),
                                                   tempMessage->thread()->id());
             Q_ASSERT(dbThread);
@@ -317,9 +317,9 @@ void SyncMaster::getThreadDataFinished(bool success, QString message){
 // Warning: fs is a temp object
 void SyncMaster::downsyncFinishedForForum(ForumSubscription *fs)
 {
-    Q_ASSERT(fs && fs->forumId() > 0);
-    qDebug() << Q_FUNC_INFO << fs->forumId();
-    ForumSubscription *dbSubscription = fdb.value(fs->forumId());
+    Q_ASSERT(fs && fs->id() > 0);
+    qDebug() << Q_FUNC_INFO << fs->id();
+    ForumSubscription *dbSubscription = fdb.value(fs->id());
     Q_ASSERT(!dbSubscription->scheduledForSync());
     dbSubscription->setBeingSynced(false);
     emit syncFinishedFor(dbSubscription);

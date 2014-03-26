@@ -34,7 +34,7 @@ ForumSubscription::ForumSubscription(QObject *parent, bool temp, ForumProvider p
 }
 
 void ForumSubscription::copyFrom(ForumSubscription * other) {
-    setForumId(other->forumId());
+    setId(other->id());
     setAlias(other->alias());
     setUsername(other->username());
     setPassword(other->password());
@@ -169,12 +169,12 @@ void ForumSubscription::setGroupListChanged(bool changed) {
     _groupListChanged = changed;
 }
 
-int ForumSubscription::forumId() const
+int ForumSubscription::id() const
 {
     return _forumId;
 }
 
-void ForumSubscription::setForumId(int newId)
+void ForumSubscription::setId(int newId)
 {
     _forumId = newId;
     emit changed();
@@ -258,7 +258,7 @@ ForumSubscription *ForumSubscription::newForProvider(ForumSubscription::ForumPro
 QDomElement ForumSubscription::serialize(QDomElement &parent, QDomDocument &doc) {
     QDomElement subElement = doc.createElement(SUB_SUBSCRIPTION);
 
-    XmlSerialization::appendValue(SUB_FORUMID, QString::number(forumId()), subElement, doc);
+    XmlSerialization::appendValue(SUB_FORUMID, QString::number(id()), subElement, doc);
     XmlSerialization::appendValue(SUB_PROVIDER, QString::number(provider()), subElement, doc);
     XmlSerialization::appendValue(SUB_ALIAS, alias(), subElement, doc);
     XmlSerialization::appendValue(SUB_USERNAME, username(), subElement, doc);
@@ -285,7 +285,7 @@ ForumSubscription* ForumSubscription::readSubscription(QDomElement &element, QOb
 
 void ForumSubscription::readSubscriptionXml(QDomElement &element)
 {
-    setForumId(QString(element.firstChildElement(SUB_FORUMID).text()).toInt());
+    setId(QString(element.firstChildElement(SUB_FORUMID).text()).toInt());
     setAlias(element.firstChildElement(SUB_ALIAS).text());
     setUsername(element.firstChildElement(SUB_USERNAME).text());
     setPassword(element.firstChildElement(SUB_PASSWORD).text());
@@ -308,6 +308,15 @@ void ForumSubscription::setSupportsLogin(bool sl)
 
 bool ForumSubscription::supportsLogin() const {
     return _supportsLogin;
+}
+
+void ForumSubscription::setSupportsPosting(bool sp) {
+    _supportsPosting = sp;
+    emit changed();
+}
+
+bool ForumSubscription::supportsPosting() const {
+    return _supportsPosting;
 }
 
 QString ForumSubscription::faviconUrl()

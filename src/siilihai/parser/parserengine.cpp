@@ -258,7 +258,7 @@ void ParserEngine::doUpdateThread(ForumThread *thread)
 void ParserEngine::networkReply(QNetworkReply *reply) {
     int operationAttribute = reply->request().attribute(QNetworkRequest::User).toInt();
     int forumId = reply->request().attribute(FORUMID_ATTRIBUTE).toInt();
-    if(forumId != subscription()->forumId()) return;
+    if(forumId != subscription()->id()) return;
     if(!operationAttribute) {
         qDebug( ) << Q_FUNC_INFO << "Reply " << operationAttribute << " not for me";
         return;
@@ -717,7 +717,7 @@ void ParserEngine::authenticationRequired(QNetworkReply * reply, QAuthenticator 
     Q_UNUSED(reply);
     if(operationInProgress == PEONoOp) return;
     int forumId = reply->request().attribute(FORUMID_ATTRIBUTE).toInt();
-    if(forumId != subscription()->forumId()) return;
+    if(forumId != subscription()->id()) return;
 
     qDebug() << Q_FUNC_INFO << reply << authenticator;
     authenticationRetries++;
@@ -795,7 +795,7 @@ void ParserEngine::cookieExpired() {
 
 void ParserEngine::setRequestAttributes(QNetworkRequest &req, ParserEngineOperation op) {
     req.setAttribute(QNetworkRequest::User, op);
-    req.setAttribute(FORUMID_ATTRIBUTE, subscription()->forumId());
+    req.setAttribute(FORUMID_ATTRIBUTE, subscription()->id());
     req.setHeader(QNetworkRequest::ContentTypeHeader, QString("application/x-www-form-urlencoded"));
     // @todo Make this configurable
     req.setRawHeader("User-Agent", "Mozilla/5.0 (X11; Linux i686; rv:6.0) Gecko/20100101 Firefox/6.0");

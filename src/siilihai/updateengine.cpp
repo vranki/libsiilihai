@@ -183,7 +183,7 @@ void UpdateEngine::listThreadsFinished(QList<ForumThread*> &tempThreads, ForumGr
 
     // Diff the group list
     foreach(ForumThread *serverThread, tempThreads) {
-        ForumThread *dbThread = fdb ? fdb->getThread(group->subscription()->forumId(), group->id(), serverThread->id()) : 0;
+        ForumThread *dbThread = fdb ? fdb->getThread(group->subscription()->id(), group->id(), serverThread->id()) : 0;
         if (dbThread) {
             dbThread->setName(serverThread->name());
             if ((dbThread->lastchange() != serverThread->lastchange()) || forceUpdate ||

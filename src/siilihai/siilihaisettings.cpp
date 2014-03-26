@@ -74,4 +74,5 @@ QString SiilihaiSettings::signature()
 void SiilihaiSettings::setSignature(QString sig)
 {
     setValue("preferences/signature", sig);
+    emit signatureChanged();
 }

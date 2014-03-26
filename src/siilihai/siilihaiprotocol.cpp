@@ -131,6 +131,7 @@ void SiilihaiProtocol::replyLogin(QNetworkReply *reply) {
         syncEnabled = re.firstChildElement("sync_enabled").text() == "true";
     } else {
         qDebug() << Q_FUNC_INFO << "network error: " << reply->errorString();
+        motd = reply->errorString();
     }
     if (ck.length() > 0)
         clientKey = ck;
@@ -179,7 +180,7 @@ void SiilihaiProtocol::replyListForums(QNetworkReply *reply) {
             ForumParser *parser = XmlSerialization::readParser(n, this);
              if(parser) {
                  ForumSubscription *sub = new ForumSubscription(0, true, ForumSubscription::FP_NONE);
-                 sub->setForumId(parser->id());
+                 sub->setId(parser->id());
                  sub->setAlias(parser->name());
                  sub->setForumUrl(parser->forum_url);
                  sub->setSupportsLogin(parser->supportsLogin());
@@ -260,7 +261,7 @@ void SiilihaiProtocol::subscribeForum(ForumSubscription *fs, bool unsubscribe) {
     qDebug() << Q_FUNC_INFO << "unsub: " << unsubscribe << " authenticated: " << fs->isAuthenticated();
     QNetworkRequest req(subscribeForumUrl);
     QHash<QString, QString> params;
-    params.insert("forum_id", QString().number(fs->forumId()));
+    params.insert("forum_id", QString().number(fs->id()));
     if (unsubscribe) {
         params.insert("unsubscribe", "yes");
     } else {
@@ -304,7 +305,7 @@ void SiilihaiProtocol::subscribeGroups(ForumSubscription *fs) {
     QDomElement forumTag = doc.createElement("forum");
     root.appendChild(forumTag);
 
-    QDomText t = doc.createTextNode(QString().number(fs->forumId()));
+    QDomText t = doc.createTextNode(QString().number(fs->id()));
     forumTag.appendChild(t);
 
     foreach(ForumGroup *g, fs->values()) {
@@ -399,7 +400,7 @@ void SiilihaiProtocol::replySaveParser(QNetworkReply *reply) {
 
 void SiilihaiProtocol::addForum(ForumSubscription *sub)
 {
-    Q_ASSERT(sub->forumId()==0);
+    Q_ASSERT(sub->id()==0);
     Q_ASSERT(sub->alias().length()>0);
     Q_ASSERT(sub->forumUrl().isValid());
     QNetworkRequest req(addForumUrl);
@@ -456,7 +457,7 @@ void SiilihaiProtocol::replyGetForum(QNetworkReply *reply) {
         QString supportsLoginString = re.firstChildElement("supports_login").text();
         if(id > 0 && provider > 0) {
             ForumSubscription *addedForum = ForumSubscription::newForProvider((ForumSubscription::ForumProvider) provider, 0, true);
-            addedForum->setForumId(id);
+            addedForum->setId(id);
             addedForum->setForumUrl(url);
             addedForum->setAlias(name);
             addedForum->setSupportsLogin(supportsLoginString == "True");
@@ -563,7 +564,7 @@ void SiilihaiProtocol::sendThreadData(ForumGroup *grp, QList<ForumMessage*> &fms
     QDomElement forumTag = doc.createElement("forum");
     root.appendChild(forumTag);
 
-    QDomText t = doc.createTextNode(QString().number(grp->subscription()->forumId()));
+    QDomText t = doc.createTextNode(QString().number(grp->subscription()->id()));
     forumTag.appendChild(t);
 
     QDomElement groupTag = doc.createElement("group");
@@ -629,7 +630,7 @@ void SiilihaiProtocol::downsync(QList<ForumGroup*> &groups) {
     }
     foreach(ForumSubscription* sub, groupMap.keys()) {
         QDomElement forumTag = doc.createElement("forum");
-        forumTag.setAttribute("id", sub->forumId());
+        forumTag.setAttribute("id", sub->id());
         root.appendChild(forumTag);
 
         foreach(ForumGroup *grp, groupMap.value(sub)) {
@@ -664,7 +665,7 @@ void SiilihaiProtocol::replyDownsync(QNetworkReply *reply) {
                 int forumparser = forumElement.attribute("id").toInt();
                 forumParsed->setParserId(forumparser);
             }
-            forum->setForumId(forumid);
+            forum->setId(forumid);
             QDomElement groupElement = forumElement.firstChildElement("group");
             while(!groupElement.isNull()) {
                 QString groupid = groupElement.attribute("id");
@@ -746,7 +747,7 @@ void SiilihaiProtocol::replyGetSyncSummary(QNetworkReply *reply) {
                 forumParsed->setParserId(forumparser);
                 Q_ASSERT(forumparser > 0);
             }
-            sub->setForumId(forumid);
+            sub->setId(forumid);
             sub->setAlias(forumElement.attribute("alias"));
             sub->setForumUrl(forumElement.attribute("url"));
             sub->setLatestThreads(forumElement.attribute("latest_threads").toInt());

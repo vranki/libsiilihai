@@ -58,11 +58,11 @@ QString ForumMessage::toString() const {
         if(_thread->group()) {
             group = _thread->group()->id();
             if(_thread->group()->subscription())
-                forumid = QString().number(_thread->group()->subscription()->forumId());
+                forumid = QString().number(_thread->group()->subscription()->id());
         }
     }
 
-    return QString().number(_thread->group()->subscription()->forumId()) + "/" +
+    return QString().number(_thread->group()->subscription()->id()) + "/" +
             _thread->group()->id() + "/" + _thread->id() + "/" + id() + ": " + name() + "/ Read:" + QString().number(_read);
 }
 
