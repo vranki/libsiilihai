@@ -11,6 +11,12 @@ void SiilihaiSettings::setFirstRun(bool fr) {
     setValue("first_run", fr);
 }
 
+void SiilihaiSettings::setHttpProxy(QString url)
+{
+    setValue("preferences/http_proxy", url);
+    emit changed();
+}
+
 QString SiilihaiSettings::httpProxy()
 {
     return value("preferences/http_proxy", "").toString();
@@ -28,8 +34,20 @@ void SiilihaiSettings::setDatabaseSchema(int sv) {
     setValue("forum_database_schema", sv);
 }
 
+void SiilihaiSettings::setUsername(QString un)
+{
+    setValue("account/username", un);
+    emit changed();
+}
+
 QString SiilihaiSettings::username() {
     return value("account/username", "").toString();
+}
+
+void SiilihaiSettings::setPassword(QString pass)
+{
+    setValue("account/password", pass);
+    emit changed();
 }
 
 QString SiilihaiSettings::password()
@@ -47,6 +65,12 @@ int SiilihaiSettings::messagesPerThread()
     return value("preferences/messages_per_thread", 20).toInt();
 }
 
+void SiilihaiSettings::setShowMoreCount(int smc)
+{
+    setValue("preferences/show_more_count", smc);
+    emit changed();
+}
+
 int SiilihaiSettings::showMoreCount()
 {
     return value("preferences/show_more_count", 30).toInt();
@@ -60,6 +84,13 @@ bool SiilihaiSettings::noAccount()
 void SiilihaiSettings::setNoAccount(bool na)
 {
     setValue("account/noaccount", na);
+    emit changed();
+}
+
+void SiilihaiSettings::setSyncEnabled(bool se)
+{
+    setValue("preferences/sync_enabled", se);
+    emit changed();
 }
 
 bool SiilihaiSettings::syncEnabled() {
@@ -74,5 +105,25 @@ QString SiilihaiSettings::signature()
 void SiilihaiSettings::setSignature(QString sig)
 {
     setValue("preferences/signature", sig);
-    emit signatureChanged();
+    emit changed();
+}
+
+int SiilihaiSettings::maxThreadsPerGroup() const {
+    return 100;
+}
+
+int SiilihaiSettings::maxMessagesPerThread() const {
+    return 100;
+}
+
+void SiilihaiSettings::setThreadsPerGroup(int tpg)
+{
+    setValue("preferences/threads_per_group", tpg);
+    emit changed();
+}
+
+void SiilihaiSettings::setMessagesPerThread(int mpt)
+{
+    setValue("preferences/messages_per_thread", mpt);
+    emit changed();
 }

@@ -58,6 +58,15 @@ public:
     // Helpers for message posting
     Q_INVOKABLE static QString addReToSubject(QString subject); // Adds Re: to subject if needed
     Q_INVOKABLE static QString addQuotesToBody(QString body); // Strips html and adds [quote] [/quote] around body (will it work everywhere?)
+    /**
+     * Call this if any of the settings that need to be sent to server
+     * have changed
+     *
+     * @brief settingsChanged
+     * @param byUser if the user has changed them (not server)
+     */
+    Q_INVOKABLE virtual void settingsChanged(bool byUser);
+    Q_INVOKABLE virtual QString getDataFilePath();
 
 public slots:
     virtual void launchSiilihai(bool offline=false);
@@ -79,12 +88,9 @@ public slots:
 
 signals:
     void statusMessageChanged(QString message);
-
     void developerModeChanged(bool arg);
 
 protected:
-    virtual QString getDataFilePath();
-    virtual void settingsChanged(bool byUser);
     virtual void showLoginWizard()=0;
     virtual void showCredentialsDialog()=0; // currentCredentialsRequest contains the request here
     virtual void changeState(siilihai_states newState);

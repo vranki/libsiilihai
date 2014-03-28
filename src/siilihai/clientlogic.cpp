@@ -154,7 +154,7 @@ QString ClientLogic::getDataFilePath() {
 }
 
 void ClientLogic::settingsChanged(bool byUser) {
-    usettings.setSyncEnabled(settings->value("preferences/sync_enabled", false).toBool());
+    usettings.setSyncEnabled(settings->syncEnabled());
     if(byUser && !noAccount()) {
         protocol.setUserSettings(&usettings);
     }
@@ -370,7 +370,7 @@ void ClientLogic::loginFinished(bool success, QString motd, bool sync) {
         connect(&protocol, SIGNAL(sendParserReportFinished(bool)), this, SLOT(sendParserReportFinished(bool)));
         connect(&protocol, SIGNAL(subscribeForumFinished(ForumSubscription*, bool)), this, SLOT(subscribeForumFinished(ForumSubscription*,bool)));
         usettings.setSyncEnabled(sync);
-        settings->setValue("preferences/sync_enabled", usettings.syncEnabled());
+        settings->setSyncEnabled(usettings.syncEnabled());
         settings->sync();
         if(usettings.syncEnabled()) {
             changeState(SH_STARTSYNCING);
@@ -486,7 +486,7 @@ void ClientLogic::userSettingsReceived(bool success, UserSettings *newSettings) 
         errorDialog("Getting settings failed. Please check network connection.");
     } else {
         usettings.setSyncEnabled(newSettings->syncEnabled());
-        settings->setValue("preferences/sync_enabled", usettings.syncEnabled());
+        settings->setSyncEnabled(usettings.syncEnabled());
         settings->sync();
         settingsChanged(false);
     }
@@ -508,7 +508,7 @@ void ClientLogic::moreMessagesRequested(ForumThread* thread) {
     if(thread->group()->subscription()->beingSynced()) return;
     if(thread->group()->subscription()->scheduledForSync()) return;
 
-    thread->setGetMessagesCount(thread->getMessagesCount() + settings->value("preferences/show_more_count", 30).toInt());
+    thread->setGetMessagesCount(thread->getMessagesCount() + settings->showMoreCount());
     thread->commitChanges();
     engine->updateThread(thread);
 }
