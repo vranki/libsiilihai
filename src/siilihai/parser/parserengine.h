@@ -57,6 +57,9 @@ public:
     QString getLoginUrl();
     QString getThreadListUrl(const ForumGroup *grp, int page=-1);
     QString getMessageListUrl(const ForumThread *thread, int page=-1);
+
+    void setGroup(ForumGroup *g); // Used with ParserMaker
+
     void performListGroups(QString &html);
     void performListThreads(QString &html);
     void performListMessages(QString &html);

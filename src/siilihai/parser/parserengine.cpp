@@ -465,7 +465,8 @@ void ParserEngine::performListThreads(QString &html) {
         ft->setId(match["%a"]);
         ft->setName(match["%b"]);
         ft->setLastchange(match["%c"]);
-        ft->setGetMessagesCount(groupBeingUpdated->subscription()->latestMessages());
+        // groupBeingUpdated may be null in parser editor.
+        ft->setGetMessagesCount(groupBeingUpdated ? groupBeingUpdated->subscription()->latestMessages() : 100);
         ft->setHasMoreMessages(false);
         if (ft->isSane()) {
             newThreads.append(ft);
@@ -711,6 +712,10 @@ QString ParserEngine::getMessageListUrl(const ForumThread *thread, int page) {
     }
     urlString = parser()->forumUrlWithoutEnd() + urlString;
     return urlString;
+}
+
+void ParserEngine::setGroup(ForumGroup *g) {
+    groupBeingUpdated = g;
 }
 
 void ParserEngine::authenticationRequired(QNetworkReply * reply, QAuthenticator * authenticator) {

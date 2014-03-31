@@ -160,8 +160,7 @@ void UpdateEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups, ForumSubsc
 
 void UpdateEngine::listThreadsFinished(QList<ForumThread*> &tempThreads, ForumGroup *group) {
     Q_ASSERT(group);
-    // Q_ASSERT(!group->isTemp()); temp groups used with parsermaker
-    Q_ASSERT(group->isSane());
+    // Q_ASSERT(group->isSane()); can be insane in parsermaker
     Q_ASSERT(!group->subscription()->beingSynced());
     Q_ASSERT(!groupBeingUpdated);
     Q_ASSERT(!threadBeingUpdated);
