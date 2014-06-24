@@ -29,10 +29,9 @@ void TapaTalkEngine::setSubscription(ForumSubscription *fs) {
     if(!fs) return;
     Q_ASSERT(fs->forumUrl().isValid());
     subscriptionTapaTalk()->setTapaTalkEngine(this);
-    connectorUrl = subscriptionTapaTalk()->forumUrl().toString() + "mobiquo/mobiquo.php";
+    connectorUrl = subscriptionTapaTalk()->forumUrl().toString(QUrl::StripTrailingSlash) + "/mobiquo/mobiquo.php";
     setState(UES_IDLE);
 }
-
 
 ForumSubscriptionTapaTalk *TapaTalkEngine::subscriptionTapaTalk() const
 {
@@ -117,7 +116,7 @@ QString TapaTalkEngine::convertDate(QString &date) {
 
 void TapaTalkEngine::probeUrl(QUrl url)
 {
-    connectorUrl = url.toString() + "mobiquo/mobiquo.php";
+    connectorUrl = url.toString(QUrl::StripTrailingSlash) + "/mobiquo/mobiquo.php";
     qDebug() << Q_FUNC_INFO << "will now probe " << connectorUrl;
     QNetworkRequest req(connectorUrl);
     QList<QPair<QString, QString> > params;

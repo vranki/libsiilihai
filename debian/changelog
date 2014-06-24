@@ -1,3 +1,9 @@
+libsiilihai (2.3.2-2) trusty; urgency=low
+
+  * Another Trusty release, no changes
+
+ -- Ville Ranki <ville.ranki@iki.fi>  Fri, 13 Jun 2014 12:34:56 +0300
+
 libsiilihai (2.3.2-1) trusty; urgency=low
 
   * Trusty release, no changes

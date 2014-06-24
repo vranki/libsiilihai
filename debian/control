@@ -3,7 +3,7 @@ Section: libs
 Priority: extra
 Maintainer: Ville Ranki <ville.ranki@iki.fi>
 Build-Depends: debhelper (>= 7.4.17), qtbase5-dev, qt5-default, cdbs (>= 0.4.87~), devscripts
-Standards-Version: 3.8.0
+Standards-Version: 3.9.5
 Homepage: http://www.siilihai.com/
 
 Package: libsiilihai2
