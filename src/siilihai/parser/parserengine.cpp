@@ -30,7 +30,7 @@
 static const QString operationNames[] = {"(null)", "NoOp", "Login", "FetchCookie", "ListGroups", "ListThreads", "ListMessages" };
 
 ParserEngine::ParserEngine(QObject *parent, ForumDatabase *fd, ParserManager *pm, QNetworkAccessManager *n) :
-    UpdateEngine(parent, fd), parserManager(pm), nam(n) {
+    UpdateEngine(parent, fd), parserManager(pm), nam(n), codec(0) {
 
     connect(this, SIGNAL(listGroupsFinished(QList<ForumGroup*>&, ForumSubscription *)), this, SLOT(listGroupsFinished(QList<ForumGroup*>&, ForumSubscription *)));
     connect(this, SIGNAL(listThreadsFinished(QList<ForumThread*>&, ForumGroup*)), this, SLOT(listThreadsFinished(QList<ForumThread*>&, ForumGroup*)));
@@ -70,10 +70,14 @@ ParserEngine::~ParserEngine() {
 void ParserEngine::setParser(ForumParser *fp) {
     currentParser = fp;
     if(fp) {
+        codec = QTextCodec::codecForName(fp->charset.toUtf8());
+        if(!codec) codec = QTextCodec::codecForName("utf-8"); // Just to avoid crash in some weird situation
+        qDebug() << Q_FUNC_INFO << " textcodec for " << fp->charset << " is " << codec->name();
         if(subscription() && !updatingParser && state()==UES_ENGINE_NOT_READY)  {
             setState(UES_IDLE); // We have both parser & sub
         }
     } else { // No parser
+        codec = 0;
         if(!updatingParser)
             setState(UES_ENGINE_NOT_READY);
     }
@@ -178,9 +182,9 @@ bool ParserEngine::parserMakerMode() {
 }
 
 void ParserEngine::credentialsEntered(CredentialsRequest* cr) {
+    qDebug() << Q_FUNC_INFO;
     if(cr->credentialType==CredentialsRequest::SH_CREDENTIAL_HTTP) {
-        Q_ASSERT(waitingForAuthentication);
-        qDebug() << Q_FUNC_INFO;
+        Q_ASSERT(waitingForAuthentication); // @todo this may happen when host u/p has changed and new ones have been entered. why?
         waitingForAuthentication = false;
     }
     UpdateEngine::credentialsEntered(cr);
@@ -361,7 +365,7 @@ void ParserEngine::loginReply(QNetworkReply *reply) {
     Q_ASSERT(loggingIn);
     loggingIn = false;
 
-    QString data = convertCharset(reply->readAll());
+    QString data = codec->toUnicode(reply->readAll());
     if (reply->error() != QNetworkReply::NoError) {
         emit loginFinished(subscription(), false);
         networkFailure(reply->errorString());
@@ -394,7 +398,8 @@ void ParserEngine::listGroupsReply(QNetworkReply *reply) {
     }
     Q_ASSERT(reply->request().attribute(QNetworkRequest::User).toInt() == PEOUpdateForum);
 
-    QString data = convertCharset(reply->readAll());
+    QString data = codec->toUnicode(reply->readAll());
+
     if (reply->error() != QNetworkReply::NoError) {
         networkFailure(reply->errorString());
         return;
@@ -447,7 +452,8 @@ void ParserEngine::listThreadsReply(QNetworkReply *reply) {
         networkFailure(reply->errorString());
         return;
     }
-    QString data = convertCharset(reply->readAll());
+    QString data = codec->toUnicode(reply->readAll());
+
     performListThreads(data);
 }
 
@@ -554,7 +560,7 @@ void ParserEngine::listMessagesReply(QNetworkReply *reply) {
         networkFailure(reply->errorString());
         return;
     }
-    QString data = convertCharset(reply->readAll());
+    QString data = codec->toUnicode(reply->readAll());
     performListMessages(data);
 }
 
@@ -670,8 +676,8 @@ QString ParserEngine::statusReport() {
             + QString().number(foundThreads.size()) + "\n" + "Messages: "
             + QString().number(foundMessages.size()) + "\n" + "Page: "
             + QString().number(currentListPage)/* + "\n" + "Group: "
-                                   + currentGroup->toString() + "\n" + "Thread: "
-                                                        + currentThread->toString() + "\n"*/;
+                                           + currentGroup->toString() + "\n" + "Thread: "
+                                                                + currentThread->toString() + "\n"*/;
 }
 
 QString ParserEngine::getMessageUrl(const ForumMessage *msg) {
@@ -740,7 +746,7 @@ void ParserEngine::authenticationRequired(QNetworkReply * reply, QAuthenticator 
         if (subscription()->username().length() <= 0 || subscription()->password().length() <= 0) {
             qDebug() << Q_FUNC_INFO << "FAIL: no credentials given for subscription " << subscription()->toString();
             networkFailure("Server requested for username and password for forum "
-                                + subscription()->alias() + " but you haven't provided them.");
+                           + subscription()->alias() + " but you haven't provided them.");
         } else {
             qDebug() << Q_FUNC_INFO << "Gave credentials to server";
             authenticator->setUser(subscription()->username());
@@ -748,8 +754,10 @@ void ParserEngine::authenticationRequired(QNetworkReply * reply, QAuthenticator 
         }
     } else {
         waitingForAuthentication = true;
+        qDebug() << Q_FUNC_INFO << subscription()->alias() << "Requesting for authentication now..";
         emit getHttpAuthentication(subscription(), authenticator);
         if(!authenticator->user().isEmpty()) { // Got authentication directly (from settings)
+            qDebug() << Q_FUNC_INFO << subscription()->alias() << " got authentication from settings";
             waitingForAuthentication = false;
         }
     }
@@ -804,22 +812,6 @@ void ParserEngine::setRequestAttributes(QNetworkRequest &req, ParserEngineOperat
     req.setHeader(QNetworkRequest::ContentTypeHeader, QString("application/x-www-form-urlencoded"));
     // @todo Make this configurable
     req.setRawHeader("User-Agent", "Mozilla/5.0 (X11; Linux i686; rv:6.0) Gecko/20100101 Firefox/6.0");
-}
-
-QString ParserEngine::convertCharset(const QByteArray &src) {
-    QString converted;
-    // I don't like this.. Support needed for more!
-    if (parser()->charset == "" || parser()->charset == "utf-8") {
-        converted = QString::fromUtf8(src.data());
-    } else if (parser()->charset == "iso-8859-1" || parser()->charset == "iso-8859-15") {
-        converted = QString::fromLatin1(src.data());
-    } else {
-        qDebug() << Q_FUNC_INFO << "Unknown charset " << parser()->charset << " - assuming UTF-8";
-        converted = QString().fromUtf8(src.data());
-    }
-    // Remove silly newlines
-    converted.replace(QChar(13), QChar(' '));
-    return converted;
 }
 
 ForumSubscriptionParsed *ParserEngine::subscriptionParsed() const

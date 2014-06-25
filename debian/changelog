@@ -1,3 +1,9 @@
+libsiilihai (2.3.3) trusty; urgency=low
+
+  * Minor fixes to character encoding issues
+
+ -- Ville Ranki <ville.ranki@iki.fi>  Fri, 13 Jun 2014 12:34:56 +0300
+
 libsiilihai (2.3.2-2) trusty; urgency=low
 
   * Another Trusty release, no changes

@@ -18,6 +18,7 @@
 #include "forumparser.h"
 #include "forumsubscriptionparsed.h"
 #include <QTimer>
+#include <QTextCodec>
 
 class ParserManager;
 class PatternMatcher;
@@ -88,6 +89,7 @@ signals:
 
 protected:
     virtual void requestCredentials();
+
 private:
     enum ParserEngineOperation { PEONoOp=1, PEOLogin, PEOFetchCookie, PEOUpdateForum, PEOUpdateGroup, PEOUpdateThread };
     bool parserMakerMode(); // Returns true if running in parser maker - less strict sanity tests
@@ -110,8 +112,6 @@ private:
     void listThreadsOnNextPage();
     void listMessagesOnNextPage();
     void setRequestAttributes(QNetworkRequest &req, ParserEngineOperation op);
-
-    QString convertCharset(const QByteArray &src);
     QString statusReport();
     PatternMatcher *patternMatcher;
     QNetworkAccessManager *nam;
@@ -129,6 +129,7 @@ private:
     QString currentMessagesUrl;
     QTimer cookieExpiredTimer;
     bool waitingForAuthentication;
+    QTextCodec *codec; // Text codec to use for reading html.
 };
 
 #endif /* PARSERENGINE_H_ */

@@ -25,6 +25,7 @@ ForumParser::ForumParser(QObject *parent) : QObject(parent){
     parser_type = 0;
     parser_status = 0;
     date_format = 0;
+    charset = "utf-8";
     update_date = QDate(1970, 1, 1);
 }
 

@@ -42,8 +42,6 @@ void TapaTalkEngine::convertBodyToHtml(ForumMessage *msg)
 {
     // @todo: this is probably quite stupid way to do this. Use Regexp or something?
 
-    // @todo replace quotes like this [quote name='GlobalGentleman' timestamp='1355152101' post='2541234']
-
     QString origBody = msg->body();
     QString newBody = origBody;
     newBody = newBody.replace("[/url]", "</a>");
@@ -96,6 +94,20 @@ void TapaTalkEngine::convertBodyToHtml(ForumMessage *msg)
             }
         }
     } while(urlPosition >= 0);
+
+    // Replace [quote name='GlobalGentleman' timestamp='1355152101' post='2541234']
+    int quotePosition = -1;
+    do {
+        quotePosition = newBody.indexOf("[quote");
+        if(quotePosition >= 0) {
+            int quoteEndPosition = newBody.indexOf("]", quotePosition);
+            if(quoteEndPosition >= quotePosition) {
+                newBody.replace(quotePosition, quoteEndPosition - quotePosition + 1, "<div class=\"quote\">");
+            } else {
+                quotePosition = -1;
+            }
+        }
+    } while(quotePosition >=0);
 
     // newBody.append("----- <pre>" + origBody + "</pre>");
     msg->setBody(newBody);

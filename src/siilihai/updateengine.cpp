@@ -74,6 +74,7 @@ void UpdateEngine::subscriptionDeleted() {
 QNetworkAccessManager * UpdateEngine::networkAccessManager() {
     return &nam;
 }
+
 void UpdateEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups, ForumSubscription *updatedSub) {
     if(updateCanceled) return;
     if(!fsubscription) return;

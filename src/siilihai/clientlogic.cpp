@@ -494,9 +494,8 @@ void ClientLogic::userSettingsReceived(bool success, UserSettings *newSettings) 
 
 void ClientLogic::updateFailure(ForumSubscription* fsub, QString msg) {
     QString key = QString("authentication/%1/failed").arg(fsub->id());
-    qDebug() << Q_FUNC_INFO << "was: " << settings->value(key).toString();
+    qDebug() << Q_FUNC_INFO << "was pereviously failed: " << settings->value(key).toString();
     settings->setValue(key, "true");
-    qDebug() << Q_FUNC_INFO << "now: " << settings->value(key).toString();
     errorDialog(fsub->alias() + "\n" + msg);
 }
 

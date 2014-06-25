@@ -12,7 +12,7 @@ unix {
     CONFIG -= release
 }
 
-QT += core xml network
+QT += core xml network webkitwidgets
 
 QT -= gui
 

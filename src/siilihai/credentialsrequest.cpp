@@ -10,6 +10,6 @@ CredentialsRequest::CredentialsRequest() : QObject(), credentialType(SH_CREDENTI
 }
 
 void CredentialsRequest::signalCredentialsEntered(bool store) {
-    qDebug() << Q_FUNC_INFO;
+    qDebug() << Q_FUNC_INFO << "store:" << store;
     emit credentialsEntered(store);
 }
