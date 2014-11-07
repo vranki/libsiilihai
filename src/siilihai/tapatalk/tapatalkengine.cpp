@@ -85,6 +85,7 @@ void TapaTalkEngine::convertBodyToHtml(ForumMessage *msg)
             int urlEndPosition = newBody.indexOf("</a>", urlPosition);
             if(urlEndPosition >= urlPosition) {
                 QString urlAddress = newBody.mid(urlPosition + 5, urlEndPosition - urlPosition - 5);
+                urlAddress.replace("[url]", ""); // URL address can't have URL's in them
                 urlAddress = "<a href=\"" + urlAddress + "\">";
                 newBody = newBody.replace(urlPosition, 5, urlAddress);
             } else {
