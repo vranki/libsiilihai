@@ -125,6 +125,7 @@ void ParserEngine::parserUpdated(ForumParser *p) {
 }
 
 void ParserEngine::updateParserIfError(UpdateEngine::UpdateEngineState newState, UpdateEngine::UpdateEngineState oldState) {
+    Q_UNUSED(oldState);
     if(newState == UES_ERROR && parserManager) {
         parserManager->updateParser(subscriptionParsed()->parserId());
     }

@@ -290,7 +290,6 @@ void SyncMaster::serverMessageData(ForumMessage *tempMessage) { // Temporary obj
         Q_ASSERT(false);
     }
     fdb.checkSanity();
-    // QCoreApplication::processEvents();
 }
 
 void SyncMaster::getThreadDataFinished(bool success, QString message){
@@ -306,6 +305,9 @@ void SyncMaster::getThreadDataFinished(bool success, QString message){
     } else {
         errorCount++;
         if(errorCount > 15) {
+            foreach(ForumSubscription *fsub, fdb.values()) {
+                fsub->setBeingSynced(false);
+            }
             emit syncFinished(false, message);
         } else {
             qDebug() << Q_FUNC_INFO << "Failed! Error count: " << errorCount;

@@ -21,12 +21,13 @@ public:
 signals:
     void probeResults(ForumSubscription *probedSub);
 
-public slots:
 private slots:
     void finishedSlot(QNetworkReply* reply);
     void forumGot(ForumSubscription *sub);
     void engineProbeResults(ForumSubscription *sub);
 private:
+    QString getTitle(QString &html);
+
     QNetworkAccessManager nam;
     SiilihaiProtocol &protocol;
     QUrl url;

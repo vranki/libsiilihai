@@ -1,3 +1,10 @@
+libsiilihai (2.3.4-1) utopic; urgency=low
+
+  * Fix for a tapatalk html conversion bug
+  * Use QNetworkSession to connect to internet
+
+ -- Ville Ranki <ville.ranki@iki.fi>  Sun, 9 Nov 2014 12:34:56 +0300
+
 libsiilihai (2.3.3) trusty; urgency=low
 
   * Minor fixes to character encoding issues

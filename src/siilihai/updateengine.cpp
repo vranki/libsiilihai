@@ -244,7 +244,7 @@ void UpdateEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages, Foru
 
     dbThread->markToBeUpdated(false);
     if(tempMessages.size()==0) qDebug() << Q_FUNC_INFO << "got 0 messages in thread " << dbThread->toString();
-    bool messagesChanged = false; // @todo this is not used anywhere.. should be deleted?
+
     foreach (ForumMessage *tempMessage, tempMessages) {
         bool foundInDb = false;
         foreach (ForumMessage *dbMessage, dbThread->values()) {
@@ -258,7 +258,6 @@ void UpdateEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages, Foru
             }
         }
         if (!foundInDb) {
-            messagesChanged = true;
             ForumMessage *newMessage = new ForumMessage(dbThread, false);
             newMessage->copyFrom(tempMessage);
             newMessage->markToBeUpdated(false);
@@ -276,7 +275,6 @@ void UpdateEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages, Foru
         }
         if (!messageFound) { // @todo don't delete, if tempMessages doesn't start from first page!!
             // @todo are ordernums ok then? This is probably causing a bug.
-            messagesChanged = true;
             dbThread->removeMessage(dbmessage);
         }
     }
@@ -300,6 +298,7 @@ void UpdateEngine::networkFailure(QString message) {
 }
 
 void UpdateEngine::loginFinishedSlot(ForumSubscription *sub, bool success) {
+    Q_UNUSED(sub);
     if(state()!=UES_UPDATING) {
         qDebug() << Q_FUNC_INFO << "We're not updating so i'll ignore this as a old reply";
         return;
@@ -454,6 +453,10 @@ void UpdateEngine::credentialsEntered(CredentialsRequest* cr) {
 }
 
 bool UpdateEngine::postMessage(ForumGroup *grp, ForumThread *thr, QString subject, QString body) {
+    Q_UNUSED(grp);
+    Q_UNUSED(thr);
+    Q_UNUSED(subject);
+    Q_UNUSED(body);
     return false;
 }
 

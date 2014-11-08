@@ -3,6 +3,7 @@
 #include <QDir>
 #include <QNetworkProxy>
 #include <QTimer>
+#include <QNetworkConfigurationManager>
 #include "parser/parsermanager.h"
 #include "forumdata/forumsubscription.h"
 #include "forumdata/forumgroup.h"
@@ -16,14 +17,16 @@
 #include "siilihaisettings.h"
 #include "messageformatting.h"
 
-ClientLogic::ClientLogic(QObject *parent) : QObject(parent), currentState(SH_OFFLINE), settings(0), forumDatabase(this), syncmaster(this, forumDatabase, protocol),
-    parserManager(0), currentCredentialsRequest(0) {
+ClientLogic::ClientLogic(QObject *parent) : QObject(parent), settings(0), forumDatabase(this),  syncmaster(this, forumDatabase, protocol),
+    parserManager(0), currentCredentialsRequest(0), currentState(SH_OFFLINE) {
     endSyncDone = false;
     firstRun = true;
     dbStored = false;
     devMode = 0;
     srand ( time(NULL) );
-
+    QNetworkConfigurationManager ncm;
+    QNetworkConfiguration config = ncm.defaultConfiguration();
+    networkSession = new QNetworkSession(config, this);
     statusMsgTimer.setSingleShot(true);
     connect(&statusMsgTimer, SIGNAL(timeout()), this, SLOT(clearStatusMessage()));
 
@@ -175,9 +178,13 @@ void ClientLogic::tryLogin() {
         QTimer::singleShot(50, this, SLOT(accountlessLoginFinished()));
         return;
     }
-
-    connect(&protocol, SIGNAL(loginFinished(bool, QString,bool)), this, SLOT(loginFinished(bool, QString,bool)));
-    protocol.login(settings->username(), settings->password());
+    if(networkSession->isOpen()) {
+        connect(&protocol, SIGNAL(loginFinished(bool, QString,bool)), this, SLOT(loginFinished(bool, QString,bool)));
+        protocol.login(settings->username(), settings->password());
+    } else {
+        loginFinished(false, "Offline mode", usettings.syncEnabled());
+        changeState(SH_OFFLINE);
+    }
 }
 
 void ClientLogic::accountlessLoginFinished() {
@@ -198,19 +205,20 @@ void ClientLogic::changeState(siilihai_states newState) {
 
     if(newState==SH_OFFLINE) {
         qDebug() << Q_FUNC_INFO << "Offline";
+        networkSession->close();
         Q_ASSERT(previousState==SH_LOGIN || previousState==SH_STARTSYNCING || previousState==SH_READY || previousState==SH_STARTED);
-        if(previousState==SH_STARTSYNCING)
-            syncmaster.cancel();
+        if(previousState==SH_STARTSYNCING) syncmaster.cancel();
     } else if(newState==SH_LOGIN) {
         qDebug() << Q_FUNC_INFO << "Login";
+        networkSession->open();
         showStatusMessage("Logging in..");
     } else if(newState==SH_STARTSYNCING) {
         qDebug() << Q_FUNC_INFO << "Startsync";
         if(usettings.syncEnabled()) {
-                foreach(ForumSubscription *sub, forumDatabase.values()) {
-                    sub->setScheduledForUpdate(true);
-                }
-                connect(&syncmaster, SIGNAL(syncFinishedFor(ForumSubscription*)), this, SLOT(updateForum(ForumSubscription*)));
+            foreach(ForumSubscription *sub, forumDatabase.values()) {
+                sub->setScheduledForUpdate(true);
+            }
+            connect(&syncmaster, SIGNAL(syncFinishedFor(ForumSubscription*)), this, SLOT(updateForum(ForumSubscription*)));
             syncmaster.startSync();
         }
     } else if(newState==SH_ENDSYNC) {
@@ -378,7 +386,7 @@ void ClientLogic::loginFinished(bool success, QString motd, bool sync) {
             changeState(SH_READY);
         }
     } else {
-        errorDialog("Error: Login failed. Check your username, password and network connection.");
+        errorDialog("Login failed. \n" + motd);
         // @todo this happens also on first run if logging in with wrong u/p.
         // using login as network test sucks anyway.
 
@@ -421,7 +429,6 @@ void ClientLogic::createEngineForSubscription(ForumSubscription *newFs) {
         pe->setParser(parserManager->getParser(newFsParsed->parserId()));
         if(!pe->parser()) pe->setParser(parserManager->getParser(newFsParsed->parserId())); // Load the (possibly old) parser
     } else if(newFs->isTapaTalk()) {
-        ForumSubscriptionTapaTalk *newFsTt = qobject_cast<ForumSubscriptionTapaTalk*>(newFs);
         TapaTalkEngine *tte = new TapaTalkEngine(&forumDatabase, this);
         ue = tte;
     }
@@ -469,8 +476,6 @@ void ClientLogic::forumUpdated(ForumSubscription* forum) {
             busyForums++;
         }
     }
-    if(!busyForums)
-        forumDatabase.storeDatabase();
 }
 
 void ClientLogic::subscribeForumFinished(ForumSubscription *sub, bool success) {
@@ -541,8 +546,8 @@ void ClientLogic::unregisterSiilihai() {
 // Called when app about to quit - handle upsync & quitting
 void ClientLogic::aboutToQuit() {
     qDebug() << Q_FUNC_INFO;
-//    QEventLoop eventLoop;
-//    eventLoop.exec();
+    //    QEventLoop eventLoop;
+    //    eventLoop.exec();
 }
 
 void ClientLogic::setDeveloperMode(bool newDm) {
@@ -744,5 +749,6 @@ void ClientLogic::credentialsEntered(bool store) {
 }
 
 void ClientLogic::syncProgress(float progress, QString message) {
+    Q_UNUSED(progress);
     showStatusMessage(message);
 }

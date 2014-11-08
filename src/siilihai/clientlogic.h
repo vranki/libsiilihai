@@ -5,6 +5,7 @@
 #include <QSettings>
 #include <QQueue>
 #include <QTimer>
+#include <QNetworkSession>
 
 #if QT_VERSION >= 0x050000
 #include <QStandardPaths>
@@ -110,7 +111,7 @@ protected slots:
     virtual void getHttpAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator);
     virtual void getForumAuthentication(ForumSubscription *fsub);
     virtual void showStatusMessage(QString message=QString::null);
-    virtual void groupListChanged(ForumSubscription* sub) {}; // Show group subscription dialog or whatever
+    virtual void groupListChanged(ForumSubscription* sub) {Q_UNUSED(sub)}; // Show group subscription dialog or whatever
     virtual void forumUpdateNeeded(ForumSubscription *sub); // Sends the updated forum info (authentication etc)
     void forumAdded(ForumSubscription *fs); // Ownership won't change
     void moreMessagesRequested(ForumThread* thread);
@@ -136,6 +137,7 @@ private slots:
 protected:
     CredentialsRequest* currentCredentialsRequest; // If being asked
     virtual SiilihaiSettings *createSettings(); // Create the settings object to be used. Can be your own subclass.
+    QNetworkSession *networkSession;
 private:
     void tryLogin();
     void showNextCredentialsDialog();

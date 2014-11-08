@@ -1,7 +1,9 @@
 #include "forumprobe.h"
 #include <QTextCodec>
+#ifndef NO_WEBKITWIDGETS
 #include <QWebFrame>
 #include <QWebPage>
+#endif
 #include "tapatalk/tapatalkengine.h"
 #include "messageformatting.h"
 
@@ -73,9 +75,26 @@ void ForumProbe::engineProbeResults(ForumSubscription *sub) {
     currentEngine = 0;
 }
 
+QString ForumProbe::getTitle(QString &html) {
+    QString title;
+#ifndef NO_WEBKITWIDGETS
+    QWebPage *page = new QWebPage();
+    QWebFrame *frame = page->mainFrame();
+    frame->setHtml(html);
+    title = frame->title();
+    page->deleteLater();
+#else
+    int titleBegin = html.indexOf("<title>");
+    if(titleBegin > 0) {
+        int titleEnd = html.indexOf("</", titleBegin);
+        title = html.mid(titleBegin + 7, titleEnd - titleBegin - 7);
+    }
+#endif
+    return title;
+}
+
 // Title reply
 void ForumProbe::finishedSlot(QNetworkReply *reply) {
-    qDebug() << Q_FUNC_INFO;
     Q_ASSERT(probedSub);
     // no error received?
     if (reply->error() == QNetworkReply::NoError) {
@@ -83,11 +102,7 @@ void ForumProbe::finishedSlot(QNetworkReply *reply) {
         QByteArray ba = reply->readAll();
         QTextCodec *codec = QTextCodec::codecForHtml(ba);
         QString html = codec->toUnicode(ba);
-        QWebPage *page = new QWebPage();
-        QWebFrame *frame = page->mainFrame();
-        frame->setHtml(html);
-        QString title = frame->title();
-        page->deleteLater();
+        QString title = getTitle(html);
         if(title.length() < 3) {
             qDebug() << Q_FUNC_INFO << "couldn't get title - setting url instead";
             title = reply->url().host();
