@@ -36,6 +36,7 @@ class ForumThread;
 class ForumMessage;
 
 #define CLIENT_VERSION "2.0.0"
+#define BASEURL "http://www.siilihai.com/"
 
 /**
   * Implements communication protocol between siilihai.com server and the client.

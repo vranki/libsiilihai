@@ -30,6 +30,7 @@ SiilihaiProtocol::SiilihaiProtocol(QObject *parent) : QObject(parent) {
     operationInProgress = SPONoOp;
     nam.setCookieJar(new QNetworkCookieJar(this));
     forumBeingSubscribed = 0;
+    setBaseURL(BASEURL);
     connect(&nam, SIGNAL(finished(QNetworkReply*)), this, SLOT(networkReply(QNetworkReply*)), Qt::UniqueConnection);
 }
 

@@ -15,6 +15,8 @@ unix {
 QT += core xml network webkitwidgets
 
 QT -= gui
+CONFIG += c++11
+
 
 debug {
 #    message(Debug build - enabling sanity checks)

@@ -1,15 +1,8 @@
 TEMPLATE = subdirs
-SUBDIRS = src src/test
+SUBDIRS = src src/test src/siilihai-tool
 OTHER_FILES = debian/control debian/rules debian/changelog debian/copyright\
     debian/libsiilihai2.install debian/libsiilihai2-dev.install\
     rpm/* \
-    qtc_packaging/debian_harmattan/rules \
-    qtc_packaging/debian_harmattan/README \
-    qtc_packaging/debian_harmattan/manifest.aegis \
-    qtc_packaging/debian_harmattan/copyright \
-    qtc_packaging/debian_harmattan/control \
-    qtc_packaging/debian_harmattan/compat \
-    qtc_packaging/debian_harmattan/changelog \
     android/res/values-ja/strings.xml \
     android/res/values-pt-rBR/strings.xml \
     android/res/values-de/strings.xml \
