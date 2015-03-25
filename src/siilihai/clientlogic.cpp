@@ -498,9 +498,8 @@ void ClientLogic::userSettingsReceived(bool success, UserSettings *newSettings) 
 }
 
 void ClientLogic::updateFailure(ForumSubscription* fsub, QString msg) {
-    QString key = QString("authentication/%1/failed").arg(fsub->id());
-    qDebug() << Q_FUNC_INFO << "was pereviously failed: " << settings->value(key).toString();
-    settings->setValue(key, "true");
+    qDebug() << Q_FUNC_INFO << fsub->alias() << "was pereviously failed: " << settings->updateFailed(fsub->id());
+    settings->setUpdateFailed(fsub->id(), true);
     errorDialog(fsub->alias() + "\n" + msg);
 }
 
@@ -655,28 +654,30 @@ void ClientLogic::unsubscribeForum(ForumSubscription* fs) {
 // Authenticator can be null!
 void ClientLogic::getHttpAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator) {
     qDebug() << Q_FUNC_INFO << fsub->alias();
-    bool failed = false;
+    bool failed = settings->updateFailed(fsub->id());
+    qDebug() << Q_FUNC_INFO << "Failed:" << failed;
     QString gname = QString().number(fsub->id());
-    settings->beginGroup("authentication");
-
     // Must exist and be longer than zero
-    if(settings->contains(QString("%1/username").arg(gname)) &&
-            settings->value(QString("%1/username").arg(gname)).toString().length() > 0) {
-        QString key = QString("%1/failed").arg(fsub->id());
-        if(settings->value(key).toString() == "true") failed = true;
+    if(!failed &&
+            settings->contains(QString("authentication/%1/username").arg(gname)) &&
+            settings->value(QString("authentication/%1/username").arg(gname)).toString().length() > 0) {
         if(authenticator && !failed) {
             qDebug() << Q_FUNC_INFO << "reading u/p from settings";
-            authenticator->setUser(settings->value(QString("%1/username").arg(gname)).toString());
-            authenticator->setPassword(settings->value(QString("%1/password").arg(gname)).toString());
+            authenticator->setUser(settings->value(QString("authentication/%1/username").arg(gname)).toString());
+            authenticator->setPassword(settings->value(QString("authentication/%1/password").arg(gname)).toString());
         }
     }
-    settings->endGroup();
     if(!authenticator || authenticator->user().isNull() || failed) { // Ask user the credentials
         qDebug() << Q_FUNC_INFO << "asking user for http credentials";
+        // Return empty authenticator
+        authenticator->setUser(QString::null);
+        authenticator->setPassword(QString::null);
+
         CredentialsRequest *cr = new CredentialsRequest(this);
         cr->subscription = fsub;
         cr->credentialType = CredentialsRequest::SH_CREDENTIAL_HTTP;
         credentialsRequests.append(cr);
+        settings->setUpdateFailed(fsub->id(), false); // Reset failed status
         if(!currentCredentialsRequest)
             showNextCredentialsDialog();
     }

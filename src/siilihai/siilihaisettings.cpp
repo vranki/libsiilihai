@@ -116,6 +116,19 @@ int SiilihaiSettings::maxMessagesPerThread() const {
     return 100;
 }
 
+bool SiilihaiSettings::updateFailed(int fid)
+{
+    QString key = QString("authentication/%1/failed").arg(fid);
+    QString valueS = value(key).toString();
+    return valueS == "true";
+}
+
+void SiilihaiSettings::setUpdateFailed(int fid, bool failed)
+{
+    QString key = QString("authentication/%1/failed").arg(fid);
+    setValue(key, failed ? "true" : "false");
+}
+
 void SiilihaiSettings::setThreadsPerGroup(int tpg)
 {
     setValue("preferences/threads_per_group", tpg);

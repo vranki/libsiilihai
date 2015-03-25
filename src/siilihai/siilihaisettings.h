@@ -47,6 +47,9 @@ public:
     Q_INVOKABLE int maxThreadsPerGroup() const;
     Q_INVOKABLE int maxMessagesPerThread() const;
 
+    // Did the last update fail?
+    bool updateFailed(int fid);
+    void setUpdateFailed(int fid, bool failed);
 signals:
     void changed();
 };

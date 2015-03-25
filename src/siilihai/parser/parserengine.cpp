@@ -166,6 +166,8 @@ void ParserEngine::cancelOperation() {
     groupBeingUpdated = 0;
     threadBeingUpdated = 0;
     waitingForAuthentication = false;
+    qDebug() << Q_FUNC_INFO << "waitingForAuthentication: " << waitingForAuthentication;
+
     UpdateEngine::cancelOperation();
 }
 
@@ -187,6 +189,7 @@ void ParserEngine::credentialsEntered(CredentialsRequest* cr) {
     if(cr->credentialType==CredentialsRequest::SH_CREDENTIAL_HTTP) {
         Q_ASSERT(waitingForAuthentication); // @todo this may happen when host u/p has changed and new ones have been entered. why?
         waitingForAuthentication = false;
+        qDebug() << Q_FUNC_INFO << "waitingForAuthentication: " << waitingForAuthentication;
     }
     UpdateEngine::credentialsEntered(cr);
 }
@@ -755,11 +758,15 @@ void ParserEngine::authenticationRequired(QNetworkReply * reply, QAuthenticator 
         }
     } else {
         waitingForAuthentication = true;
+        qDebug() << Q_FUNC_INFO << "waitingForAuthentication: " << waitingForAuthentication;
         qDebug() << Q_FUNC_INFO << subscription()->alias() << "Requesting for authentication now..";
         emit getHttpAuthentication(subscription(), authenticator);
         if(!authenticator->user().isEmpty()) { // Got authentication directly (from settings)
             qDebug() << Q_FUNC_INFO << subscription()->alias() << " got authentication from settings";
             waitingForAuthentication = false;
+            qDebug() << Q_FUNC_INFO << "waitingForAuthentication: " << waitingForAuthentication;
+        } else {
+            qDebug() << Q_FUNC_INFO << subscription()->alias() << " no authentication - requesting with dialog.";
         }
     }
 }
