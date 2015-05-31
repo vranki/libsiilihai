@@ -132,8 +132,6 @@ void ParserEngine::updateParserIfError(UpdateEngine::UpdateEngineState newState,
 }
 
 void ParserEngine::cancelOperation() {
-    qDebug() << Q_FUNC_INFO << (subscription() ? subscription()->toString() : "(no sub)");
-
     updateAll = false;
     updateCanceled = true;
     if(operationInProgress == PEOUpdateForum) {

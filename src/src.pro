@@ -61,7 +61,8 @@ forumdata.files += siilihai/forumdata/forummessage.h \
     siilihai/forumdata/forumgroup.h \
     siilihai/forumdata/forumsubscription.h \
     siilihai/forumdata/forumdataitem.h \
-    siilihai/forumdata/updateableitem.h
+    siilihai/forumdata/updateableitem.h \
+    siilihai/forumdata/updateerror.h
 forumdata.path += $$headers.path/forumdata
 
 forumdatabase.files += siilihai/forumdatabase/forumdatabase.h \
