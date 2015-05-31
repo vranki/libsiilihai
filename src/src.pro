@@ -69,7 +69,8 @@ forumdatabase.files += siilihai/forumdatabase/forumdatabase.h \
 forumdatabase.path = $$headers.path/forumdatabase
 
 HEADERS += $$tapatalk.files $$parser.files $$forumdata.files $$forumdatabase.files $$headers.files \
-    siilihai/tapatalk/tapatalkengine.h
+    siilihai/tapatalk/tapatalkengine.h \
+    siilihai/forumdata/updateerror.h
 
 
 SOURCES += siilihai/syncmaster.cpp \
@@ -100,6 +101,7 @@ SOURCES += siilihai/syncmaster.cpp \
     siilihai/parser/forumparser.cpp \
     siilihai/parser/patternmatcher.cpp \
     siilihai/tapatalk/forumsubscriptiontapatalk.cpp \
-    siilihai/tapatalk/tapatalkengine.cpp
+    siilihai/tapatalk/tapatalkengine.cpp \
+    siilihai/forumdata/updateerror.cpp
 
 INSTALLS += headers tapatalk parser forumdata forumdatabase

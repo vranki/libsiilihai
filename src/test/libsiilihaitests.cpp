@@ -168,5 +168,5 @@ void LibSiilihaiTests::runForumDatabaseTests() {
 
 
 void LibSiilihaiTests::groupFound(ForumGroup *grp) {
-    qDebug() << Q_FUNC_INFO;
+    qDebug() << Q_FUNC_INFO << grp->toString();
 }

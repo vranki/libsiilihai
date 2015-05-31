@@ -22,6 +22,7 @@
 #include "../forumdata/forummessage.h"
 #include "../forumdatabase/forumdatabase.h"
 #include "../forumdata/forumsubscription.h"
+#include "../forumdata/updateerror.h"
 #include "../credentialsrequest.h"
 #include "patternmatcher.h"
 #include "parsermanager.h"
@@ -72,7 +73,6 @@ void ParserEngine::setParser(ForumParser *fp) {
     if(fp) {
         codec = QTextCodec::codecForName(fp->charset.toUtf8());
         if(!codec) codec = QTextCodec::codecForName("utf-8"); // Just to avoid crash in some weird situation
-        qDebug() << Q_FUNC_INFO << " textcodec for " << fp->charset << " is " << codec->name();
         if(subscription() && !updatingParser && state()==UES_ENGINE_NOT_READY)  {
             setState(UES_IDLE); // We have both parser & sub
         }
@@ -166,7 +166,6 @@ void ParserEngine::cancelOperation() {
     groupBeingUpdated = 0;
     threadBeingUpdated = 0;
     waitingForAuthentication = false;
-    qDebug() << Q_FUNC_INFO << "waitingForAuthentication: " << waitingForAuthentication;
 
     UpdateEngine::cancelOperation();
 }
@@ -189,7 +188,6 @@ void ParserEngine::credentialsEntered(CredentialsRequest* cr) {
     if(cr->credentialType==CredentialsRequest::SH_CREDENTIAL_HTTP) {
         Q_ASSERT(waitingForAuthentication); // @todo this may happen when host u/p has changed and new ones have been entered. why?
         waitingForAuthentication = false;
-        qDebug() << Q_FUNC_INFO << "waitingForAuthentication: " << waitingForAuthentication;
     }
     UpdateEngine::credentialsEntered(cr);
 }
@@ -202,7 +200,7 @@ void ParserEngine::doUpdateForum() {
     operationInProgress = ParserEngine::PEOUpdateForum;
 
     if(prepareForUse()) {
-        qDebug() << Q_FUNC_INFO << "Need to fetch cookie etc first, NOT updating yet";
+        // qDebug() << Q_FUNC_INFO << "Need to fetch cookie etc first, NOT updating yet";
         return;
     }
 
@@ -306,7 +304,7 @@ void ParserEngine::fetchCookieReply(QNetworkReply *reply) {
     if (reply->error() != QNetworkReply::NoError) {
         qDebug() << Q_FUNC_INFO << reply->errorString();
         if(reply->error() == QNetworkReply::AuthenticationRequiredError) {
-            emit updateFailure(subscription(), "Authentication required");
+            subscription()->appendError(new UpdateError("Authentication required"));
         } else {
             networkFailure(reply->errorString());
         }
@@ -379,19 +377,14 @@ void ParserEngine::loginReply(QNetworkReply *reply) {
 }
 
 void ParserEngine::performLogin(QString &html) {
-    //    qDebug() << Q_FUNC_INFO << " looking for " << parser()->verify_login_pattern;
     emit receivedHtml(html);
     bool success = html.contains(parser()->verify_login_pattern);
-    //    if(success)
-    //        qDebug() << Q_FUNC_INFO << "found in html at " << html.indexOf(parser()->verify_login_pattern);
     loggedIn = success;
     emit loginFinished(subscription(), success);
     // Rest is handled in UpdateEngine
 }
 
 void ParserEngine::listGroupsReply(QNetworkReply *reply) {
-    if(subscription())
-        qDebug() << Q_FUNC_INFO << subscription()->toString();
     Q_ASSERT(!threadBeingUpdated);
     Q_ASSERT(!groupBeingUpdated);
     if(operationInProgress == PEONoOp) return;
@@ -758,13 +751,11 @@ void ParserEngine::authenticationRequired(QNetworkReply * reply, QAuthenticator 
         }
     } else {
         waitingForAuthentication = true;
-        qDebug() << Q_FUNC_INFO << "waitingForAuthentication: " << waitingForAuthentication;
-        qDebug() << Q_FUNC_INFO << subscription()->alias() << "Requesting for authentication now..";
+        // qDebug() << Q_FUNC_INFO << subscription()->alias() << "Requesting for authentication now..";
         emit getHttpAuthentication(subscription(), authenticator);
         if(!authenticator->user().isEmpty()) { // Got authentication directly (from settings)
             qDebug() << Q_FUNC_INFO << subscription()->alias() << " got authentication from settings";
             waitingForAuthentication = false;
-            qDebug() << Q_FUNC_INFO << "waitingForAuthentication: " << waitingForAuthentication;
         } else {
             qDebug() << Q_FUNC_INFO << subscription()->alias() << " no authentication - requesting with dialog.";
         }

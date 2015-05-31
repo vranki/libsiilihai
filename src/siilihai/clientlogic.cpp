@@ -246,7 +246,6 @@ void ClientLogic::changeState(siilihai_states newState) {
 void ClientLogic::updateForum(ForumSubscription *sub) {
     if(!engines.contains(sub)) return; // Can happen if quitting
 
-    qDebug() << Q_FUNC_INFO << sub->toString();
     subscriptionsNotUpdated.remove(sub);
 
     if(sub->beingUpdated())
@@ -261,9 +260,7 @@ void ClientLogic::updateForum(ForumSubscription *sub) {
         sub->setScheduledForUpdate(true);
 
     int busyForums = busyForumCount();
-    qDebug() << Q_FUNC_INFO << "Busy forums :" << busyForums << " max " << MAX_CONCURRENT_UPDATES;
     if(busyForums < MAX_CONCURRENT_UPDATES) {
-        qDebug() << Q_FUNC_INFO << "Updating " << sub->toString();
         sub->setScheduledForUpdate(false);
         subscriptionsToUpdateLeft.removeAll(sub);
         Q_ASSERT(!sub->beingSynced());
@@ -438,7 +435,6 @@ void ClientLogic::createEngineForSubscription(ForumSubscription *newFs) {
     ue->setSubscription(newFs);
     connect(ue, SIGNAL(groupListChanged(ForumSubscription*)), this, SLOT(groupListChanged(ForumSubscription*)));
     connect(ue, SIGNAL(forumUpdated(ForumSubscription*)), this, SLOT(forumUpdated(ForumSubscription*)));
-    connect(ue, SIGNAL(updateFailure(ForumSubscription*, QString)), this, SLOT(updateFailure(ForumSubscription*, QString)));
     connect(ue, SIGNAL(getHttpAuthentication(ForumSubscription*, QAuthenticator*)), this, SLOT(getHttpAuthentication(ForumSubscription*,QAuthenticator*)));
     connect(ue, SIGNAL(getForumAuthentication(ForumSubscription*)), this, SLOT(getForumAuthentication(ForumSubscription*)));
     connect(ue, SIGNAL(loginFinished(ForumSubscription*,bool)), this, SLOT(forumLoginFinished(ForumSubscription*,bool)));
@@ -460,6 +456,9 @@ void ClientLogic::subscriptionDeleted(QObject* subobj) {
 }
 
 void ClientLogic::forumUpdated(ForumSubscription* forum) {
+    if(forum->errorList().size()) {
+        settings->setUpdateFailed(forum->id(), true);
+    }
     int busyForums = busyForumCount();
 
     subscriptionsNotUpdated.remove(forum);
@@ -495,12 +494,6 @@ void ClientLogic::userSettingsReceived(bool success, UserSettings *newSettings) 
         settings->sync();
         settingsChanged(false);
     }
-}
-
-void ClientLogic::updateFailure(ForumSubscription* fsub, QString msg) {
-    qDebug() << Q_FUNC_INFO << fsub->alias() << "was pereviously failed: " << settings->updateFailed(fsub->id());
-    settings->setUpdateFailed(fsub->id(), true);
-    errorDialog(fsub->alias() + "\n" + msg);
 }
 
 void ClientLogic::moreMessagesRequested(ForumThread* thread) {

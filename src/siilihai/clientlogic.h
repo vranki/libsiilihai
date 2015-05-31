@@ -128,7 +128,6 @@ private slots:
     void forumUpdated(ForumSubscription* forumid);
     void subscribeForumFinished(ForumSubscription *sub, bool success);
     void userSettingsReceived(bool success, UserSettings *newSettings);
-    void updateFailure(ForumSubscription* sub, QString msg);
     void databaseStored();
     void forumLoginFinished(ForumSubscription *sub, bool success);
     void credentialsEntered(bool store); // from CredentialsRequest

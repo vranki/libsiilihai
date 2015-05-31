@@ -3,7 +3,7 @@
 #include "../forumdata/forumgroup.h"
 #include "../forumdata/forumthread.h"
 #include "../forumdata/forummessage.h"
-
+#include "../forumdata/updateerror.h"
 #include <QDebug>
 #include <QNetworkRequest>
 #include <QNetworkReply>
@@ -212,7 +212,9 @@ void TapaTalkEngine::replyUpdateGroup(QNetworkReply *reply) {
     QList<ForumThread*> threads;
     if (reply->error() != QNetworkReply::NoError) {
         qDebug() << Q_FUNC_INFO << reply->errorString() << QString().fromUtf8(reply->readAll());
-        emit updateFailure(subscription(), "Error while updating group " + groupBeingUpdated->name() + "\nUnexpected TapatTalk reply.\nThis is a bug in Siilihai or TapaTalk server.\n" + reply->errorString());
+        subscription()->appendError(new UpdateError(QString("Error while updating group %1").arg(groupBeingUpdated->name()),
+                                                    "Unexpected TapatTalk reply. This is a bug in Siilihai or TapaTalk server. ",
+                                                    reply->errorString()));
         ForumGroup *updatedGroup = groupBeingUpdated;
         groupBeingUpdated = 0; // Update finished so clear this.
         listThreadsFinished(threads, updatedGroup);
@@ -235,11 +237,14 @@ void TapaTalkEngine::replyUpdateGroup(QNetworkReply *reply) {
         if(dataElement.nodeName() == "data") {
             getThreads(dataElement, &threads);
         } else {
-            qDebug() << Q_FUNC_INFO << docs;
-            networkFailure("Error while updating group " + groupBeingUpdated->name() + "\nUnexpected TapatTalk reply.\nThis is a bug in Siilihai or TapaTalk server.\nSee console for details.");
+            subscription()->appendError(new UpdateError(QString("Error while updating group %1").arg(groupBeingUpdated->name()),
+                                                        "Unexpected TapatTalk reply. This is a bug in Siilihai or TapaTalk server. ",
+                                                        docs));
         }
         if(threads.isEmpty()) {
-            qDebug() << Q_FUNC_INFO << "Couldn't get any threads in group " << groupBeingUpdated->name() << ". Received XML: \n\n" << docs << "\n\n";
+            subscription()->appendError(new UpdateError(QString("Couldn't get any threads in group %1").arg(groupBeingUpdated->name()),
+                                                        "",
+                                                        docs));
         }
     }
 
@@ -547,7 +552,7 @@ void TapaTalkEngine::replyListGroups(QNetworkReply *reply)
     if (reply->error() != QNetworkReply::NoError) {
         qDebug() << Q_FUNC_INFO << reply->errorString();
         listGroupsFinished(grps, subscription());
-        emit updateFailure(subscription(), reply->errorString());
+        subscription()->appendError(new UpdateError("Error updating forum", reply->errorString()));
         return;
     }
     QString docs = QString().fromUtf8(reply->readAll());
@@ -562,8 +567,7 @@ void TapaTalkEngine::replyListGroups(QNetworkReply *reply)
             getGroups(arrayDataElement, &grps, groupHierarchy);
             fixGroupNames(&grps, groupHierarchy);
         } else {
-            emit updateFailure(subscription(), "Unexpected TapaTalk response while listing groups.\nThis is a bug in Siilihai or server. Check console");
-            qDebug() << Q_FUNC_INFO << "Expected data element in response, got " << arrayDataElement.nodeName() << ". Full xml: \n\n" << docs << "\n\n";
+            subscription()->appendError(new UpdateError("Unexpected TapaTalk response while listing groups", "", docs));
         }
     } else { // Getting list failed
         QString resultText = getValueFromStruct(resultElement, "result_text");

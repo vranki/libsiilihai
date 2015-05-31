@@ -79,7 +79,7 @@ signals:
     void groupListChanged(ForumSubscription *forum);
     void forumUpdated(ForumSubscription *forum);
     void statusChanged(ForumSubscription *forum, float progress);
-    void updateFailure(ForumSubscription *forum, QString message); // Non-fatal, causes a error dialog
+    // void updateFailure(ForumSubscription *forum, QString message); // Non-fatal, causes a error dialog
     void getHttpAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator); // Asynchronous
     void getForumAuthentication(ForumSubscription *fsub); // Asynchronous
     void loginFinished(ForumSubscription *sub, bool success);

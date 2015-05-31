@@ -1,4 +1,16 @@
-libsiilihai (2.3.5) utopic; urgency=low
+libsiilihai (2.4.0-1) vivid; urgency=low
+
+  * Subscriptions now have errors as a list
+
+ -- Ville Ranki <ville.ranki@iki.fi>  Sun, 31 May 2015 12:34:56 +0300
+
+libsiilihai (2.3.5-2) vivid; urgency=low
+
+  * New test tool siilihai-tool
+
+ -- Ville Ranki <ville.ranki@iki.fi>  Mon, 2 Mar 2015 12:34:56 +0300
+
+libsiilihai (2.3.5-1) trusty; urgency=low
 
   * New test tool siilihai-tool
 

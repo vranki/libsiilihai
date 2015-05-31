@@ -46,6 +46,7 @@ void ForumSubscription::copyFrom(ForumSubscription * other) {
 }
 
 ForumSubscription::~ForumSubscription() {
+    clearErrors();
 }
 
 void ForumSubscription::addGroup(ForumGroup* grp, bool affectsSync, bool incrementUnreads) {
@@ -334,6 +335,42 @@ void ForumSubscription::setProvider(ForumSubscription::ForumProvider provider)
 {
     _provider = provider;
     emit changed();
+}
+
+QList<UpdateError *> ForumSubscription::errorList()
+{
+    return m_errors;
+}
+
+void ForumSubscription::appendError(UpdateError *ue)
+{
+    m_errors.append(ue);
+    emit errorsChanged();
+}
+
+void ForumSubscription::clearErrors()
+{
+    qDeleteAll(m_errors);
+    m_errors.clear();
+    emit errorsChanged();
+}
+
+QQmlListProperty<UpdateError> ForumSubscription::errors()
+{
+    return QQmlListProperty<UpdateError>(this, 0, &ForumSubscription::append_error, 0, 0, 0);
+}
+
+void ForumSubscription::append_error(QQmlListProperty<UpdateError> *list, UpdateError *msg)
+{
+    ForumSubscription *sub = qobject_cast<ForumSubscription *>(list->object);
+    if (msg)
+        sub->m_errors.append(msg);
+}
+
+int ForumSubscription::count_error(QQmlListProperty<UpdateError> *list)
+{
+    ForumSubscription *sub = qobject_cast<ForumSubscription *>(list->object);
+    return sub->m_errors.size();
 }
 
 QUrl ForumSubscription::forumUrl() const

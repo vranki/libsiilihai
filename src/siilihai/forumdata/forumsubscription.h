@@ -22,11 +22,12 @@
 #include <QUrl>
 #include <QDomElement>
 #include <QDomDocument>
-
+#include <QtQml/QQmlListProperty>
 #include "updateableitem.h"
 
 class ForumGroup;
 class UpdateEngine;
+class UpdateError;
 
 #define SUB_SUBSCRIPTION "subscription"
 #define SUB_PROVIDER "provider"
@@ -57,6 +58,7 @@ class ForumSubscription : public QObject, public QMap<QString, ForumGroup*>, pub
     Q_PROPERTY(QString password READ password WRITE setPassword NOTIFY changed)
     Q_PROPERTY(bool isAuthenticated READ isAuthenticated WRITE setAuthenticated NOTIFY changed)
     Q_PROPERTY(QString faviconUrl READ faviconUrl() NOTIFY changed)
+    Q_PROPERTY(QQmlListProperty<UpdateError> errors READ errors NOTIFY errorsChanged)
 
 public:
     enum ForumProvider {
@@ -117,6 +119,10 @@ public:
     bool supportsPosting() const;
     QString faviconUrl();
     void setProvider(ForumProvider provider); // Use with care!!
+    QList<UpdateError *> errorList(); // Don't store
+    void appendError(UpdateError *ue); // Ownership changes
+    void clearErrors();
+    QQmlListProperty<UpdateError> errors();
 
 signals:
     void changed();
@@ -125,12 +131,16 @@ signals:
     void groupRemoved(ForumGroup *grp);
     void groupAdded(ForumGroup *grp);
     void aliasChanged(QString alias);
+    void errorsChanged();
 
 protected:
     UpdateEngine *_engine;
 
 private:
     Q_DISABLE_COPY(ForumSubscription)
+    static void append_error(QQmlListProperty<UpdateError> *list, UpdateError *msg);
+    static int count_error(QQmlListProperty<UpdateError> *list);
+
     int _forumId; // != parser
     QString _alias;
     QString _username;
@@ -146,6 +156,7 @@ private:
     bool _scheduledForUpdate, _beingUpdated, _scheduledForSync, _beingSynced;
     ForumProvider _provider;
     QUrl _forumUrl;
+    QList<UpdateError*> m_errors;
 };
 
 #endif /* FORUMSUBSCRIPTION_H_ */

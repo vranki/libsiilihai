@@ -18,6 +18,7 @@
 #include "forumdata/forummessage.h"
 #include "forumdatabase/forumdatabase.h"
 #include "forumdata/forumsubscription.h"
+#include "forumdata/updateerror.h"
 #include "credentialsrequest.h"
 
 static const QString stateNames[] = {"Unknown", "Missing Parser", "Idle", "Updating", "Error", "Updating parser" };
@@ -106,7 +107,6 @@ void UpdateEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups, ForumSubsc
                     ((dbGroup->lastchange() != tempGroup->lastchange()) || forceUpdate ||
                      dbGroup->isEmpty() || dbGroup->needsToBeUpdated()))) {
                     dbGroup->markToBeUpdated();
-                    qDebug() << Q_FUNC_INFO << "Group " << dbGroup->toString() << " shall be updated";
                     // Store the updated version to database
                     tempGroup->setSubscribed(true);
                     dbGroup->copyFrom(tempGroup);
@@ -293,7 +293,7 @@ void UpdateEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages, Foru
 
 void UpdateEngine::networkFailure(QString message) {
     if(!updateCanceled)
-        emit updateFailure(fsubscription, "Updating " + fsubscription->alias() + " failed due to network error:\n\n" + message);
+        subscription()->appendError(new UpdateError("Network error", message));
     setState(UES_ERROR);
 }
 
@@ -473,6 +473,7 @@ void UpdateEngine::updateForum(bool force) {
     updateCanceled = false;
     updateAll = true; // Update whole forum
     authenticationRetries = 0;
+    subscription()->clearErrors();
     if(state()==UES_ENGINE_NOT_READY) {
         updateWhenEngineReady = true;
     } else {
