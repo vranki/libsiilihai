@@ -28,6 +28,7 @@ ClientLogic::ClientLogic(QObject *parent) : QObject(parent), settings(0), forumD
     QNetworkConfiguration config = ncm.defaultConfiguration();
     networkSession = new QNetworkSession(config, this);
     statusMsgTimer.setSingleShot(true);
+
     connect(&statusMsgTimer, SIGNAL(timeout()), this, SLOT(clearStatusMessage()));
 
     // Make sure Siilihai::subscriptionFound is called first to get ParserEngine

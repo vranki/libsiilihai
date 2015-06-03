@@ -24,10 +24,11 @@
 #include <QDomDocument>
 #include <QtQml/QQmlListProperty>
 #include "updateableitem.h"
+#include "updateerror.h"
+
 
 class ForumGroup;
 class UpdateEngine;
-class UpdateError;
 
 #define SUB_SUBSCRIPTION "subscription"
 #define SUB_PROVIDER "provider"
@@ -57,7 +58,7 @@ class ForumSubscription : public QObject, public QMap<QString, ForumGroup*>, pub
     Q_PROPERTY(QString username READ username WRITE setUsername NOTIFY changed)
     Q_PROPERTY(QString password READ password WRITE setPassword NOTIFY changed)
     Q_PROPERTY(bool isAuthenticated READ isAuthenticated WRITE setAuthenticated NOTIFY changed)
-    Q_PROPERTY(QString faviconUrl READ faviconUrl() NOTIFY changed)
+    Q_PROPERTY(QUrl faviconUrl READ faviconUrl() NOTIFY changed)
     Q_PROPERTY(QQmlListProperty<UpdateError> errors READ errors NOTIFY errorsChanged)
 
 public:
@@ -117,11 +118,12 @@ public:
     bool supportsLogin() const;
     void setSupportsPosting(bool sp);
     bool supportsPosting() const;
-    QString faviconUrl();
+    QUrl faviconUrl() const;
     void setProvider(ForumProvider provider); // Use with care!!
+    // Error list management
     QList<UpdateError *> errorList(); // Don't store
     void appendError(UpdateError *ue); // Ownership changes
-    void clearErrors();
+    Q_INVOKABLE void clearErrors();
     QQmlListProperty<UpdateError> errors();
 
 signals:
@@ -140,8 +142,10 @@ private:
     Q_DISABLE_COPY(ForumSubscription)
     static void append_error(QQmlListProperty<UpdateError> *list, UpdateError *msg);
     static int count_error(QQmlListProperty<UpdateError> *list);
+    static UpdateError *at_error(QQmlListProperty<UpdateError> *list, int index);
+    static void clear_error(QQmlListProperty<UpdateError> *list);
 
-    int _forumId; // != parser
+    int _forumId;
     QString _alias;
     QString _username;
     QString _password;

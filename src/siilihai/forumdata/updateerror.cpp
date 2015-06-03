@@ -4,6 +4,13 @@ UpdateError::UpdateError(): QObject()
 {
 }
 
+UpdateError::UpdateError(const UpdateError &o) : QObject()
+{
+   m_title = o.title();
+   m_description = o.description();
+   m_technicalData = o.technicalData();
+}
+
 UpdateError::UpdateError(QString title, QString description, QString technicalData): QObject(),
     m_title(title), m_description(description), m_technicalData(technicalData)
 {

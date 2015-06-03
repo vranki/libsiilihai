@@ -320,14 +320,10 @@ bool ForumSubscription::supportsPosting() const {
     return _supportsPosting;
 }
 
-QString ForumSubscription::faviconUrl()
+QUrl ForumSubscription::faviconUrl() const
 {
-    QString fiUrl = forumUrl().toString(); // @todo modify to QUrl handling..
-    if(fiUrl.isNull()) return fiUrl;
-    QString path = QUrl(fiUrl).path();
-    if(path.length() > 1)
-        fiUrl = fiUrl.replace(path, "");
-    fiUrl = fiUrl + "/favicon.ico";
+    QUrl fiUrl = forumUrl();
+    fiUrl.setPath("/favicon.ico");
     return fiUrl;
 }
 
@@ -337,11 +333,17 @@ void ForumSubscription::setProvider(ForumSubscription::ForumProvider provider)
     emit changed();
 }
 
+QUrl ForumSubscription::forumUrl() const
+{
+    return _forumUrl;
+}
+
+
+// Error list related
 QList<UpdateError *> ForumSubscription::errorList()
 {
     return m_errors;
 }
-
 void ForumSubscription::appendError(UpdateError *ue)
 {
     m_errors.append(ue);
@@ -350,14 +352,15 @@ void ForumSubscription::appendError(UpdateError *ue)
 
 void ForumSubscription::clearErrors()
 {
-    qDeleteAll(m_errors);
+    foreach(auto error, m_errors)
+        error->deleteLater();
     m_errors.clear();
     emit errorsChanged();
 }
 
 QQmlListProperty<UpdateError> ForumSubscription::errors()
 {
-    return QQmlListProperty<UpdateError>(this, 0, &ForumSubscription::append_error, 0, 0, 0);
+    return QQmlListProperty<UpdateError>(this, 0, &ForumSubscription::append_error, &ForumSubscription::count_error, &ForumSubscription::at_error, &ForumSubscription::clear_error);
 }
 
 void ForumSubscription::append_error(QQmlListProperty<UpdateError> *list, UpdateError *msg)
@@ -373,7 +376,14 @@ int ForumSubscription::count_error(QQmlListProperty<UpdateError> *list)
     return sub->m_errors.size();
 }
 
-QUrl ForumSubscription::forumUrl() const
+UpdateError* ForumSubscription::at_error(QQmlListProperty<UpdateError> *list, int index)
 {
-    return _forumUrl;
+    ForumSubscription *sub = qobject_cast<ForumSubscription *>(list->object);
+    return sub->m_errors.at(index);
+}
+
+void ForumSubscription::clear_error(QQmlListProperty<UpdateError> *list)
+{
+    ForumSubscription *sub = qobject_cast<ForumSubscription *>(list->object);
+    sub->clearErrors();
 }
