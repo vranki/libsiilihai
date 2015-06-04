@@ -563,7 +563,6 @@ void ParserEngine::performListMessages(QString &html) {
     // Parser maker may need this
     if(operationInProgress == PEONoOp) operationInProgress = PEOUpdateThread;
     Q_ASSERT(operationInProgress == PEOUpdateThread);
-    //    qDebug() << Q_FUNC_INFO << html;
     QList<ForumMessage*> newMessages;
     Q_ASSERT(threadBeingUpdated->isSane());
     emit receivedHtml(html);
@@ -650,9 +649,6 @@ void ParserEngine::performListMessages(QString &html) {
         emit listMessagesFinished(foundMessages, threadUpdated, moreMessagesAvailable);
         qDeleteAll(foundMessages);
         foundMessages.clear();
-    } else {
-        // Help keep UI responsive
-        //QCoreApplication::processEvents();
     }
 }
 
@@ -717,6 +713,11 @@ QString ParserEngine::getMessageListUrl(const ForumThread *thread, int page) {
 
 void ParserEngine::setGroup(ForumGroup *g) {
     groupBeingUpdated = g;
+}
+
+void ParserEngine::setThread(ForumThread *t)
+{
+    threadBeingUpdated = t;
 }
 
 void ParserEngine::authenticationRequired(QNetworkReply * reply, QAuthenticator * authenticator) {

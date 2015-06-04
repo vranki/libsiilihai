@@ -47,8 +47,6 @@ public:
     // Sets the forumsubsctiption to be used. Ownership does not change. Set to null for no subscription.
     virtual void setSubscription(ForumSubscription *fs);
 
-     // Used by parsermaker
-    void setPatternMatcher(PatternMatcher *newPm);
 
     void listGroups();
     void listThreads(ForumGroup *group);
@@ -59,7 +57,11 @@ public:
     QString getThreadListUrl(const ForumGroup *grp, int page=-1);
     QString getMessageListUrl(const ForumThread *thread, int page=-1);
 
-    void setGroup(ForumGroup *g); // Used with ParserMaker
+    // Used by parsermaker
+    void setPatternMatcher(PatternMatcher *newPm);
+    void setGroup(ForumGroup *g);
+    void setThread(ForumThread *t);
+    //
 
     void performListGroups(QString &html);
     void performListThreads(QString &html);
