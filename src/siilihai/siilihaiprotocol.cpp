@@ -170,6 +170,9 @@ void SiilihaiProtocol::listForums() {
 }
 
 void SiilihaiProtocol::replyListForums(QNetworkReply *reply) {
+
+    // @todo This lists parsers due to legacy.
+
     QString docs = QString().fromUtf8(reply->readAll());
     QList<ForumSubscription*> forums;
     if (reply->error() == QNetworkReply::NoError) {
@@ -180,7 +183,12 @@ void SiilihaiProtocol::replyListForums(QNetworkReply *reply) {
             // @todo This still uses parsers as backward-compatibility
             ForumParser *parser = XmlSerialization::readParser(n, this);
              if(parser) {
-                 ForumSubscription *sub = new ForumSubscription(0, true, ForumSubscription::FP_NONE);
+
+                 // @todo current way of distinguishing between parser & tapatalk providers. Not good way.
+                 ForumSubscription::ForumProvider provider = ForumSubscription::FP_PARSER;
+                 if(parser->login_path == "TAPATALK") provider = ForumSubscription::FP_TAPATALK;
+
+                 ForumSubscription *sub = new ForumSubscription(0, true, provider);
                  sub->setId(parser->id());
                  sub->setAlias(parser->name());
                  sub->setForumUrl(parser->forum_url);
