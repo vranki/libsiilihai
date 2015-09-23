@@ -17,8 +17,8 @@
 #include "siilihaisettings.h"
 #include "messageformatting.h"
 
-ClientLogic::ClientLogic(QObject *parent) : QObject(parent), settings(0), forumDatabase(this),  syncmaster(this, forumDatabase, protocol),
-    parserManager(0), currentCredentialsRequest(0), currentState(SH_OFFLINE) {
+ClientLogic::ClientLogic(QObject *parent) : QObject(parent), m_settings(0), m_forumDatabase(this),  m_syncmaster(this, m_forumDatabase, m_protocol),
+    m_parserManager(0), currentCredentialsRequest(0), currentState(SH_OFFLINE) {
     endSyncDone = false;
     firstRun = true;
     dbStored = false;
@@ -32,10 +32,10 @@ ClientLogic::ClientLogic(QObject *parent) : QObject(parent), settings(0), forumD
     connect(&statusMsgTimer, SIGNAL(timeout()), this, SLOT(clearStatusMessage()));
 
     // Make sure Siilihai::subscriptionFound is called first to get ParserEngine
-    connect(&forumDatabase, SIGNAL(subscriptionFound(ForumSubscription*)), this, SLOT(subscriptionFound(ForumSubscription*)));
-    connect(&forumDatabase, SIGNAL(databaseStored()), this, SLOT(databaseStored()), Qt::QueuedConnection);
-    connect(&protocol, SIGNAL(userSettingsReceived(bool,UserSettings*)), this, SLOT(userSettingsReceived(bool,UserSettings*)));
-    connect(&syncmaster, SIGNAL(syncProgress(float, QString)), this, SLOT(syncProgress(float, QString)));
+    connect(&m_forumDatabase, SIGNAL(subscriptionFound(ForumSubscription*)), this, SLOT(subscriptionFound(ForumSubscription*)));
+    connect(&m_forumDatabase, SIGNAL(databaseStored()), this, SLOT(databaseStored()), Qt::QueuedConnection);
+    connect(&m_protocol, SIGNAL(userSettingsReceived(bool,UserSettings*)), this, SLOT(userSettingsReceived(bool,UserSettings*)));
+    connect(&m_syncmaster, SIGNAL(syncProgress(float, QString)), this, SLOT(syncProgress(float, QString)));
 }
 
 QString ClientLogic::statusMessage() const
@@ -66,12 +66,12 @@ QString ClientLogic::addQuotesToBody(QString body) {
 
 void ClientLogic::launchSiilihai(bool offline) {
     changeState(SH_STARTED);
-    settings = createSettings();
+    m_settings = createSettings();
+    emit settingsChangedSignal(m_settings);
+    firstRun = m_settings->firstRun();
+    m_settings->setFirstRun(false);
 
-    firstRun = settings->firstRun();
-    settings->setFirstRun(false);
-
-    QString proxy = settings->httpProxy();
+    QString proxy = m_settings->httpProxy();
     if (!proxy.isEmpty()) {
         QUrl proxyUrl = QUrl(proxy);
         if (proxyUrl.isValid()) {
@@ -85,36 +85,36 @@ void ClientLogic::launchSiilihai(bool offline) {
     QDir dataDir(getDataFilePath());
     if(!dataDir.exists()) dataDir.mkpath(getDataFilePath());
 
-    parserManager = new ParserManager(this, &protocol);
-    parserManager->openDatabase(getDataFilePath() + "/siilihai_parsers.xml");
+    m_parserManager = new ParserManager(this, &m_protocol);
+    m_parserManager->openDatabase(getDataFilePath() + "/siilihai_parsers.xml");
 
     settingsChanged(false);
-    connect(&syncmaster, SIGNAL(syncFinished(bool, QString)), this, SLOT(syncFinished(bool, QString)));
+    connect(&m_syncmaster, SIGNAL(syncFinished(bool, QString)), this, SLOT(syncFinished(bool, QString)));
 
-    protocol.setBaseURL(settings->baseUrl());
+    m_protocol.setBaseURL(m_settings->baseUrl());
 
     QString databaseFileName = getDataFilePath() + "/siilihai_forums.xml";
 
     qDebug() << Q_FUNC_INFO << "Using data files under " << getDataFilePath();
 
     if(firstRun) {
-        forumDatabase.openDatabase(databaseFileName); // Fails
+        m_forumDatabase.openDatabase(databaseFileName); // Fails
     } else {
-        int currentSchemaVersion = settings->databaseSchema();
-        if(forumDatabase.schemaVersion() != currentSchemaVersion) {
+        int currentSchemaVersion = m_settings->databaseSchema();
+        if(m_forumDatabase.schemaVersion() != currentSchemaVersion) {
             errorDialog("The database schema has been changed. Your forum database will be reset. Sorry. ");
-            forumDatabase.openDatabase(databaseFileName, false);
+            m_forumDatabase.openDatabase(databaseFileName, false);
         } else {
-            if(!forumDatabase.openDatabase(databaseFileName)) {
+            if(!m_forumDatabase.openDatabase(databaseFileName)) {
                 errorDialog("Could not open Siilihai's forum database file.\n"
                             "See console for details.");
             }
         }
     }
-    settings->setDatabaseSchema(forumDatabase.schemaVersion());
-    settings->sync();
+    m_settings->setDatabaseSchema(m_forumDatabase.schemaVersion());
+    m_settings->sync();
 
-    if (settings->username().isEmpty() && !noAccount()) {
+    if (m_settings->username().isEmpty() && !noAccount()) {
         showLoginWizard();
     } else {
         showMainWindow();
@@ -143,7 +143,7 @@ void ClientLogic::haltSiilihai() {
             changeState(SH_STOREDB);
         } else {
             qDebug() << Q_FUNC_INFO << "All done - quitting";
-            settings->sync();
+            m_settings->sync();
             closeUi();
         }
     }
@@ -157,14 +157,24 @@ QString ClientLogic::getDataFilePath() {
 #endif
 }
 
+QObject *ClientLogic::forumDatabase()
+{
+    return qobject_cast<QObject*> (&m_forumDatabase);
+}
+
+QObject *ClientLogic::settings()
+{
+    return qobject_cast<QObject*> (m_settings);
+}
+
 void ClientLogic::settingsChanged(bool byUser) {
-    usettings.setSyncEnabled(settings->syncEnabled());
+    usettings.setSyncEnabled(m_settings->syncEnabled());
     if(byUser && !noAccount()) {
-        protocol.setUserSettings(&usettings);
+        m_protocol.setUserSettings(&usettings);
     }
-    settings->sync();
+    m_settings->sync();
     if(usettings.syncEnabled()) { // Force upsync of everything
-        foreach(ForumSubscription *sub, forumDatabase.values()) {
+        foreach(ForumSubscription *sub, m_forumDatabase.values()) {
             foreach(ForumGroup *group, sub->values()) {
                 group->setHasChanged(true);
             }
@@ -180,8 +190,8 @@ void ClientLogic::tryLogin() {
         return;
     }
     if(networkSession->isOpen()) {
-        connect(&protocol, SIGNAL(loginFinished(bool, QString,bool)), this, SLOT(loginFinished(bool, QString,bool)));
-        protocol.login(settings->username(), settings->password());
+        connect(&m_protocol, SIGNAL(loginFinished(bool, QString,bool)), this, SLOT(loginFinished(bool, QString,bool)));
+        m_protocol.login(m_settings->username(), m_settings->password());
     } else {
         loginFinished(false, "Offline mode", usettings.syncEnabled());
         changeState(SH_OFFLINE);
@@ -208,7 +218,7 @@ void ClientLogic::changeState(siilihai_states newState) {
         qDebug() << Q_FUNC_INFO << "Offline";
         networkSession->close();
         Q_ASSERT(previousState==SH_LOGIN || previousState==SH_STARTSYNCING || previousState==SH_READY || previousState==SH_STARTED);
-        if(previousState==SH_STARTSYNCING) syncmaster.cancel();
+        if(previousState==SH_STARTSYNCING) m_syncmaster.cancel();
     } else if(newState==SH_LOGIN) {
         qDebug() << Q_FUNC_INFO << "Login";
         networkSession->open();
@@ -216,20 +226,20 @@ void ClientLogic::changeState(siilihai_states newState) {
     } else if(newState==SH_STARTSYNCING) {
         qDebug() << Q_FUNC_INFO << "Startsync";
         if(usettings.syncEnabled()) {
-            foreach(ForumSubscription *sub, forumDatabase.values()) {
+            foreach(ForumSubscription *sub, m_forumDatabase.values()) {
                 sub->setScheduledForUpdate(true);
             }
-            connect(&syncmaster, SIGNAL(syncFinishedFor(ForumSubscription*)), this, SLOT(updateForum(ForumSubscription*)));
-            syncmaster.startSync();
+            connect(&m_syncmaster, SIGNAL(syncFinishedFor(ForumSubscription*)), this, SLOT(updateForum(ForumSubscription*)));
+            m_syncmaster.startSync();
         }
     } else if(newState==SH_ENDSYNC) {
         qDebug() << Q_FUNC_INFO << "Endsync";
         showStatusMessage("Synchronizing with server..");
-        disconnect(&syncmaster, SIGNAL(syncFinishedFor(ForumSubscription*)), this, SLOT(updateForum(ForumSubscription*)));
-        syncmaster.endSync();
+        disconnect(&m_syncmaster, SIGNAL(syncFinishedFor(ForumSubscription*)), this, SLOT(updateForum(ForumSubscription*)));
+        m_syncmaster.endSync();
     } else if(newState==SH_STOREDB) {
         qDebug() << Q_FUNC_INFO << "Storedb";
-        if(!forumDatabase.storeDatabase()) {
+        if(!m_forumDatabase.storeDatabase()) {
             errorDialog("Failed to save forum database file");
         }
         dbStored = true;
@@ -238,7 +248,7 @@ void ClientLogic::changeState(siilihai_states newState) {
         if(!usettings.syncEnabled())
             updateClicked();
 
-        if (forumDatabase.isEmpty()) { // Display subscribe dialog if none subscribed
+        if (m_forumDatabase.isEmpty()) { // Display subscribe dialog if none subscribed
             subscribeForum();
         }
     }
@@ -298,7 +308,7 @@ void ClientLogic::updateClicked(ForumSubscription* sub , bool force) {
 }
 
 void ClientLogic::cancelClicked() {
-    foreach(ForumSubscription *sub, forumDatabase.values()) {
+    foreach(ForumSubscription *sub, m_forumDatabase.values()) {
         sub->setScheduledForUpdate(false);
     }
     foreach(UpdateEngine* engine, engines.values()) {
@@ -309,7 +319,7 @@ void ClientLogic::cancelClicked() {
 
 int ClientLogic::busyForumCount() {
     int busyForums = 0;
-    foreach(ForumSubscription *sub, forumDatabase.values()) {
+    foreach(ForumSubscription *sub, m_forumDatabase.values()) {
         if(sub->updateEngine()->state()==UpdateEngine::UES_UPDATING) {
             busyForums++;
         }
@@ -343,10 +353,10 @@ void ClientLogic::offlineModeSet(bool newOffline) {
 }
 
 void ClientLogic::listSubscriptionsFinished(QList<int> serversSubscriptions) {
-    disconnect(&protocol, SIGNAL(listSubscriptionsFinished(QList<int>)), this, SLOT(listSubscriptionsFinished(QList<int>)));
+    disconnect(&m_protocol, SIGNAL(listSubscriptionsFinished(QList<int>)), this, SLOT(listSubscriptionsFinished(QList<int>)));
 
     QList<ForumSubscription*> unsubscribedForums;
-    foreach(ForumSubscription* sub, forumDatabase.values()) {
+    foreach(ForumSubscription* sub, m_forumDatabase.values()) {
         bool found = false;
         if(sub->provider() == ForumSubscription::FP_PARSER) {
             foreach(int serverSubscriptionId, serversSubscriptions) {
@@ -360,24 +370,24 @@ void ClientLogic::listSubscriptionsFinished(QList<int> serversSubscriptions) {
     }
     foreach (ForumSubscription *sub, unsubscribedForums) {
         if(sub->isParsed()) {
-            parserManager->deleteParser(qobject_cast<ForumSubscriptionParsed*>(sub)->parserId());
+            m_parserManager->deleteParser(qobject_cast<ForumSubscriptionParsed*>(sub)->parserId());
         }
         if(sub->isParsed()) // @todo not tapatalk yet!
-            forumDatabase.deleteSubscription(sub);
+            m_forumDatabase.deleteSubscription(sub);
     }
 }
 
 
 void ClientLogic::loginFinished(bool success, QString motd, bool sync) {
-    disconnect(&protocol, SIGNAL(loginFinished(bool, QString,bool)), this, SLOT(loginFinished(bool, QString,bool)));
+    disconnect(&m_protocol, SIGNAL(loginFinished(bool, QString,bool)), this, SLOT(loginFinished(bool, QString,bool)));
 
     if (success) {
-        connect(&protocol, SIGNAL(listSubscriptionsFinished(QList<int>)), this, SLOT(listSubscriptionsFinished(QList<int>)));
-        connect(&protocol, SIGNAL(sendParserReportFinished(bool)), this, SLOT(sendParserReportFinished(bool)));
-        connect(&protocol, SIGNAL(subscribeForumFinished(ForumSubscription*, bool)), this, SLOT(subscribeForumFinished(ForumSubscription*,bool)));
+        connect(&m_protocol, SIGNAL(listSubscriptionsFinished(QList<int>)), this, SLOT(listSubscriptionsFinished(QList<int>)));
+        connect(&m_protocol, SIGNAL(sendParserReportFinished(bool)), this, SLOT(sendParserReportFinished(bool)));
+        connect(&m_protocol, SIGNAL(subscribeForumFinished(ForumSubscription*, bool)), this, SLOT(subscribeForumFinished(ForumSubscription*,bool)));
         usettings.setSyncEnabled(sync);
-        settings->setSyncEnabled(usettings.syncEnabled());
-        settings->sync();
+        m_settings->setSyncEnabled(usettings.syncEnabled());
+        m_settings->sync();
         if(usettings.syncEnabled()) {
             changeState(SH_STARTSYNCING);
         } else {
@@ -395,14 +405,14 @@ void ClientLogic::loginFinished(bool success, QString motd, bool sync) {
 // Note: fs *MUST* be a real ForumSubscription derived class, NOT just ForumSubscription with provider set!
 void ClientLogic::forumAdded(ForumSubscription *fs) {
     Q_ASSERT(fs->id());
-    if(forumDatabase.contains(fs->id())) {
+    if(m_forumDatabase.contains(fs->id())) {
         errorDialog("You have already subscribed to " + fs->alias());
     } else {
-        ForumSubscription *newFs = ForumSubscription::newForProvider(fs->provider(), &forumDatabase, false);
+        ForumSubscription *newFs = ForumSubscription::newForProvider(fs->provider(), &m_forumDatabase, false);
 
         Q_ASSERT(newFs);
         newFs->copyFrom(fs);
-        if(!forumDatabase.addSubscription(newFs)) { // Emits subscriptionFound
+        if(!m_forumDatabase.addSubscription(newFs)) { // Emits subscriptionFound
             errorDialog("Error: Unable to subscribe to forum. Check the log.");
             return;
         }
@@ -411,7 +421,7 @@ void ClientLogic::forumAdded(ForumSubscription *fs) {
         Q_ASSERT(engines.value(newFs));
         engines.value(newFs)->updateGroupList();
         if(!noAccount())
-            protocol.subscribeForum(newFs);
+            m_protocol.subscribeForum(newFs);
     }
 }
 
@@ -422,12 +432,12 @@ void ClientLogic::createEngineForSubscription(ForumSubscription *newFs) {
     if(newFs->isParsed()) {
         ForumSubscriptionParsed *newFsParsed = qobject_cast<ForumSubscriptionParsed*>(newFs);
         //        Q_ASSERT(parserManager->getParser(newFsParsed->parser())); // Should already be there!
-        ParserEngine *pe = new ParserEngine(this, &forumDatabase, parserManager);
+        ParserEngine *pe = new ParserEngine(this, &m_forumDatabase, m_parserManager);
         ue = pe;
-        pe->setParser(parserManager->getParser(newFsParsed->parserId()));
-        if(!pe->parser()) pe->setParser(parserManager->getParser(newFsParsed->parserId())); // Load the (possibly old) parser
+        pe->setParser(m_parserManager->getParser(newFsParsed->parserId()));
+        if(!pe->parser()) pe->setParser(m_parserManager->getParser(newFsParsed->parserId())); // Load the (possibly old) parser
     } else if(newFs->isTapaTalk()) {
-        TapaTalkEngine *tte = new TapaTalkEngine(&forumDatabase, this);
+        TapaTalkEngine *tte = new TapaTalkEngine(&m_forumDatabase, this);
         ue = tte;
     }
     Q_ASSERT(ue);
@@ -441,7 +451,7 @@ void ClientLogic::createEngineForSubscription(ForumSubscription *newFs) {
     connect(ue, SIGNAL(loginFinished(ForumSubscription*,bool)), this, SLOT(forumLoginFinished(ForumSubscription*,bool)));
     connect(ue, SIGNAL(stateChanged(UpdateEngine::UpdateEngineState, UpdateEngine::UpdateEngineState)),
             this, SLOT(parserEngineStateChanged(UpdateEngine::UpdateEngineState, UpdateEngine::UpdateEngineState)));
-    connect(ue, SIGNAL(updateForumSubscription(ForumSubscription *)), &protocol, SLOT(subscribeForum(ForumSubscription *)));
+    connect(ue, SIGNAL(updateForumSubscription(ForumSubscription *)), &m_protocol, SLOT(subscribeForum(ForumSubscription *)));
     connect(ue, SIGNAL(messagePosted(ForumSubscription*)), this, SLOT(updateClicked(ForumSubscription*)));
 }
 
@@ -458,7 +468,7 @@ void ClientLogic::subscriptionDeleted(QObject* subobj) {
 
 void ClientLogic::forumUpdated(ForumSubscription* forum) {
     if(forum->errorList().size()) {
-        settings->setUpdateFailed(forum->id(), true);
+        m_settings->setUpdateFailed(forum->id(), true);
     }
     int busyForums = busyForumCount();
 
@@ -468,7 +478,7 @@ void ClientLogic::forumUpdated(ForumSubscription* forum) {
     while(!nextSub && !subscriptionsToUpdateLeft.isEmpty()
           && busyForums <= MAX_CONCURRENT_UPDATES) {
         nextSub = subscriptionsToUpdateLeft.takeFirst();
-        if(forumDatabase.values().contains(nextSub)) {
+        if(m_forumDatabase.values().contains(nextSub)) {
             nextSub->setScheduledForUpdate(false);
             Q_ASSERT(!nextSub->beingSynced());
             Q_ASSERT(!nextSub->scheduledForSync());
@@ -481,8 +491,8 @@ void ClientLogic::forumUpdated(ForumSubscription* forum) {
 void ClientLogic::subscribeForumFinished(ForumSubscription *sub, bool success) {
     if (!success) {
         errorDialog("Subscribing to forum failed. Please check network connection.");
-        if(forumDatabase.value(sub->id()))
-            forumDatabase.deleteSubscription(sub);
+        if(m_forumDatabase.value(sub->id()))
+            m_forumDatabase.deleteSubscription(sub);
     }
 }
 
@@ -491,8 +501,8 @@ void ClientLogic::userSettingsReceived(bool success, UserSettings *newSettings) 
         errorDialog("Getting settings failed. Please check network connection.");
     } else {
         usettings.setSyncEnabled(newSettings->syncEnabled());
-        settings->setSyncEnabled(usettings.syncEnabled());
-        settings->sync();
+        m_settings->setSyncEnabled(usettings.syncEnabled());
+        m_settings->sync();
         settingsChanged(false);
     }
 }
@@ -505,7 +515,7 @@ void ClientLogic::moreMessagesRequested(ForumThread* thread) {
     if(thread->group()->subscription()->beingSynced()) return;
     if(thread->group()->subscription()->scheduledForSync()) return;
 
-    thread->setGetMessagesCount(thread->getMessagesCount() + settings->showMoreCount());
+    thread->setGetMessagesCount(thread->getMessagesCount() + m_settings->showMoreCount());
     thread->commitChanges();
     engine->updateThread(thread);
 }
@@ -514,7 +524,7 @@ void ClientLogic::unsubscribeGroup(ForumGroup *group) {
     group->setSubscribed(false);
     group->commitChanges();
     if(!noAccount())
-        protocol.subscribeGroups(group->subscription());
+        m_protocol.subscribeGroups(group->subscription());
 }
 
 void ClientLogic::forumUpdateNeeded(ForumSubscription *fs) {
@@ -522,7 +532,7 @@ void ClientLogic::forumUpdateNeeded(ForumSubscription *fs) {
     Q_ASSERT(fs);
 
     if(!noAccount())
-        protocol.subscribeForum(fs); // Resend the forum infos
+        m_protocol.subscribeForum(fs); // Resend the forum infos
 }
 
 void ClientLogic::unregisterSiilihai() {
@@ -530,10 +540,10 @@ void ClientLogic::unregisterSiilihai() {
     usettings.setSyncEnabled(false);
     dbStored = true;
     haltSiilihai();
-    forumDatabase.resetDatabase();
-    forumDatabase.storeDatabase();
-    settings->clear();
-    settings->sync();
+    m_forumDatabase.resetDatabase();
+    m_forumDatabase.storeDatabase();
+    m_settings->clear();
+    m_settings->sync();
 }
 
 // Called when app about to quit - handle upsync & quitting
@@ -572,7 +582,7 @@ void ClientLogic::parserEngineStateChanged(UpdateEngine::UpdateEngineState newSt
 }
 
 void ClientLogic::loginWizardFinished() {
-    if (settings->username().length() == 0 && !noAccount()) {
+    if (m_settings->username().length() == 0 && !noAccount()) {
         haltSiilihai();
     } else {
         showMainWindow();
@@ -582,7 +592,7 @@ void ClientLogic::loginWizardFinished() {
 }
 
 bool ClientLogic::noAccount() {
-    return settings->noAccount();
+    return m_settings->noAccount();
 }
 
 void ClientLogic::subscriptionFound(ForumSubscription *sub) {
@@ -593,7 +603,7 @@ void ClientLogic::subscriptionFound(ForumSubscription *sub) {
 
 void ClientLogic::updateGroupSubscriptions(ForumSubscription *sub) {
     if(!noAccount())
-        protocol.subscribeGroups(sub);
+        m_protocol.subscribeGroups(sub);
     updateForum(sub);
 }
 
@@ -603,7 +613,7 @@ void ClientLogic::updateAllParsers() {
         if(eng->state()==UpdateEngine::UES_IDLE && eng->subscription()->isParsed()) {
             ForumSubscriptionParsed *subParser = qobject_cast<ForumSubscriptionParsed*> (eng->subscription());
             Q_ASSERT(subParser);
-            parserManager->updateParser(subParser->parserId());
+            m_parserManager->updateParser(subParser->parserId());
         }
     }
 }
@@ -639,26 +649,26 @@ void ClientLogic::forumLoginFinished(ForumSubscription *sub, bool success) {
 
 void ClientLogic::unsubscribeForum(ForumSubscription* fs) {
     if(!noAccount())
-        protocol.subscribeForum(fs, true);
-    forumDatabase.deleteSubscription(fs);
+        m_protocol.subscribeForum(fs, true);
+    m_forumDatabase.deleteSubscription(fs);
     if(fs->isParsed())
-        parserManager->deleteParser(qobject_cast<ForumSubscriptionParsed*>(fs)->parserId());
+        m_parserManager->deleteParser(qobject_cast<ForumSubscriptionParsed*>(fs)->parserId());
 }
 
 // Authenticator can be null!
 void ClientLogic::getHttpAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator) {
     qDebug() << Q_FUNC_INFO << fsub->alias();
-    bool failed = settings->updateFailed(fsub->id());
+    bool failed = m_settings->updateFailed(fsub->id());
     qDebug() << Q_FUNC_INFO << "Failed:" << failed;
     QString gname = QString().number(fsub->id());
     // Must exist and be longer than zero
     if(!failed &&
-            settings->contains(QString("authentication/%1/username").arg(gname)) &&
-            settings->value(QString("authentication/%1/username").arg(gname)).toString().length() > 0) {
+            m_settings->contains(QString("authentication/%1/username").arg(gname)) &&
+            m_settings->value(QString("authentication/%1/username").arg(gname)).toString().length() > 0) {
         if(authenticator && !failed) {
             qDebug() << Q_FUNC_INFO << "reading u/p from settings";
-            authenticator->setUser(settings->value(QString("authentication/%1/username").arg(gname)).toString());
-            authenticator->setPassword(settings->value(QString("authentication/%1/password").arg(gname)).toString());
+            authenticator->setUser(m_settings->value(QString("authentication/%1/username").arg(gname)).toString());
+            authenticator->setPassword(m_settings->value(QString("authentication/%1/password").arg(gname)).toString());
         }
     }
     if(!authenticator || authenticator->user().isNull() || failed) { // Ask user the credentials
@@ -671,7 +681,7 @@ void ClientLogic::getHttpAuthentication(ForumSubscription *fsub, QAuthenticator 
         cr->subscription = fsub;
         cr->credentialType = CredentialsRequest::SH_CREDENTIAL_HTTP;
         credentialsRequests.append(cr);
-        settings->setUpdateFailed(fsub->id(), false); // Reset failed status
+        m_settings->setUpdateFailed(fsub->id(), false); // Reset failed status
         if(!currentCredentialsRequest)
             showNextCredentialsDialog();
     }
@@ -708,14 +718,14 @@ void ClientLogic::credentialsEntered(bool store) {
     if(store) {
         if(cr->credentialType == CredentialsRequest::SH_CREDENTIAL_HTTP) {
             qDebug() << Q_FUNC_INFO << "storing into settings";
-            settings->beginGroup("authentication");
-            settings->beginGroup(QString::number(currentCredentialsRequest->subscription->id()));
-            settings->setValue("username", currentCredentialsRequest->authenticator.user());
-            settings->setValue("password", currentCredentialsRequest->authenticator.password());
-            settings->setValue("failed", "false");
-            settings->endGroup();
-            settings->endGroup();
-            settings->sync();
+            m_settings->beginGroup("authentication");
+            m_settings->beginGroup(QString::number(currentCredentialsRequest->subscription->id()));
+            m_settings->setValue("username", currentCredentialsRequest->authenticator.user());
+            m_settings->setValue("password", currentCredentialsRequest->authenticator.password());
+            m_settings->setValue("failed", "false");
+            m_settings->endGroup();
+            m_settings->endGroup();
+            m_settings->sync();
         } else if(cr->credentialType == CredentialsRequest::SH_CREDENTIAL_FORUM) {
             qDebug() << Q_FUNC_INFO << "storing into subscription";
             currentCredentialsRequest->subscription->setUsername(currentCredentialsRequest->authenticator.user());
@@ -725,16 +735,16 @@ void ClientLogic::credentialsEntered(bool store) {
     // @todo move to SiilihaiSettings!!
     if(!currentCredentialsRequest->subscription->isAuthenticated()) {
         // Remove authentication
-        settings->beginGroup("authentication");
-        settings->remove(QString::number(currentCredentialsRequest->subscription->id()));
-        settings->endGroup();
+        m_settings->beginGroup("authentication");
+        m_settings->remove(QString::number(currentCredentialsRequest->subscription->id()));
+        m_settings->endGroup();
 
         currentCredentialsRequest->subscription->setUsername(QString::null);
         currentCredentialsRequest->subscription->setPassword(QString::null);
     }
 
     if(!noAccount())
-        protocol.subscribeForum(currentCredentialsRequest->subscription); // Resend the forum infos
+        m_protocol.subscribeForum(currentCredentialsRequest->subscription); // Resend the forum infos
 
     UpdateEngine *engine = engines.value(currentCredentialsRequest->subscription);
     engine->credentialsEntered(currentCredentialsRequest);

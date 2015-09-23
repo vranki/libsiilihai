@@ -39,6 +39,8 @@ class ClientLogic : public QObject
     Q_OBJECT
     Q_PROPERTY(QString statusMessage READ statusMessage WRITE showStatusMessage NOTIFY statusMessageChanged)
     Q_PROPERTY(bool developerMode READ developerMode WRITE setDeveloperMode NOTIFY developerModeChanged)
+    Q_PROPERTY(QObject* forumDatabase READ forumDatabase NOTIFY forumDatabaseChanged)
+    Q_PROPERTY(QObject* settings READ settings NOTIFY settingsChangedSignal)
 public:
 
     enum siilihai_states {
@@ -69,6 +71,9 @@ public:
     Q_INVOKABLE virtual void settingsChanged(bool byUser);
     Q_INVOKABLE virtual QString getDataFilePath();
 
+    QObject* forumDatabase();
+    QObject* settings();
+
 public slots:
     virtual void launchSiilihai(bool offline=false);
     // Call with 0 subscription to update all
@@ -90,6 +95,8 @@ public slots:
 signals:
     void statusMessageChanged(QString message);
     void developerModeChanged(bool arg);
+    void forumDatabaseChanged(QObject* forumDatabase);
+    void settingsChangedSignal(QObject* settings);
 
 protected:
     virtual void showLoginWizard()=0;
@@ -99,12 +106,12 @@ protected:
     virtual void loginWizardFinished();
     virtual void showMainWindow()=0;
     virtual bool noAccount(); // True if accountless usage
-    SiilihaiSettings *settings;
-    ForumDatabaseXml forumDatabase;
-    SiilihaiProtocol protocol;
-    QString baseUrl;
-    SyncMaster syncmaster;
-    ParserManager *parserManager;
+    SiilihaiSettings *m_settings;
+    ForumDatabaseXml m_forumDatabase;
+    SiilihaiProtocol m_protocol;
+    QString m_baseUrl;
+    SyncMaster m_syncmaster;
+    ParserManager *m_parserManager;
 
 protected slots:
     virtual void subscriptionDeleted(QObject* subobj);

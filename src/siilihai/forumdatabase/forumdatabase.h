@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QMap>
+#include <QList>
 
 class ForumSubscription;
 class ForumGroup;
@@ -11,6 +12,8 @@ class ForumMessage;
 
 class ForumDatabase : public QObject, public QMap<int, ForumSubscription*> {
     Q_OBJECT
+    Q_PROPERTY(QList<QObject*> subscriptions READ subscriptions NOTIFY subscriptionsChanged)
+
 public:
     explicit ForumDatabase(QObject *parent = 0);
     virtual void resetDatabase()=0;
@@ -27,6 +30,8 @@ public:
     // Message related
     ForumMessage* getMessage(const int forum, QString groupid, QString threadid, QString messageid);
 
+    QList<QObject *> subscriptions() const;
+
 public slots:
     virtual bool storeDatabase()=0;
     virtual void checkSanity();
@@ -35,6 +40,7 @@ signals:
     void subscriptionFound(ForumSubscription *sub);
     void subscriptionRemoved(ForumSubscription *sub);
     void databaseStored();
+    void subscriptionsChanged();
 };
 
 #endif // FORUMDATABASE_H

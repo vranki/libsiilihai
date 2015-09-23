@@ -30,8 +30,8 @@ signals:
     void subscriptionRemoved(ForumSubscription *sub);
     void databaseStored();
 private:
-    bool unsaved, loaded;
-    QString databaseFileName;
+    bool m_unsaved, m_loaded;
+    QString m_databaseFileName;
 };
 
 #endif // FORUMDATABASEXML_H

@@ -27,6 +27,16 @@ ForumMessage* ForumDatabase::getMessage(const int forum, QString groupid, QStrin
     return thread->value(messageid);
 }
 
+QList<QObject*> ForumDatabase::subscriptions() const
+{
+    QList<QObject*> allSubscriptions;
+
+    foreach(ForumSubscription *sub, values())
+        allSubscriptions.append(qobject_cast<QObject*>(sub));
+
+    return allSubscriptions;
+}
+
 #ifdef SANITY_CHECKS
 void ForumDatabase::checkSanity() {
     foreach(ForumSubscription *s, values()) {

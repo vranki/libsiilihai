@@ -15,12 +15,12 @@
 ForumDatabaseXml::ForumDatabaseXml(QObject *parent) :
     ForumDatabase(parent) {
     resetDatabase();
-    databaseFileName = QString::null;
+    m_databaseFileName = QString::null;
 }
 
 void ForumDatabaseXml::resetDatabase(){
-    unsaved = false;
-    loaded = false;
+    m_unsaved = false;
+    m_loaded = false;
     foreach(ForumSubscription *sub, values())
         deleteSubscription(sub);
     clear();
@@ -32,8 +32,8 @@ int ForumDatabaseXml::schemaVersion(){
 }
 
 bool ForumDatabaseXml::openDatabase(QString filename, bool loadContent) {
-    databaseFileName = filename;
-    QFile databaseFile(databaseFileName);
+    m_databaseFileName = filename;
+    QFile databaseFile(m_databaseFileName);
     if (!databaseFile.open(QIODevice::ReadOnly))
         return false;
     bool success = openDatabase(&databaseFile, loadContent);
@@ -78,17 +78,18 @@ bool ForumDatabaseXml::openDatabase(QIODevice *source, bool loadContent) {
             subscriptionElement = subscriptionElement.nextSiblingElement(SUB_SUBSCRIPTION);
         }
     }
-    loaded = true;
+    m_loaded = true;
     checkSanity();
     return true;
 }
 
 bool ForumDatabaseXml::isStored(){
-    return !unsaved;
+    return !m_unsaved;
 }
 
 bool ForumDatabaseXml::addSubscription(ForumSubscription *fs){
     insert(fs->id(), fs);
+    emit subscriptionsChanged();
     emit subscriptionFound(fs);
     checkSanity();
 #ifdef SANITY_CHECKS
@@ -100,13 +101,14 @@ bool ForumDatabaseXml::addSubscription(ForumSubscription *fs){
 
 void ForumDatabaseXml::deleteSubscription(ForumSubscription *sub){
     remove(sub->id());
+    emit subscriptionsChanged();
     emit subscriptionRemoved(sub);
     sub->deleteLater();
 }
 
 bool ForumDatabaseXml::storeDatabase(){
     checkSanity();
-    if(databaseFileName.isNull()) {
+    if(m_databaseFileName.isNull()) {
         qDebug() << Q_FUNC_INFO << "no file open!";
         return false;
     }
@@ -119,9 +121,9 @@ bool ForumDatabaseXml::storeDatabase(){
         XmlSerialization::serialize(sub, root, doc);
     }
 
-    QFile databaseFile(databaseFileName);
+    QFile databaseFile(m_databaseFileName);
     if (!databaseFile.open(QIODevice::WriteOnly)) {
-        qDebug() << Q_FUNC_INFO << "can't open " << databaseFileName << " for writing";
+        qDebug() << Q_FUNC_INFO << "can't open " << m_databaseFileName << " for writing";
         return false;
     }
     if(databaseFile.write(doc.toByteArray()) <0) {
