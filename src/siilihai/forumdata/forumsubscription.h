@@ -60,6 +60,9 @@ class ForumSubscription : public QObject, public QMap<QString, ForumGroup*>, pub
     Q_PROPERTY(bool isAuthenticated READ isAuthenticated WRITE setAuthenticated NOTIFY changed)
     Q_PROPERTY(QUrl faviconUrl READ faviconUrl() NOTIFY changed)
     Q_PROPERTY(QQmlListProperty<UpdateError> errors READ errors NOTIFY errorsChanged)
+    Q_PROPERTY(QList<QObject*> groups READ groups NOTIFY groupsChanged)
+    // @todo doesn't follow changes yet
+    Q_PROPERTY(QList<QObject*> subscribedGroups READ subscribedGroups NOTIFY groupsChanged)
 
 public:
     enum ForumProvider {
@@ -126,6 +129,10 @@ public:
     Q_INVOKABLE void clearErrors();
     QQmlListProperty<UpdateError> errors();
 
+    QList<QObject*> groups() const;
+
+    QList<QObject*> subscribedGroups() const;
+
 signals:
     void changed();
     void unreadCountChanged();
@@ -134,6 +141,7 @@ signals:
     void groupAdded(ForumGroup *grp);
     void aliasChanged(QString alias);
     void errorsChanged();
+    void groupsChanged();
 
 protected:
     UpdateEngine *_engine;
@@ -161,6 +169,7 @@ private:
     ForumProvider _provider;
     QUrl _forumUrl;
     QList<UpdateError*> m_errors;
+    QList<QObject*> m_subscribedGroups;
 };
 
 #endif /* FORUMSUBSCRIPTION_H_ */

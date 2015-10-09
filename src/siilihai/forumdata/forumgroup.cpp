@@ -169,6 +169,16 @@ QString ForumGroup::hierarchy() const {
     return _hierarchy;
 }
 
+QList<QObject *> ForumGroup::threads() const
+{
+    QList<QObject*> myThreads;
+    // @todo sort?
+    for(auto *thr : values())
+        myThreads.append(qobject_cast<QObject*>(thr));
+
+    return myThreads;
+}
+
 void ForumGroup::setHierarchy(QString newHierarchy) {
     if (_hierarchy != newHierarchy) {
         _hierarchy = newHierarchy;

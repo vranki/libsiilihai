@@ -3,7 +3,7 @@
 
 SiilihaiTool::SiilihaiTool(QObject *parent) : QObject(parent), forumProbe(0, protocol)
 {
-    providers << "[NONE  ]" << "[PARSER]" << "[TAPAT.]" << "[ERROR ]";
+    providers << "[NONE  ]" << "[PARSER]" << "[TAPATA]" << "[ERROR ]";
 }
 
 SiilihaiTool::~SiilihaiTool()

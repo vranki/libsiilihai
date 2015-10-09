@@ -4,10 +4,33 @@
 #include "../forumdata/forumthread.h"
 #include "../forumdata/forummessage.h"
 
-ForumDatabase::ForumDatabase(QObject *parent) : QObject(parent) {}
+ForumDatabase::ForumDatabase(QObject *parent) : QObject(parent) {
+    connect(this, SIGNAL(subscriptionFound(ForumSubscription*)), this, SIGNAL(subscriptionsChanged()));
+    connect(this, SIGNAL(subscriptionRemoved(ForumSubscription*)), this, SIGNAL(subscriptionsChanged()));
+}
+
+bool ForumDatabase::contains(int id) {
+    return findById(id);
+}
+
+bool ForumDatabase::contains(ForumSubscription *other)
+{
+    for(auto sub : *this) {
+        if(sub == other) return true;
+    }
+    return false;
+}
+
+ForumSubscription *ForumDatabase::findById(int id)
+{
+    for(auto sub : *this) {
+        if(sub->id() == id) return sub;
+    }
+    return 0;
+}
 
 ForumThread* ForumDatabase::getThread(const int forum, QString groupid, QString threadid) {
-    ForumSubscription *fs = value(forum);
+    ForumSubscription *fs = findById(forum);
     Q_ASSERT(fs);
     ForumGroup *fg = fs->value(groupid);
     Q_ASSERT(fg);
@@ -27,11 +50,11 @@ ForumMessage* ForumDatabase::getMessage(const int forum, QString groupid, QStrin
     return thread->value(messageid);
 }
 
-QList<QObject*> ForumDatabase::subscriptions() const
+QList<QObject*> ForumDatabase::subscriptions()
 {
     QList<QObject*> allSubscriptions;
 
-    foreach(ForumSubscription *sub, values())
+    for(ForumSubscription *sub : *this)
         allSubscriptions.append(qobject_cast<QObject*>(sub));
 
     return allSubscriptions;

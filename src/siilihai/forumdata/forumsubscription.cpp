@@ -31,6 +31,9 @@ ForumSubscription::ForumSubscription(QObject *parent, bool temp, ForumProvider p
     _beingUpdated = _beingSynced = _scheduledForUpdate = _scheduledForSync = false;
     _forumId = 0;
     _engine = 0;
+
+    connect(this, SIGNAL(groupAdded(ForumGroup*)), this, SIGNAL(groupsChanged()));
+    connect(this, SIGNAL(groupRemoved(ForumGroup*)), this, SIGNAL(groupsChanged()));
 }
 
 void ForumSubscription::copyFrom(ForumSubscription * other) {
@@ -361,6 +364,27 @@ void ForumSubscription::clearErrors()
 QQmlListProperty<UpdateError> ForumSubscription::errors()
 {
     return QQmlListProperty<UpdateError>(this, 0, &ForumSubscription::append_error, &ForumSubscription::count_error, &ForumSubscription::at_error, &ForumSubscription::clear_error);
+}
+
+QList<QObject *> ForumSubscription::groups() const
+{
+    QList<QObject*> myGroups;
+
+    for(auto *grp : values())
+        myGroups.append(qobject_cast<QObject*>(grp));
+
+    return myGroups;
+}
+
+QList<QObject *> ForumSubscription::subscribedGroups() const
+{
+    QList<QObject*> myGroups;
+
+    for(auto *grp : values()) {
+        if(grp->isSubscribed()) myGroups.append(qobject_cast<QObject*>(grp));
+    }
+
+    return myGroups;
 }
 
 void ForumSubscription::append_error(QQmlListProperty<UpdateError> *list, UpdateError *msg)

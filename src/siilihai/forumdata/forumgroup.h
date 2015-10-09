@@ -35,6 +35,7 @@ class ForumGroup : public ForumDataItem, public QMap<QString, ForumThread*> {
     Q_PROPERTY(QString id READ id WRITE setId NOTIFY changed)
     Q_PROPERTY(int unreadCount READ unreadCount NOTIFY unreadCountChanged)
     Q_PROPERTY(bool isSubscribed READ isSubscribed WRITE setSubscribed NOTIFY changed)
+    Q_PROPERTY(QList<QObject*> threads READ threads NOTIFY threadsChanged)
 public:
     ForumGroup(QObject *parent, bool temp=true);
     virtual ~ForumGroup();
@@ -49,6 +50,8 @@ public:
     virtual void markToBeUpdated(bool toBe=true);
     virtual void incrementUnreadCount(int urc);
     QString hierarchy() const;
+
+    QList<QObject*> threads() const;
 
 public slots:
     void setHierarchy(QString arg);
@@ -65,6 +68,8 @@ signals:
     void unreadCountChanged();
     void threadRemoved(ForumThread *thr);
     void threadAdded(ForumThread *thr);
+    void threadsChanged(QList<QObject*> threads);
+
 protected:
     virtual void emitChanged();
     virtual void emitUnreadCountChanged();
@@ -77,6 +82,7 @@ private:
     int _changeset;
     bool _hasChanged;
     bool _temp;
+    QList<QObject*> m_threads;
 };
 
 #endif

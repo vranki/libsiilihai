@@ -11,3 +11,4 @@ SOURCES += main.cpp libsiilihaitests.cpp
 INCLUDEPATH += ..
 DEPENDPATH += ..
 LIBS += -L.. -lsiilihai
+CONFIG += c++11

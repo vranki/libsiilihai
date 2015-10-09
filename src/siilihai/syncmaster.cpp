@@ -21,7 +21,6 @@
 
 SyncMaster::SyncMaster(QObject *parent, ForumDatabase &fd, SiilihaiProtocol &prot) :
     QObject(parent), fdb(fd), protocol(prot) {
-
     connect(&protocol, SIGNAL(serverGroupStatus(QList<ForumSubscription*> &)), this,
             SLOT(serverGroupStatus(QList<ForumSubscription*> &)));
     connect(&protocol, SIGNAL(serverThreadData(ForumThread*)), this,
@@ -43,7 +42,7 @@ void SyncMaster::startSync() {
     canceled = false;
     errorCount = 0;
     maxGroupCount = 0;
-    foreach(ForumSubscription *fsub, fdb.values()) {
+    for(ForumSubscription *fsub : fdb) {
         Q_ASSERT(!fsub->beingSynced());
         Q_ASSERT(!fsub->beingUpdated());
     }
@@ -56,7 +55,7 @@ void SyncMaster::endSync() {
     errorCount = 0;
 
     int totalGroups = 0;
-    foreach(ForumSubscription *fsub, fdb.values()) {
+    for(ForumSubscription *fsub : fdb) {
         if(fsub->hasGroupListChanged()) {
             forumsToUpload.append(fsub);
             fsub->setGroupListChanged(false);
@@ -115,7 +114,7 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
     }
     // Check for deleted subs
     QQueue<ForumSubscription*> deletedSubs;
-    foreach(ForumSubscription *dbSub, fdb.values()) {
+    for(ForumSubscription *dbSub : fdb) {
         bool found = false;
         foreach(ForumSubscription *serverSub, subs) {
             if(serverSub->id()==dbSub->id())
@@ -294,7 +293,7 @@ void SyncMaster::serverMessageData(ForumMessage *tempMessage) { // Temporary obj
 void SyncMaster::getThreadDataFinished(bool success, QString message){
     if(canceled) return;
     if(success) {
-        foreach(ForumSubscription *fsub, fdb.values()) {
+        for(ForumSubscription *fsub : fdb) {
             foreach(ForumGroup *grp, fsub->values()) {
                 grp->commitChanges();
             }
@@ -304,7 +303,7 @@ void SyncMaster::getThreadDataFinished(bool success, QString message){
     } else {
         errorCount++;
         if(errorCount > 15) {
-            foreach(ForumSubscription *fsub, fdb.values()) {
+            for(ForumSubscription *fsub : fdb) {
                 fsub->setBeingSynced(false);
             }
             emit syncFinished(false, message);
@@ -368,7 +367,7 @@ void SyncMaster::endSyncSingleGroup(ForumGroup *group) {
         return;
 
     // Ok, NEVER do this if updates are in progress
-    foreach(ForumSubscription *fsub, fdb.values()) {
+    for(ForumSubscription *fsub : fdb) {
         if(fsub->beingUpdated())
             return;
         if(fsub->beingSynced())

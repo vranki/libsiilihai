@@ -125,7 +125,7 @@ void LibSiilihaiTests::runForumDatabaseTests() {
 
     qDebug() << "===Listing db contents====";
 
-    foreach (ForumSubscription* fs, fdb.values()) {
+    for (ForumSubscription* fs : fdb) {
         qDebug() << "FS: " << fs->toString() << " @ " << fs;
         foreach (ForumGroup* fg, fs->values()) {
             qDebug() << "\tFG: " << fg->toString() << " @ " << fg;
@@ -160,7 +160,7 @@ void LibSiilihaiTests::runForumDatabaseTests() {
     Q_ASSERT(fs.unreadCount()==0);
 
     qDebug() << "=== Deleting forums ====";
-    foreach(ForumSubscription *fs, fdb.values()) {
+    for(ForumSubscription *fs : fdb) {
         fdb.deleteSubscription(fs);
     }
     qDebug() << "=== End delete ====";

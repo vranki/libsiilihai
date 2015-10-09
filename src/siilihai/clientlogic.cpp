@@ -174,7 +174,7 @@ void ClientLogic::settingsChanged(bool byUser) {
     }
     m_settings->sync();
     if(usettings.syncEnabled()) { // Force upsync of everything
-        foreach(ForumSubscription *sub, m_forumDatabase.values()) {
+        for(ForumSubscription *sub : m_forumDatabase) {
             foreach(ForumGroup *group, sub->values()) {
                 group->setHasChanged(true);
             }
@@ -226,7 +226,7 @@ void ClientLogic::changeState(siilihai_states newState) {
     } else if(newState==SH_STARTSYNCING) {
         qDebug() << Q_FUNC_INFO << "Startsync";
         if(usettings.syncEnabled()) {
-            foreach(ForumSubscription *sub, m_forumDatabase.values()) {
+            for(ForumSubscription *sub : m_forumDatabase) {
                 sub->setScheduledForUpdate(true);
             }
             connect(&m_syncmaster, SIGNAL(syncFinishedFor(ForumSubscription*)), this, SLOT(updateForum(ForumSubscription*)));
@@ -308,7 +308,7 @@ void ClientLogic::updateClicked(ForumSubscription* sub , bool force) {
 }
 
 void ClientLogic::cancelClicked() {
-    foreach(ForumSubscription *sub, m_forumDatabase.values()) {
+    for(ForumSubscription *sub : m_forumDatabase) {
         sub->setScheduledForUpdate(false);
     }
     foreach(UpdateEngine* engine, engines.values()) {
@@ -319,7 +319,7 @@ void ClientLogic::cancelClicked() {
 
 int ClientLogic::busyForumCount() {
     int busyForums = 0;
-    foreach(ForumSubscription *sub, m_forumDatabase.values()) {
+    for(ForumSubscription *sub : m_forumDatabase) {
         if(sub->updateEngine()->state()==UpdateEngine::UES_UPDATING) {
             busyForums++;
         }
@@ -356,7 +356,7 @@ void ClientLogic::listSubscriptionsFinished(QList<int> serversSubscriptions) {
     disconnect(&m_protocol, SIGNAL(listSubscriptionsFinished(QList<int>)), this, SLOT(listSubscriptionsFinished(QList<int>)));
 
     QList<ForumSubscription*> unsubscribedForums;
-    foreach(ForumSubscription* sub, m_forumDatabase.values()) {
+    for(ForumSubscription* sub : m_forumDatabase) {
         bool found = false;
         if(sub->provider() == ForumSubscription::FP_PARSER) {
             foreach(int serverSubscriptionId, serversSubscriptions) {
@@ -478,7 +478,7 @@ void ClientLogic::forumUpdated(ForumSubscription* forum) {
     while(!nextSub && !subscriptionsToUpdateLeft.isEmpty()
           && busyForums <= MAX_CONCURRENT_UPDATES) {
         nextSub = subscriptionsToUpdateLeft.takeFirst();
-        if(m_forumDatabase.values().contains(nextSub)) {
+        if(m_forumDatabase.contains(nextSub)) {
             nextSub->setScheduledForUpdate(false);
             Q_ASSERT(!nextSub->beingSynced());
             Q_ASSERT(!nextSub->scheduledForSync());

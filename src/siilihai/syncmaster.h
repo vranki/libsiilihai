@@ -16,7 +16,6 @@
 #define SYNCMASTER_H_
 #include <QObject>
 #include <QList>
-#include <QMap>
 #include <QQueue>
 #include "forumdatabase/forumdatabase.h"
 #include "siilihaiprotocol.h"

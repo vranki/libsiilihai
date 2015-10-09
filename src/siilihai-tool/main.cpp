@@ -27,8 +27,10 @@ int main(int argc, char *argv[])
     const QStringList args = parser.positionalArguments();
 
     SiilihaiTool tool;
-    if(args.size() < 1)
+    if(args.size() < 1) {
+        qDebug() << "This is the siilihai command line test tool. Try --help for commands.";
         return 0;
+    }
     if(args[0] == "list-forums") {
         tool.listForums();
     } else if(args[0] == "get-forum") {

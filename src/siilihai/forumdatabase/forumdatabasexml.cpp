@@ -21,9 +21,10 @@ ForumDatabaseXml::ForumDatabaseXml(QObject *parent) :
 void ForumDatabaseXml::resetDatabase(){
     m_unsaved = false;
     m_loaded = false;
-    foreach(ForumSubscription *sub, values())
+    for(ForumSubscription *sub : *this)
         deleteSubscription(sub);
     clear();
+    emit subscriptionsChanged();
     checkSanity();
 }
 
@@ -80,6 +81,7 @@ bool ForumDatabaseXml::openDatabase(QIODevice *source, bool loadContent) {
     }
     m_loaded = true;
     checkSanity();
+    emit subscriptionsChanged();
     return true;
 }
 
@@ -100,7 +102,7 @@ bool ForumDatabaseXml::addSubscription(ForumSubscription *fs){
 }
 
 void ForumDatabaseXml::deleteSubscription(ForumSubscription *sub){
-    remove(sub->id());
+    removeAll(sub);
     emit subscriptionsChanged();
     emit subscriptionRemoved(sub);
     sub->deleteLater();
@@ -117,7 +119,7 @@ bool ForumDatabaseXml::storeDatabase(){
     root.setAttribute("schema_version", QString::number(schemaVersion()));
     doc.appendChild(root);
 
-    foreach(ForumSubscription *sub, values()) {
+    for(ForumSubscription *sub : *this) {
         XmlSerialization::serialize(sub, root, doc);
     }
 
