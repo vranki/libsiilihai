@@ -77,7 +77,7 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
     fdb.checkSanity();
     // Update local subs
     foreach(ForumSubscription *serverSub, subs) {
-        ForumSubscription *dbSub = fdb.value(serverSub->id());
+        ForumSubscription *dbSub = fdb.findById(serverSub->id());
         if(!dbSub) { // Whole forum not found in db - add it
             qDebug() << Q_FUNC_INFO << "Forum not in db -  must add it!";
             ForumSubscription *newSub = ForumSubscription::newForProvider(serverSub->provider(), &fdb, false);
@@ -130,7 +130,7 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
     foreach(ForumSubscription *serverSub, subs) {
         foreach(ForumGroup *serverGrp, serverSub->values()) {
             Q_ASSERT(serverGrp->subscription()->id() >= 0 || serverGrp->id().length() > 0);
-            ForumSubscription *dbSub = fdb.value(serverGrp->subscription()->id());
+            ForumSubscription *dbSub = fdb.findById(serverGrp->subscription()->id());
             Q_ASSERT(dbSub);
 
             ForumGroup *dbGroup = dbSub->value(serverGrp->id());
@@ -227,7 +227,7 @@ void SyncMaster::serverThreadData(ForumThread *tempThread) { // Thread is tempor
         if (dbThread) { // Thread already found, merge it
             dbThread->setChangeset(tempThread->changeset());
         } else { // thread hasn't been found yet!
-            dbGroup = fdb.value(tempThread->group()->subscription()->id())->value(tempThread->group()->id());
+            dbGroup = fdb.findById(tempThread->group()->subscription()->id())->value(tempThread->group()->id());
             Q_ASSERT(dbGroup);
             Q_ASSERT(!dbGroup->isTemp());
             ForumThread *newThread = new ForumThread(dbGroup, false);
@@ -319,7 +319,7 @@ void SyncMaster::downsyncFinishedForForum(ForumSubscription *fs)
 {
     Q_ASSERT(fs && fs->id() > 0);
     qDebug() << Q_FUNC_INFO << fs->id();
-    ForumSubscription *dbSubscription = fdb.value(fs->id());
+    ForumSubscription *dbSubscription = fdb.findById(fs->id());
     Q_ASSERT(!dbSubscription->scheduledForSync());
     dbSubscription->setBeingSynced(false);
     emit syncFinishedFor(dbSubscription);
