@@ -28,6 +28,8 @@ ForumThread::ForumThread(QObject *parent, bool temp) : ForumDataItem(parent) {
     _getMessagesCount = -1;
     _temp = temp;
     _lastPage = 0;
+    connect(this, SIGNAL(messageAdded(ForumMessage*)), this, SIGNAL(messagesChanged()));
+    connect(this, SIGNAL(messageRemoved(ForumMessage*)), this, SIGNAL(messagesChanged()));
 }
 
 void ForumThread::copyFrom(ForumThread * o) {
@@ -176,4 +178,13 @@ void ForumThread::markToBeUpdated(bool toBe) {
     if(toBe && group()) {
         group()->markToBeUpdated();
     }
+}
+
+QList<QObject *> ForumThread::messages() const
+{
+    QList<QObject*> myMessages;
+    for(auto *msg : values())
+        myMessages.append(qobject_cast<QObject*>(msg));
+
+    return myMessages;
 }

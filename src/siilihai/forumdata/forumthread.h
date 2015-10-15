@@ -37,6 +37,8 @@ class ForumThread : public ForumDataItem, public QMap<QString, ForumMessage*> {
     Q_PROPERTY(QString id READ id WRITE setId NOTIFY changed)
     Q_PROPERTY(int unreadCount READ unreadCount() NOTIFY unreadCountChanged)
     Q_PROPERTY(bool hasMoreMessages READ hasMoreMessages() NOTIFY changed)
+    Q_PROPERTY(QList<QObject*> messages READ messages NOTIFY messagesChanged)
+
 public:
     ForumThread(QObject *parent, bool temp=true);
     virtual ~ForumThread();
@@ -61,11 +63,14 @@ public:
     void removeMessage(ForumMessage* msg, bool affectsSync = true);
     virtual bool needsToBeUpdated() const;
     virtual void markToBeUpdated(bool toBe=true);
+
+    QList<QObject *> messages() const;
 signals:
     void changed();
     void unreadCountChanged();
     void messageRemoved(ForumMessage *msg);
     void messageAdded(ForumMessage *msg);
+    void messagesChanged();
 protected:
     virtual void emitChanged();
     virtual void emitUnreadCountChanged();
