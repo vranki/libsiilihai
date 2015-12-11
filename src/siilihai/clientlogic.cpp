@@ -35,6 +35,7 @@ ClientLogic::ClientLogic(QObject *parent) : QObject(parent), m_settings(0), m_fo
     connect(&m_forumDatabase, SIGNAL(subscriptionFound(ForumSubscription*)), this, SLOT(subscriptionFound(ForumSubscription*)));
     connect(&m_forumDatabase, SIGNAL(databaseStored()), this, SLOT(databaseStored()), Qt::QueuedConnection);
     connect(&m_protocol, SIGNAL(userSettingsReceived(bool,UserSettings*)), this, SLOT(userSettingsReceived(bool,UserSettings*)));
+    connect(&m_protocol, SIGNAL(listForumsFinished(QList <ForumSubscription*>)), this, SLOT(listForumsFinished(QList <ForumSubscription*>)));
     connect(&m_syncmaster, SIGNAL(syncProgress(float, QString)), this, SLOT(syncProgress(float, QString)));
 }
 
@@ -128,6 +129,10 @@ void ClientLogic::launchSiilihai(bool offline) {
 
 void ClientLogic::haltSiilihai() {
     cancelClicked();
+
+    qDeleteAll(m_forumList);
+    m_forumList.clear();
+
     foreach(UpdateEngine *engine, engines.values()) {
         engine->subscription()->engineDestroyed();
         engine->setSubscription(0);
@@ -157,6 +162,11 @@ QString ClientLogic::getDataFilePath() {
 #endif
 }
 
+void ClientLogic::listForums()
+{
+    m_protocol.listForums();
+}
+
 QObject *ClientLogic::forumDatabase()
 {
     return qobject_cast<QObject*> (&m_forumDatabase);
@@ -165,6 +175,24 @@ QObject *ClientLogic::forumDatabase()
 QObject *ClientLogic::settings()
 {
     return qobject_cast<QObject*> (m_settings);
+}
+
+QList<QObject *> ClientLogic::forumList()
+{
+    QList<QObject*> forumListForums;
+
+    for(ForumSubscription *sub : m_forumList)
+        forumListForums.append(qobject_cast<QObject*>(sub));
+
+    return forumListForums;
+}
+
+// Receiver owns the forums!
+void ClientLogic::listForumsFinished(QList <ForumSubscription*> forums) {
+    for(auto forum : m_forumList) forum->deleteLater();
+    m_forumList.clear();
+    m_forumList.append(forums);
+    emit forumListChanged();
 }
 
 void ClientLogic::settingsChanged(bool byUser) {

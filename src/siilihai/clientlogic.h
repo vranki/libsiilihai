@@ -41,6 +41,7 @@ class ClientLogic : public QObject
     Q_PROPERTY(bool developerMode READ developerMode WRITE setDeveloperMode NOTIFY developerModeChanged)
     Q_PROPERTY(QObject* forumDatabase READ forumDatabase NOTIFY forumDatabaseChanged)
     Q_PROPERTY(QObject* settings READ settings NOTIFY settingsChangedSignal)
+    Q_PROPERTY(QList<QObject*> forumList READ forumList NOTIFY forumListChanged)
 public:
 
     enum siilihai_states {
@@ -70,9 +71,12 @@ public:
      */
     Q_INVOKABLE virtual void settingsChanged(bool byUser);
     Q_INVOKABLE virtual QString getDataFilePath();
+    Q_INVOKABLE virtual void listForums();
 
     QObject* forumDatabase();
     QObject* settings();
+    // List of (incomplete) forums for subscribing. Use listForums() to update.
+    QList<QObject*> forumList();
 
 public slots:
     virtual void launchSiilihai(bool offline=false);
@@ -85,6 +89,7 @@ public slots:
     virtual void subscriptionFound(ForumSubscription* sub);
     virtual void errorDialog(QString message)=0;
     virtual void loginFinished(bool success, QString motd, bool sync);
+    virtual void subscribeForum()=0; // Display the subscription dialog
     virtual void unsubscribeForum(ForumSubscription* fs);
     virtual void updateGroupSubscriptions(ForumSubscription *sub);
     virtual void updateAllParsers();
@@ -97,6 +102,7 @@ signals:
     void developerModeChanged(bool arg);
     void forumDatabaseChanged(QObject* forumDatabase);
     void settingsChangedSignal(QObject* settings);
+    void forumListChanged();
 
 protected:
     virtual void showLoginWizard()=0;
@@ -127,7 +133,6 @@ protected slots:
     virtual void updateThread(ForumThread* thread, bool force=false);
 
 private slots:
-    virtual void subscribeForum()=0;
     virtual void parserEngineStateChanged(UpdateEngine::UpdateEngineState newState,
                                           UpdateEngine::UpdateEngineState oldState);
     void syncProgress(float progress, QString message);
@@ -140,10 +145,15 @@ private slots:
     void credentialsEntered(bool store); // from CredentialsRequest
     void accountlessLoginFinished(); // Delayed login success (useless?)
     void clearStatusMessage();
+
 protected:
     CredentialsRequest* currentCredentialsRequest; // If being asked
     virtual SiilihaiSettings *createSettings(); // Create the settings object to be used. Can be your own subclass.
     QNetworkSession *networkSession;
+
+private slots:
+    void listForumsFinished(QList <ForumSubscription*>);
+
 private:
     void tryLogin();
     void showNextCredentialsDialog();
@@ -166,6 +176,7 @@ private:
 
     bool devMode; // Enables some debugging features on UI etc..
     bool m_developerMode;
+    QList<ForumSubscription*> m_forumList;
 };
 
 #endif // CLIENTLOGIC_H
