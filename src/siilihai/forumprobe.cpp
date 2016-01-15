@@ -7,8 +7,8 @@
 #include "tapatalk/tapatalkengine.h"
 #include "messageformatting.h"
 
-ForumProbe::ForumProbe(QObject *parent, SiilihaiProtocol &proto) :
-    QObject(parent), protocol(proto), currentEngine(0), probedSub(0) {
+ForumProbe::ForumProbe(QObject *parent, SiilihaiProtocol *proto) :
+    QObject(parent), m_protocol(proto), currentEngine(0), probedSub(0) {
     QObject::connect(&nam, SIGNAL(finished(QNetworkReply*)), this, SLOT(finishedSlot(QNetworkReply*)));
 }
 
@@ -21,8 +21,8 @@ void ForumProbe::probeUrl(QUrl urlToProbe) {
         probedSub->deleteLater();
         probedSub = 0;
     }
-    connect(&protocol, SIGNAL(forumGot(ForumSubscription*)), this, SLOT(forumGot(ForumSubscription*)));
-    protocol.getForum(url);
+    connect(m_protocol, SIGNAL(forumGot(ForumSubscription*)), this, SLOT(forumGot(ForumSubscription*)));
+    m_protocol->getForum(url);
 }
 
 void ForumProbe::probeUrl(int id) {
@@ -32,13 +32,13 @@ void ForumProbe::probeUrl(int id) {
         probedSub->deleteLater();
         probedSub = 0;
     }
-    connect(&protocol, SIGNAL(forumGot(ForumSubscription*)), this, SLOT(forumGot(ForumSubscription*)));
-    protocol.getForum(id);
+    connect(m_protocol, SIGNAL(forumGot(ForumSubscription*)), this, SLOT(forumGot(ForumSubscription*)));
+    m_protocol->getForum(id);
 }
 
 void ForumProbe::forumGot(ForumSubscription *sub) {
     qDebug() << Q_FUNC_INFO << url.toString() << sub;
-    disconnect(&protocol, SIGNAL(forumGot(ForumSubscription*)), this, SLOT(forumGot(ForumSubscription*)));
+    disconnect(m_protocol, SIGNAL(forumGot(ForumSubscription*)), this, SLOT(forumGot(ForumSubscription*)));
     if(!sub) { // Unknown forum - get title Need to add it to DB!
         // Test for TapaTalk
         qDebug() << Q_FUNC_INFO << "unknown, checking for tapatalk";

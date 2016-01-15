@@ -115,9 +115,7 @@ signals:
     void listSubscriptionsFinished(QList<int> subscriptions);
     void sendParserReportFinished(bool success);
     void subscribeGroupsFinished(bool success);
-
     void userSettingsReceived(bool success, UserSettings *newSettings);
-
     void forumGot(ForumSubscription *sub); // Or null for fail. Temp object!
 
     // Sync stuff:

@@ -33,6 +33,7 @@
 
 class ParserManager;
 class SiilihaiSettings;
+class SubscriptionManagement;
 
 class ClientLogic : public QObject
 {
@@ -41,7 +42,8 @@ class ClientLogic : public QObject
     Q_PROPERTY(bool developerMode READ developerMode WRITE setDeveloperMode NOTIFY developerModeChanged)
     Q_PROPERTY(QObject* forumDatabase READ forumDatabase NOTIFY forumDatabaseChanged)
     Q_PROPERTY(QObject* settings READ settings NOTIFY settingsChangedSignal)
-    Q_PROPERTY(QList<QObject*> forumList READ forumList NOTIFY forumListChanged)
+    Q_PROPERTY(SubscriptionManagement* subscriptionManagement READ subscriptionManagement NOTIFY subscriptionManagementChanged)
+
 public:
 
     enum siilihai_states {
@@ -71,12 +73,10 @@ public:
      */
     Q_INVOKABLE virtual void settingsChanged(bool byUser);
     Q_INVOKABLE virtual QString getDataFilePath();
-    Q_INVOKABLE virtual void listForums();
 
     QObject* forumDatabase();
     QObject* settings();
-    // List of (incomplete) forums for subscribing. Use listForums() to update.
-    QList<QObject*> forumList();
+    SubscriptionManagement *subscriptionManagement();
 
 public slots:
     virtual void launchSiilihai(bool offline=false);
@@ -89,20 +89,19 @@ public slots:
     virtual void subscriptionFound(ForumSubscription* sub);
     virtual void errorDialog(QString message)=0;
     virtual void loginFinished(bool success, QString motd, bool sync);
-    virtual void subscribeForum()=0; // Display the subscription dialog
-    virtual void unsubscribeForum(ForumSubscription* fs);
     virtual void updateGroupSubscriptions(ForumSubscription *sub);
     virtual void updateAllParsers();
     virtual void unregisterSiilihai();
     virtual void aboutToQuit();
     virtual void setDeveloperMode(bool newDm);
+    virtual void subscribeForum()=0; // Display the subscription dialog
 
 signals:
     void statusMessageChanged(QString message);
     void developerModeChanged(bool arg);
     void forumDatabaseChanged(QObject* forumDatabase);
     void settingsChangedSignal(QObject* settings);
-    void forumListChanged();
+    void subscriptionManagementChanged(SubscriptionManagement *subscriptionManagement);
 
 protected:
     virtual void showLoginWizard()=0;
@@ -126,6 +125,7 @@ protected slots:
     virtual void showStatusMessage(QString message=QString::null);
     virtual void groupListChanged(ForumSubscription* sub) {Q_UNUSED(sub)} // Show group subscription dialog or whatever
     virtual void forumUpdateNeeded(ForumSubscription *sub); // Sends the updated forum info (authentication etc)
+    virtual void unsubscribeForum(ForumSubscription* fs);
     void forumAdded(ForumSubscription *fs); // Ownership won't change
     void moreMessagesRequested(ForumThread* thread);
     void unsubscribeGroup(ForumGroup *group);
@@ -138,7 +138,6 @@ private slots:
     void syncProgress(float progress, QString message);
     void listSubscriptionsFinished(QList<int> subscriptions);
     void forumUpdated(ForumSubscription* forumid);
-    void subscribeForumFinished(ForumSubscription *sub, bool success);
     void userSettingsReceived(bool success, UserSettings *newSettings);
     void databaseStored();
     void forumLoginFinished(ForumSubscription *sub, bool success);
@@ -150,9 +149,6 @@ protected:
     CredentialsRequest* currentCredentialsRequest; // If being asked
     virtual SiilihaiSettings *createSettings(); // Create the settings object to be used. Can be your own subclass.
     QNetworkSession *networkSession;
-
-private slots:
-    void listForumsFinished(QList <ForumSubscription*>);
 
 private:
     void tryLogin();
@@ -173,10 +169,10 @@ private:
     QQueue<CredentialsRequest*> credentialsRequests;
     QString statusMsg; // One-liner describing current status
     QTimer statusMsgTimer; // Hides the message after a short delay
+    SubscriptionManagement *m_subscriptionManagement;
 
     bool devMode; // Enables some debugging features on UI etc..
     bool m_developerMode;
-    QList<ForumSubscription*> m_forumList;
 };
 
 #endif // CLIENTLOGIC_H

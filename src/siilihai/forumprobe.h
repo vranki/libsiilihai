@@ -14,7 +14,7 @@ class ForumProbe : public QObject
 {
     Q_OBJECT
 public:
-    explicit ForumProbe(QObject *parent, SiilihaiProtocol &proto);
+    explicit ForumProbe(QObject *parent, SiilihaiProtocol *proto);
     void probeUrl(QUrl url);
     void probeUrl(int id);
 
@@ -29,7 +29,7 @@ private:
     QString getTitle(QString &html);
 
     QNetworkAccessManager nam;
-    SiilihaiProtocol &protocol;
+    SiilihaiProtocol *m_protocol;
     QUrl url;
     UpdateEngine *currentEngine;
     ForumSubscription *probedSub;

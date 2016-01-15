@@ -16,9 +16,10 @@
 #include "tapatalk/tapatalkengine.h"
 #include "siilihaisettings.h"
 #include "messageformatting.h"
+#include "subscriptionmanagement.h"
 
 ClientLogic::ClientLogic(QObject *parent) : QObject(parent), m_settings(0), m_forumDatabase(this),  m_syncmaster(this, m_forumDatabase, m_protocol),
-    m_parserManager(0), currentCredentialsRequest(0), currentState(SH_OFFLINE) {
+    m_parserManager(0), m_subscriptionManagement(0), currentCredentialsRequest(0), currentState(SH_OFFLINE) {
     endSyncDone = false;
     firstRun = true;
     dbStored = false;
@@ -35,7 +36,6 @@ ClientLogic::ClientLogic(QObject *parent) : QObject(parent), m_settings(0), m_fo
     connect(&m_forumDatabase, SIGNAL(subscriptionFound(ForumSubscription*)), this, SLOT(subscriptionFound(ForumSubscription*)));
     connect(&m_forumDatabase, SIGNAL(databaseStored()), this, SLOT(databaseStored()), Qt::QueuedConnection);
     connect(&m_protocol, SIGNAL(userSettingsReceived(bool,UserSettings*)), this, SLOT(userSettingsReceived(bool,UserSettings*)));
-    connect(&m_protocol, SIGNAL(listForumsFinished(QList <ForumSubscription*>)), this, SLOT(listForumsFinished(QList <ForumSubscription*>)));
     connect(&m_syncmaster, SIGNAL(syncProgress(float, QString)), this, SLOT(syncProgress(float, QString)));
 }
 
@@ -130,9 +130,6 @@ void ClientLogic::launchSiilihai(bool offline) {
 void ClientLogic::haltSiilihai() {
     cancelClicked();
 
-    qDeleteAll(m_forumList);
-    m_forumList.clear();
-
     foreach(UpdateEngine *engine, engines.values()) {
         engine->subscription()->engineDestroyed();
         engine->setSubscription(0);
@@ -162,11 +159,6 @@ QString ClientLogic::getDataFilePath() {
 #endif
 }
 
-void ClientLogic::listForums()
-{
-    m_protocol.listForums();
-}
-
 QObject *ClientLogic::forumDatabase()
 {
     return qobject_cast<QObject*> (&m_forumDatabase);
@@ -177,22 +169,15 @@ QObject *ClientLogic::settings()
     return qobject_cast<QObject*> (m_settings);
 }
 
-QList<QObject *> ClientLogic::forumList()
+SubscriptionManagement* ClientLogic::subscriptionManagement()
 {
-    QList<QObject*> forumListForums;
-
-    for(ForumSubscription *sub : m_forumList)
-        forumListForums.append(qobject_cast<QObject*>(sub));
-
-    return forumListForums;
-}
-
-// Receiver owns the forums!
-void ClientLogic::listForumsFinished(QList <ForumSubscription*> forums) {
-    for(auto forum : m_forumList) forum->deleteLater();
-    m_forumList.clear();
-    m_forumList.append(forums);
-    emit forumListChanged();
+    if(!m_subscriptionManagement) {
+        m_subscriptionManagement = new SubscriptionManagement(this, &m_protocol, m_settings);
+        connect(m_subscriptionManagement, SIGNAL(forumUnsubscribed(ForumSubscription*)), this, SLOT(unsubscribeForum(ForumSubscription*)));
+        connect(m_subscriptionManagement, SIGNAL(showError(QString)), this, SLOT(errorDialog(QString)));
+        connect(m_subscriptionManagement, SIGNAL(forumAdded(ForumSubscription*)), this, SLOT(forumAdded(ForumSubscription*)));
+    }
+    return m_subscriptionManagement;
 }
 
 void ClientLogic::settingsChanged(bool byUser) {
@@ -410,9 +395,7 @@ void ClientLogic::loginFinished(bool success, QString motd, bool sync) {
     disconnect(&m_protocol, SIGNAL(loginFinished(bool, QString,bool)), this, SLOT(loginFinished(bool, QString,bool)));
 
     if (success) {
-        connect(&m_protocol, SIGNAL(listSubscriptionsFinished(QList<int>)), this, SLOT(listSubscriptionsFinished(QList<int>)));
         connect(&m_protocol, SIGNAL(sendParserReportFinished(bool)), this, SLOT(sendParserReportFinished(bool)));
-        connect(&m_protocol, SIGNAL(subscribeForumFinished(ForumSubscription*, bool)), this, SLOT(subscribeForumFinished(ForumSubscription*,bool)));
         usettings.setSyncEnabled(sync);
         m_settings->setSyncEnabled(usettings.syncEnabled());
         m_settings->sync();
@@ -513,14 +496,6 @@ void ClientLogic::forumUpdated(ForumSubscription* forum) {
             nextSub->updateEngine()->updateForum();
             busyForums++;
         }
-    }
-}
-
-void ClientLogic::subscribeForumFinished(ForumSubscription *sub, bool success) {
-    if (!success) {
-        errorDialog("Subscribing to forum failed. Please check network connection.");
-        if(m_forumDatabase.value(sub->id()))
-            m_forumDatabase.deleteSubscription(sub);
     }
 }
 
@@ -675,14 +650,6 @@ void ClientLogic::forumLoginFinished(ForumSubscription *sub, bool success) {
         errorDialog(QString("Login to %1 failed. Please check credentials.").arg(sub->alias()));
 }
 
-void ClientLogic::unsubscribeForum(ForumSubscription* fs) {
-    if(!noAccount())
-        m_protocol.subscribeForum(fs, true);
-    m_forumDatabase.deleteSubscription(fs);
-    if(fs->isParsed())
-        m_parserManager->deleteParser(qobject_cast<ForumSubscriptionParsed*>(fs)->parserId());
-}
-
 // Authenticator can be null!
 void ClientLogic::getHttpAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator) {
     qDebug() << Q_FUNC_INFO << fsub->alias();
@@ -784,4 +751,12 @@ void ClientLogic::credentialsEntered(bool store) {
 void ClientLogic::syncProgress(float progress, QString message) {
     Q_UNUSED(progress);
     showStatusMessage(message);
+}
+
+void ClientLogic::unsubscribeForum(ForumSubscription* fs) {
+    if(!noAccount())
+        m_protocol.subscribeForum(fs, true);
+    m_forumDatabase.deleteSubscription(fs);
+    if(fs->isParsed())
+        m_parserManager->deleteParser(qobject_cast<ForumSubscriptionParsed*>(fs)->parserId());
 }

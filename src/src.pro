@@ -36,6 +36,7 @@ headers.files += \
     siilihai/usersettings.h \
     siilihai/xmlserialization.h \
     siilihai/clientlogic.h \
+    siilihai/subscriptionmanagement.h \
     siilihai/messageformatting.h \
     siilihai/credentialsrequest.h \
     siilihai/forumprobe.h \
@@ -70,9 +71,7 @@ forumdatabase.files += siilihai/forumdatabase/forumdatabase.h \
 forumdatabase.path = $$headers.path/forumdatabase
 
 HEADERS += $$tapatalk.files $$parser.files $$forumdata.files $$forumdatabase.files $$headers.files \
-    siilihai/tapatalk/tapatalkengine.h \
-    siilihai/forumdata/updateerror.h
-
+    siilihai/tapatalk/tapatalkengine.h
 
 SOURCES += siilihai/syncmaster.cpp \
     siilihai/parser/parserreport.cpp \
@@ -91,6 +90,7 @@ SOURCES += siilihai/syncmaster.cpp \
     siilihai/forumdatabase/forumdatabasexml.cpp \
     siilihai/xmlserialization.cpp \
     siilihai/clientlogic.cpp \
+    siilihai/subscriptionmanagement.cpp \
     siilihai/messageformatting.cpp \
     siilihai/credentialsrequest.cpp \
     siilihai/updateengine.cpp \

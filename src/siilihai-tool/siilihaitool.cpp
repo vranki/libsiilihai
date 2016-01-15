@@ -1,7 +1,7 @@
 #include "siilihaitool.h"
 #include "siilihai/forumdata/forumsubscription.h"
 
-SiilihaiTool::SiilihaiTool(QObject *parent) : QObject(parent), forumProbe(0, protocol)
+SiilihaiTool::SiilihaiTool(QObject *parent) : QObject(parent), forumProbe(0, &protocol)
 {
     providers << "[NONE  ]" << "[PARSER]" << "[TAPATA]" << "[ERROR ]";
 }
