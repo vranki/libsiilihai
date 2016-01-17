@@ -1,13 +1,16 @@
 #include "siilihaitool.h"
 #include "siilihai/forumdata/forumsubscription.h"
+#include "siilihai/forumdata/forumgroup.h"
+#include "siilihai/updateengine.h"
 
-SiilihaiTool::SiilihaiTool(QObject *parent) : QObject(parent), forumProbe(0, &protocol)
+SiilihaiTool::SiilihaiTool(QObject *parent) : QObject(parent), forumProbe(0, &protocol), currentSubscription(0), updateEngine(0)
 {
     providers << "[NONE  ]" << "[PARSER]" << "[TAPATA]" << "[ERROR ]";
 }
 
 SiilihaiTool::~SiilihaiTool()
 {
+    if(currentSubscription) delete currentSubscription;
 }
 
 void SiilihaiTool::listForums()
@@ -30,15 +33,16 @@ void SiilihaiTool::listForumsFinished(QList<ForumSubscription *> forums)
     foreach(auto fs, forums) {
         printForum(fs);
     }
-    QCoreApplication::quit();
 }
 
 void SiilihaiTool::forumGot(ForumSubscription *sub)
 {
     qDebug() << "Received forum:";
     printForum(sub);
-    sub->deleteLater();
-    QCoreApplication::quit();
+    currentSubscription = sub;
+    if(command.isEmpty()) {
+        QCoreApplication::quit();
+    }
 }
 
 void SiilihaiTool::probe(QUrl url)
@@ -48,13 +52,45 @@ void SiilihaiTool::probe(QUrl url)
     forumProbe.probeUrl(url);
 }
 
+void SiilihaiTool::listGroups(QUrl url)
+{
+    command = "list-groups";
+    probe(url);
+}
+
 
 void SiilihaiTool::probeResults(ForumSubscription *probedSub)
 {
     qDebug() << "Probe results: ";
     printForum(probedSub);
-    probedSub->deleteLater();
-    QCoreApplication::quit();
+    currentSubscription = probedSub;
+    if(command.isEmpty()) {
+        QCoreApplication::quit();
+    } else if(command == "list-groups") {
+        updateEngine = UpdateEngine::newForSubscription(probedSub, 0, 0);
+        connect(updateEngine, SIGNAL(groupListChanged(ForumSubscription*)), this, SLOT(groupListChanged(ForumSubscription*)));
+        connect(updateEngine, SIGNAL(stateChanged(UpdateEngine*, UpdateEngine::UpdateEngineState, UpdateEngine::UpdateEngineState)),
+                this, SLOT(engineStateChanged(UpdateEngine*, UpdateEngine::UpdateEngineState, UpdateEngine::UpdateEngineState)));
+        updateEngine->setSubscription(probedSub);
+    }
+}
+
+void SiilihaiTool::groupListChanged(ForumSubscription *sub)
+{
+    qDebug() << "Group list:";
+    for(ForumGroup *group : sub->values()) {
+        qDebug() << group->name();
+    }
+}
+
+void SiilihaiTool::engineStateChanged(UpdateEngine *engine, UpdateEngine::UpdateEngineState newState, UpdateEngine::UpdateEngineState oldState)
+{
+    qDebug() << "UE State:" << engine->stateName(newState);
+    if(newState == UpdateEngine::UES_IDLE) {
+        if(command == "list-groups") {
+            updateEngine->updateGroupList();
+        }
+    }
 }
 
 void SiilihaiTool::printForum(ForumSubscription *fs)
@@ -65,4 +101,3 @@ void SiilihaiTool::printForum(ForumSubscription *fs)
         qDebug() << "  (no forum)";
     }
 }
-

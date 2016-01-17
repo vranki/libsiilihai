@@ -20,6 +20,10 @@
 #include "forumdata/forumsubscription.h"
 #include "forumdata/updateerror.h"
 #include "credentialsrequest.h"
+#include "parser/forumsubscriptionparsed.h"
+#include "parser/parserengine.h"
+#include "parser/parsermanager.h"
+#include "tapatalk/tapatalkengine.h"
 
 static const QString stateNames[] = {"Unknown", "Missing Parser", "Idle", "Updating", "Error", "Updating parser" };
 
@@ -42,6 +46,23 @@ UpdateEngine::UpdateEngine(QObject *parent, ForumDatabase *fd) :
 UpdateEngine::~UpdateEngine() {
     if(subscription())
         subscription()->engineDestroyed();
+}
+
+UpdateEngine *UpdateEngine::newForSubscription(ForumSubscription *fs, ForumDatabase *fdb, ParserManager *pm)
+{
+    UpdateEngine *ue = 0;
+
+    if(fs->isParsed()) {
+        ForumSubscriptionParsed *newFsParsed = qobject_cast<ForumSubscriptionParsed*>(fs);
+        ParserEngine *pe = new ParserEngine(fdb, fdb, pm);
+        ue = pe;
+        pe->setParser(pm->getParser(newFsParsed->parserId()));
+        if(!pe->parser()) pe->setParser(pm->getParser(newFsParsed->parserId())); // Load the (possibly old) parser
+    } else if(fs->isTapaTalk()) {
+        TapaTalkEngine *tte = new TapaTalkEngine(fdb, fdb);
+        ue = tte;
+    }
+    return ue;
 }
 
 void UpdateEngine::setSubscription(ForumSubscription *fs) {
@@ -419,7 +440,7 @@ void UpdateEngine::setState(UpdateEngineState newState) {
         cancelOperation();
         emit forumUpdated(subscription());
     }
-    emit stateChanged(currentState, oldState);
+    emit stateChanged(this, currentState, oldState);
 }
 
 void UpdateEngine::requestCredentials() {
@@ -512,6 +533,11 @@ bool UpdateEngine::supportsPosting() {
 
 QString UpdateEngine::convertDate(QString &date) {
     return date;
+}
+
+QString UpdateEngine::stateName(UpdateEngine::UpdateEngineState state)
+{
+    return stateNames[state];
 }
 
 void UpdateEngine::updateGroupList() {

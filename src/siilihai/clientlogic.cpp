@@ -439,18 +439,7 @@ void ClientLogic::forumAdded(ForumSubscription *fs) {
 void ClientLogic::createEngineForSubscription(ForumSubscription *newFs) {
     Q_ASSERT(!newFs->isTemp());
     if(engines.contains(newFs)) return;
-    UpdateEngine *ue = 0;
-    if(newFs->isParsed()) {
-        ForumSubscriptionParsed *newFsParsed = qobject_cast<ForumSubscriptionParsed*>(newFs);
-        //        Q_ASSERT(parserManager->getParser(newFsParsed->parser())); // Should already be there!
-        ParserEngine *pe = new ParserEngine(this, &m_forumDatabase, m_parserManager);
-        ue = pe;
-        pe->setParser(m_parserManager->getParser(newFsParsed->parserId()));
-        if(!pe->parser()) pe->setParser(m_parserManager->getParser(newFsParsed->parserId())); // Load the (possibly old) parser
-    } else if(newFs->isTapaTalk()) {
-        TapaTalkEngine *tte = new TapaTalkEngine(&m_forumDatabase, this);
-        ue = tte;
-    }
+    UpdateEngine *ue = UpdateEngine::newForSubscription(newFs, &m_forumDatabase, m_parserManager);
     Q_ASSERT(ue);
     Q_ASSERT(!engines.contains(newFs));
     engines.insert(newFs, ue);
@@ -460,8 +449,8 @@ void ClientLogic::createEngineForSubscription(ForumSubscription *newFs) {
     connect(ue, SIGNAL(getHttpAuthentication(ForumSubscription*, QAuthenticator*)), this, SLOT(getHttpAuthentication(ForumSubscription*,QAuthenticator*)));
     connect(ue, SIGNAL(getForumAuthentication(ForumSubscription*)), this, SLOT(getForumAuthentication(ForumSubscription*)));
     connect(ue, SIGNAL(loginFinished(ForumSubscription*,bool)), this, SLOT(forumLoginFinished(ForumSubscription*,bool)));
-    connect(ue, SIGNAL(stateChanged(UpdateEngine::UpdateEngineState, UpdateEngine::UpdateEngineState)),
-            this, SLOT(parserEngineStateChanged(UpdateEngine::UpdateEngineState, UpdateEngine::UpdateEngineState)));
+    connect(ue, SIGNAL(stateChanged(UpdateEngine *engine, UpdateEngine::UpdateEngineState, UpdateEngine::UpdateEngineState)),
+            this, SLOT(updateEngineStateChanged(UpdateEngine *engine, UpdateEngine::UpdateEngineState, UpdateEngine::UpdateEngineState)));
     connect(ue, SIGNAL(updateForumSubscription(ForumSubscription *)), &m_protocol, SLOT(subscribeForum(ForumSubscription *)));
     connect(ue, SIGNAL(messagePosted(ForumSubscription*)), this, SLOT(updateClicked(ForumSubscription*)));
 }
@@ -469,7 +458,7 @@ void ClientLogic::createEngineForSubscription(ForumSubscription *newFs) {
 void ClientLogic::subscriptionDeleted(QObject* subobj) {
     ForumSubscription *sub = static_cast<ForumSubscription*> (subobj);
     if(!engines.contains(sub)) return; // Possible when quitting
-    busyParserEngines.remove(engines[sub]);
+    busyUpdateEngines.remove(engines[sub]);
     // engines[sub]->cancelOperation(); Don't do this
     engines[sub]->setSubscription(0);
     engines[sub]->deleteLater();
@@ -569,14 +558,13 @@ void ClientLogic::databaseStored() {
 }
 
 // Caution - engine->subscription() may be null (when deleted)!
-void ClientLogic::parserEngineStateChanged(UpdateEngine::UpdateEngineState newState, UpdateEngine::UpdateEngineState oldState) {
-    ParserEngine *engine = qobject_cast<ParserEngine*>(sender());
+void ClientLogic::updateEngineStateChanged(UpdateEngine *engine, UpdateEngine::UpdateEngineState newState, UpdateEngine::UpdateEngineState oldState) {
     if (newState==UpdateEngine::UES_UPDATING) {
-        busyParserEngines.insert(engine);
+        busyUpdateEngines.insert(engine);
     } else {
-        busyParserEngines.remove(engine);
+        busyUpdateEngines.remove(engine);
     }
-    if (!busyParserEngines.isEmpty()) {
+    if (!busyUpdateEngines.isEmpty()) {
         showStatusMessage("Updating Forums.. ");
     }
     if(currentState==SH_READY && newState == UpdateEngine::UES_IDLE && oldState != UpdateEngine::UES_UPDATING) {

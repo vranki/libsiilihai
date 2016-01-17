@@ -133,7 +133,7 @@ protected slots:
     virtual void updateThread(ForumThread* thread, bool force=false);
 
 private slots:
-    virtual void parserEngineStateChanged(UpdateEngine::UpdateEngineState newState,
+    virtual void updateEngineStateChanged(UpdateEngine *engine, UpdateEngine::UpdateEngineState newState,
                                           UpdateEngine::UpdateEngineState oldState);
     void syncProgress(float progress, QString message);
     void listSubscriptionsFinished(QList<int> subscriptions);
@@ -159,7 +159,7 @@ private:
     siilihai_states currentState;
     QHash <ForumSubscription*, UpdateEngine*> engines;
     QList<ForumSubscription*> subscriptionsToUpdateLeft;
-    QSet<UpdateEngine*> busyParserEngines;
+    QSet<UpdateEngine*> busyUpdateEngines;
     QSet<ForumSubscription*> subscriptionsNotUpdated; // Subs that never have been updated
     UserSettings usettings;
     bool dbStored;

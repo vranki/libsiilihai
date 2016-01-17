@@ -45,6 +45,12 @@ int main(int argc, char *argv[])
         } else {
             qWarning() << "Enter forum URL to probe";
         }
+    } else if(args[0] == "list-groups") {
+        if(parser.isSet(forumUrl)) {
+            tool.listGroups(parser.value(forumUrl));
+        } else {
+            qWarning() << "Enter forum URL to list groups from";
+        }
     }
     return a.exec();
 }

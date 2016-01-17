@@ -27,13 +27,15 @@ class ForumThread;
 class ForumMessage;
 class ForumDatabase;
 class CredentialsRequest;
+class ForumDatabase;
+class ParserManager;
 
 /**
   * Common parent class for update engines. Handles updating a forum's data (threads, messages, etc).
   *
   * State diagram:
   *
-  * PES_ENGINE_NOT_READY -> REQUESTING_CREDENTIALS                   <-> IDLE <-> UPDATING
+  * UES_ENGINE_NOT_READY -> REQUESTING_CREDENTIALS                   <-> IDLE <-> UPDATING
   *                                    '-->----------------------->------^ ^- ERROR <-'
   * @see ForumDatabase
   *
@@ -56,6 +58,7 @@ public:
     // fd can be null
     UpdateEngine(QObject *parent, ForumDatabase *fd);
     virtual ~UpdateEngine();
+    static UpdateEngine* newForSubscription(ForumSubscription *fs, ForumDatabase *fdb, ParserManager *pm);
     virtual void setSubscription(ForumSubscription *fs);
 
     // These are the main update functions called by UI. Call only for IDLE engine.
@@ -65,7 +68,7 @@ public:
 
     virtual bool supportsPosting(); // Returns true if this engine can post new threads & messages
     virtual QString convertDate(QString &date); // Convert date to human-readable format
-
+    QString stateName(UpdateEngineState state);
     UpdateEngine::UpdateEngineState state();
     ForumSubscription* subscription() const;
     QNetworkAccessManager *networkAccessManager();
@@ -74,6 +77,7 @@ public slots:
     virtual void cancelOperation();
     virtual void credentialsEntered(CredentialsRequest* cr);
     virtual bool postMessage(ForumGroup *grp, ForumThread *thr, QString subject, QString body);
+
 signals:
     // Emitted if initially group list was empty but new groups were found.
     void groupListChanged(ForumSubscription *forum);
@@ -84,7 +88,7 @@ signals:
     void getForumAuthentication(ForumSubscription *fsub); // Asynchronous
     void loginFinished(ForumSubscription *sub, bool success);
     // Caution: engine's subscription may be null!
-    void stateChanged(UpdateEngine::UpdateEngineState newState, UpdateEngine::UpdateEngineState oldState);
+    void stateChanged(UpdateEngine *engine, UpdateEngine::UpdateEngineState newState, UpdateEngine::UpdateEngineState oldState);
     void updateForumSubscription(ForumSubscription *fsub); // Used to request protocol to update subscription
     void messagePosted(ForumSubscription *sub);
 
