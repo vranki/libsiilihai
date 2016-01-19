@@ -38,8 +38,8 @@ ParserEngine::ParserEngine(QObject *parent, ForumDatabase *fd, ParserManager *pm
     connect(this, SIGNAL(listMessagesFinished(QList<ForumMessage*>&, ForumThread*, bool)),
             this, SLOT(listMessagesFinished(QList<ForumMessage*>&, ForumThread*, bool)));
     connect(this, SIGNAL(loginFinished(ForumSubscription *,bool)), this, SLOT(loginFinishedSlot(ForumSubscription *,bool)));
-    connect(this, SIGNAL(stateChanged(UpdateEngine::UpdateEngineState,UpdateEngine::UpdateEngineState)),
-            this, SLOT(updateParserIfError(UpdateEngine::UpdateEngineState,UpdateEngine::UpdateEngineState)));
+    connect(this, SIGNAL(stateChanged(UpdateEngine*, UpdateEngine::UpdateEngineState,UpdateEngine::UpdateEngineState)),
+            this, SLOT(updateParserIfError(UpdateEngine*, UpdateEngine::UpdateEngineState,UpdateEngine::UpdateEngineState)));
 
     if(parserManager)
         connect(parserManager, SIGNAL(parserUpdated(ForumParser*)), this, SLOT(parserUpdated(ForumParser*)));
@@ -124,8 +124,9 @@ void ParserEngine::parserUpdated(ForumParser *p) {
     }
 }
 
-void ParserEngine::updateParserIfError(UpdateEngine::UpdateEngineState newState, UpdateEngine::UpdateEngineState oldState) {
+void ParserEngine::updateParserIfError(UpdateEngine *engine, UpdateEngine::UpdateEngineState newState, UpdateEngine::UpdateEngineState oldState) {
     Q_UNUSED(oldState);
+    Q_UNUSED(engine);
     if(newState == UES_ERROR && parserManager) {
         parserManager->updateParser(subscriptionParsed()->parserId());
     }
@@ -197,6 +198,8 @@ void ParserEngine::doUpdateForum() {
     Q_ASSERT(operationInProgress == ParserEngine::PEONoOp || operationInProgress == ParserEngine::PEOUpdateForum);
     operationInProgress = ParserEngine::PEOUpdateForum;
 
+    updateCanceled = false;
+
     if(prepareForUse()) {
         // qDebug() << Q_FUNC_INFO << "Need to fetch cookie etc first, NOT updating yet";
         return;
@@ -217,6 +220,8 @@ void ParserEngine::doUpdateGroup(ForumGroup *group) {
         qWarning() << Q_FUNC_INFO << "Operation " << operationNames[operationInProgress] << " in progress!! Don't command me yet!";
         return;
     }
+    updateCanceled = false;
+
     operationInProgress = PEOUpdateGroup;
     groupBeingUpdated = group;
     currentMessagesUrl = QString::null;
@@ -240,6 +245,7 @@ void ParserEngine::doUpdateThread(ForumThread *thread)
         Q_ASSERT(false);
         return;
     }
+    updateCanceled = false;
     operationInProgress = PEOUpdateThread;
     threadBeingUpdated = thread;
     Q_ASSERT(groupBeingUpdated == 0 || groupBeingUpdated == thread->group());

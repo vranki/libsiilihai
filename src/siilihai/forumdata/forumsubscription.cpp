@@ -390,8 +390,9 @@ QList<QObject *> ForumSubscription::subscribedGroups() const
 void ForumSubscription::append_error(QQmlListProperty<UpdateError> *list, UpdateError *msg)
 {
     ForumSubscription *sub = qobject_cast<ForumSubscription *>(list->object);
-    if (msg)
+    if (msg) {
         sub->m_errors.append(msg);
+    }
 }
 
 int ForumSubscription::count_error(QQmlListProperty<UpdateError> *list)

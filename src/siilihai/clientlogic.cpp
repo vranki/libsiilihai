@@ -449,8 +449,8 @@ void ClientLogic::createEngineForSubscription(ForumSubscription *newFs) {
     connect(ue, SIGNAL(getHttpAuthentication(ForumSubscription*, QAuthenticator*)), this, SLOT(getHttpAuthentication(ForumSubscription*,QAuthenticator*)));
     connect(ue, SIGNAL(getForumAuthentication(ForumSubscription*)), this, SLOT(getForumAuthentication(ForumSubscription*)));
     connect(ue, SIGNAL(loginFinished(ForumSubscription*,bool)), this, SLOT(forumLoginFinished(ForumSubscription*,bool)));
-    connect(ue, SIGNAL(stateChanged(UpdateEngine *engine, UpdateEngine::UpdateEngineState, UpdateEngine::UpdateEngineState)),
-            this, SLOT(updateEngineStateChanged(UpdateEngine *engine, UpdateEngine::UpdateEngineState, UpdateEngine::UpdateEngineState)));
+    connect(ue, SIGNAL(stateChanged(UpdateEngine*, UpdateEngine::UpdateEngineState, UpdateEngine::UpdateEngineState)),
+            this, SLOT(updateEngineStateChanged(UpdateEngine*, UpdateEngine::UpdateEngineState, UpdateEngine::UpdateEngineState)));
     connect(ue, SIGNAL(updateForumSubscription(ForumSubscription *)), &m_protocol, SLOT(subscribeForum(ForumSubscription *)));
     connect(ue, SIGNAL(messagePosted(ForumSubscription*)), this, SLOT(updateClicked(ForumSubscription*)));
 }

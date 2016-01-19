@@ -70,14 +70,16 @@ public:
     virtual void doUpdateForum();
     virtual void doUpdateGroup(ForumGroup *group);
     virtual void doUpdateThread(ForumThread *thread);
+
 public slots:
     virtual void cancelOperation();
     virtual void credentialsEntered(CredentialsRequest* cr);
+
 private slots:
     void networkReply(QNetworkReply *reply);
     void authenticationRequired (QNetworkReply * reply, QAuthenticator * authenticator); // Called by NAM
     void parserUpdated(ForumParser *p);
-    void updateParserIfError(UpdateEngine::UpdateEngineState newState, UpdateEngine::UpdateEngineState oldState);
+    void updateParserIfError(UpdateEngine *engine, UpdateEngine::UpdateEngineState newState, UpdateEngine::UpdateEngineState oldState);
     void cookieExpired(); // Called when cookie needs to be fetched again
 
 signals:
