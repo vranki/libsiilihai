@@ -30,7 +30,7 @@ class TapaTalkEngine : public UpdateEngine
     };
 
 public:
-    explicit TapaTalkEngine(ForumDatabase *fd, QObject *parent);
+    explicit TapaTalkEngine(QObject *parent, ForumDatabase *fd);
     virtual void setSubscription(ForumSubscription *fs);
     virtual void probeUrl(QUrl url);
     virtual bool supportsPosting();

@@ -19,6 +19,7 @@
 class ForumProbe : public QObject
 {
     Q_OBJECT
+
 public:
     explicit ForumProbe(QObject *parent, SiilihaiProtocol *proto);
     void probeUrl(QUrl url, bool noServer=false);

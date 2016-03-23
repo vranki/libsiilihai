@@ -14,7 +14,7 @@
 #include <QRegExp>
 #include <QDateTime>
 
-TapaTalkEngine::TapaTalkEngine(ForumDatabase *fd, QObject *parent) :
+TapaTalkEngine::TapaTalkEngine(QObject *parent, ForumDatabase *fd) :
     UpdateEngine(parent, fd)
 {
     connect(&nam, SIGNAL(finished(QNetworkReply*)), this, SLOT(networkReply(QNetworkReply*)), Qt::UniqueConnection);

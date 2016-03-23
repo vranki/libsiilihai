@@ -83,8 +83,6 @@ void ForumProbe::engineProbeResults(ForumSubscription *sub) {
             emit probeResults(0); // Nope, can't find anything valid
         }
     }
-    currentEngine->deleteLater();
-    currentEngine = 0;
 }
 
 QString ForumProbe::getTitle(QString &html) {
@@ -107,14 +105,18 @@ QString ForumProbe::getTitle(QString &html) {
 
 void ForumProbe::probeNextType()
 {
+    if(currentEngine) {
+        currentEngine->deleteLater();
+        currentEngine = 0;
+    }
     if(typesProbed == 0) {
         // Test for TapaTalk
         qDebug() << Q_FUNC_INFO << "unknown, checking for tapatalk";
-        TapaTalkEngine *tte = new TapaTalkEngine(0, 0); // Deleted in engineProbeResults
+        TapaTalkEngine *tte = new TapaTalkEngine(this, 0); // Deleted in engineProbeResults
         currentEngine = tte;
     } else if(typesProbed == 1) {
         qDebug() << Q_FUNC_INFO << "unknown, checking for discourse";
-        DiscourseEngine *de = new DiscourseEngine(0,0);
+        DiscourseEngine *de = new DiscourseEngine(this, 0);
         currentEngine = de;
     } else {
         Q_ASSERT(false); // You shouldn't call this anymore!!

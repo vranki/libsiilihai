@@ -27,6 +27,8 @@ private:
 private slots:
     void networkReply(QNetworkReply *reply);
     void sslErrors(QNetworkReply * reply, const QList<QSslError> & errors);
+    void authenticationRequired(QNetworkReply * reply, QAuthenticator * authenticator);
+    void encrypted(QNetworkReply * reply);
 };
 
 #endif // DISCOURSEENGINE_H
