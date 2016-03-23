@@ -5,6 +5,7 @@
 #include <QWebPage>
 #endif
 #include "tapatalk/tapatalkengine.h"
+#include "discourse/discourseengine.h"
 #include "messageformatting.h"
 
 ForumProbe::ForumProbe(QObject *parent, SiilihaiProtocol *proto) :
@@ -12,40 +13,46 @@ ForumProbe::ForumProbe(QObject *parent, SiilihaiProtocol *proto) :
     QObject::connect(&nam, SIGNAL(finished(QNetworkReply*)), this, SLOT(finishedSlot(QNetworkReply*)));
 }
 
-void ForumProbe::probeUrl(QUrl urlToProbe) {
+void ForumProbe::probeUrl(QUrl urlToProbe, bool noServer) {
     qDebug() << Q_FUNC_INFO << urlToProbe.toString();
     Q_ASSERT(urlToProbe.isValid());
     Q_ASSERT(!currentEngine);
+    typesProbed = 0;
     url = urlToProbe;
     if(probedSub) {
         probedSub->deleteLater();
         probedSub = 0;
     }
-    connect(m_protocol, SIGNAL(forumGot(ForumSubscription*)), this, SLOT(forumGot(ForumSubscription*)));
-    m_protocol->getForum(url);
+    if(noServer) {
+        forumGot(0); // Skip server
+    } else {
+        connect(m_protocol, SIGNAL(forumGot(ForumSubscription*)), this, SLOT(forumGot(ForumSubscription*)));
+        m_protocol->getForum(url);
+    }
 }
 
-void ForumProbe::probeUrl(int id) {
+void ForumProbe::probeUrl(int id, bool noServer) {
     qDebug() << Q_FUNC_INFO << id;
+    typesProbed = 0;
+
     Q_ASSERT(id > 0);
     if(probedSub) {
         probedSub->deleteLater();
         probedSub = 0;
     }
-    connect(m_protocol, SIGNAL(forumGot(ForumSubscription*)), this, SLOT(forumGot(ForumSubscription*)));
-    m_protocol->getForum(id);
+    if(noServer) {
+        forumGot(0); // Skip server
+    } else {
+        connect(m_protocol, SIGNAL(forumGot(ForumSubscription*)), this, SLOT(forumGot(ForumSubscription*)));
+        m_protocol->getForum(id);
+    }
 }
 
 void ForumProbe::forumGot(ForumSubscription *sub) {
     qDebug() << Q_FUNC_INFO << url.toString() << sub;
     disconnect(m_protocol, SIGNAL(forumGot(ForumSubscription*)), this, SLOT(forumGot(ForumSubscription*)));
-    if(!sub) { // Unknown forum - get title Need to add it to DB!
-        // Test for TapaTalk
-        qDebug() << Q_FUNC_INFO << "unknown, checking for tapatalk";
-        TapaTalkEngine *tte = new TapaTalkEngine(0, 0); // Deleted in engineProbeResults
-        connect(tte, SIGNAL(urlProbeResults(ForumSubscription*)), this, SLOT(engineProbeResults(ForumSubscription*)));
-        tte->probeUrl(url);
-        currentEngine = tte;
+    if(!sub) { // Unknown forum - try to probe for known type
+        probeNextType();
     } else { // Forum found from server - just use it
         qDebug() << Q_FUNC_INFO << "known forum " << sub->toString();
         emit probeResults(sub);
@@ -55,12 +62,13 @@ void ForumProbe::forumGot(ForumSubscription *sub) {
 void ForumProbe::engineProbeResults(ForumSubscription *sub) {
     qDebug() << Q_FUNC_INFO << url.toString() << sub;
     Q_ASSERT(!probedSub);
+    typesProbed++;
     if(sub) {
         probedSub = ForumSubscription::newForProvider(sub->provider(), 0, true);
         probedSub->copyFrom(sub);
         if(!probedSub->forumUrl().isValid())
             probedSub->setForumUrl(url);
-        qDebug() << Q_FUNC_INFO << sub->toString();
+
         if(sub->alias().isNull()) {
             qDebug() << Q_FUNC_INFO << "Getting title";
             // Dang, we need to figure out a name for the forum
@@ -69,7 +77,11 @@ void ForumProbe::engineProbeResults(ForumSubscription *sub) {
             emit probeResults(sub);
         }
     } else {
-        emit probeResults(sub);
+        if(typesProbed < FORUM_TYPE_COUNT) {
+            probeNextType();
+        } else {
+            emit probeResults(0); // Nope, can't find anything valid
+        }
     }
     currentEngine->deleteLater();
     currentEngine = 0;
@@ -91,6 +103,24 @@ QString ForumProbe::getTitle(QString &html) {
     }
 #endif
     return title;
+}
+
+void ForumProbe::probeNextType()
+{
+    if(typesProbed == 0) {
+        // Test for TapaTalk
+        qDebug() << Q_FUNC_INFO << "unknown, checking for tapatalk";
+        TapaTalkEngine *tte = new TapaTalkEngine(0, 0); // Deleted in engineProbeResults
+        currentEngine = tte;
+    } else if(typesProbed == 1) {
+        qDebug() << Q_FUNC_INFO << "unknown, checking for discourse";
+        DiscourseEngine *de = new DiscourseEngine(0,0);
+        currentEngine = de;
+    } else {
+        Q_ASSERT(false); // You shouldn't call this anymore!!
+    }
+    connect(currentEngine, SIGNAL(urlProbeResults(ForumSubscription*)), this, SLOT(engineProbeResults(ForumSubscription*)));
+    currentEngine->probeUrl(url);
 }
 
 // Title reply

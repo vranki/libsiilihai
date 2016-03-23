@@ -20,6 +20,7 @@
 #include <QQueue>
 #include <QNetworkAccessManager>
 #include <QAuthenticator>
+#include <QUrl>
 
 class ForumSubscription;
 class ForumGroup;
@@ -73,6 +74,7 @@ public:
     ForumSubscription* subscription() const;
     QNetworkAccessManager *networkAccessManager();
     // @todo add function to reset login state (error, u/p changed or something)
+    virtual void probeUrl(QUrl url)=0;
 public slots:
     virtual void cancelOperation();
     virtual void credentialsEntered(CredentialsRequest* cr);
@@ -91,6 +93,7 @@ signals:
     void stateChanged(UpdateEngine *engine, UpdateEngine::UpdateEngineState newState, UpdateEngine::UpdateEngineState oldState);
     void updateForumSubscription(ForumSubscription *fsub); // Used to request protocol to update subscription
     void messagePosted(ForumSubscription *sub);
+    void urlProbeResults(ForumSubscription *sub);
 
 protected slots:
     void listMessagesFinished(QList<ForumMessage*> &messages, ForumThread *thread, bool moreAvailable);
@@ -121,6 +124,7 @@ protected:
     bool updateCanceled;
     int authenticationRetries; // How many times authentication has been tried
     ForumDatabase *fdb;
+    QString apiUrl; // Url of the API, without / at end. Usage optional.
     QQueue<ForumThread*> threadsToUpdateQueue;
     bool updateWhenEngineReady;
     QNetworkAccessManager nam;

@@ -29,7 +29,7 @@ void TapaTalkEngine::setSubscription(ForumSubscription *fs) {
     if(!fs) return;
     Q_ASSERT(fs->forumUrl().isValid());
     subscriptionTapaTalk()->setTapaTalkEngine(this);
-    connectorUrl = subscriptionTapaTalk()->forumUrl().toString(QUrl::StripTrailingSlash) + "/mobiquo/mobiquo.php";
+    apiUrl = subscriptionTapaTalk()->forumUrl().toString(QUrl::StripTrailingSlash) + "/mobiquo/mobiquo.php";
     setState(UES_IDLE);
 }
 
@@ -129,9 +129,9 @@ QString TapaTalkEngine::convertDate(QString &date) {
 
 void TapaTalkEngine::probeUrl(QUrl url)
 {
-    connectorUrl = url.toString(QUrl::StripTrailingSlash) + "/mobiquo/mobiquo.php";
-    qDebug() << Q_FUNC_INFO << "will now probe " << connectorUrl;
-    QNetworkRequest req(connectorUrl);
+    apiUrl = url.toString(QUrl::StripTrailingSlash) + "/mobiquo/mobiquo.php";
+    qDebug() << Q_FUNC_INFO << "will now probe " << apiUrl;
+    QNetworkRequest req(apiUrl);
     QList<QPair<QString, QString> > params;
     QDomDocument doc("");
     createMethodCall(doc, "get_config", params);
@@ -169,7 +169,7 @@ void TapaTalkEngine::requestCredentials() {
 void TapaTalkEngine::doUpdateForum() {
     if(loginIfNeeded()) return;
 
-    QNetworkRequest req(connectorUrl);
+    QNetworkRequest req(apiUrl);
 
     QList<QPair<QString, QString> > params;
     QDomDocument doc("");
@@ -188,7 +188,7 @@ void TapaTalkEngine::doUpdateGroup(ForumGroup *group)
     Q_ASSERT(!groupBeingUpdated);
 
     groupBeingUpdated = group;
-    QNetworkRequest req(connectorUrl);
+    QNetworkRequest req(apiUrl);
 
     QList<QPair<QString, QString> > params;
     params.append(QPair<QString, QString>("string", group->id()));
@@ -288,7 +288,7 @@ void TapaTalkEngine::getThreads(QDomElement arrayDataElement, QList<ForumThread 
 bool TapaTalkEngine::postMessage(ForumGroup *grp, ForumThread *thr, QString subject, QString body) {
     Q_ASSERT(!groupBeingUpdated);
 
-    QNetworkRequest req(connectorUrl);
+    QNetworkRequest req(apiUrl);
 
     QList<QPair<QString, QString> > params;
     params.append(QPair<QString, QString>("string", grp->id()));
@@ -359,7 +359,7 @@ void TapaTalkEngine::updateCurrentThreadPage() {
 
     Q_ASSERT(firstMessage < lastMessage);
 
-    QNetworkRequest req(connectorUrl);
+    QNetworkRequest req(apiUrl);
 
     QList<QPair<QString, QString> > params;
     params.append(QPair<QString, QString>("string", threadBeingUpdated->id()));
@@ -444,7 +444,7 @@ bool TapaTalkEngine::loginIfNeeded() {
     if(loggedIn) return false;
     if(!subscription()->isAuthenticated()) return false;
 
-    QNetworkRequest req(connectorUrl);
+    QNetworkRequest req(apiUrl);
 
     QList<QPair<QString, QString> > params;
     params.append(QPair<QString, QString>("base64", subscription()->username()));
@@ -537,9 +537,10 @@ void TapaTalkEngine::networkReply(QNetworkReply *reply)
         replyLogin(reply);
     } else if(operationAttribute==TTO_PostMessage) {
         replyPost(reply);
-    }else {
+    } else {
         Q_ASSERT(false);
     }
+    reply->deleteLater();
 }
 
 

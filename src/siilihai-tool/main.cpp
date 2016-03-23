@@ -23,6 +23,8 @@ int main(int argc, char *argv[])
                                QCoreApplication::translate("main", "Forum URL"),
                                QCoreApplication::translate("main", "string value"));
     parser.addOption(forumUrl);
+    QCommandLineOption noServerOption(QStringList() << "noserver", "Don't ask server when probing");
+    parser.addOption(noServerOption);
     parser.process(a);
     const QStringList args = parser.positionalArguments();
 
@@ -31,6 +33,8 @@ int main(int argc, char *argv[])
         qDebug() << "This is the siilihai command line test tool. Try --help for commands.";
         return 0;
     }
+    tool.setNoServer(parser.isSet("noserver"));
+    bool quit = false;
     if(args[0] == "list-forums") {
         tool.listForums();
     } else if(args[0] == "get-forum") {
@@ -38,19 +42,22 @@ int main(int argc, char *argv[])
             tool.getForum(parser.value(forumId).toInt());
         } else {
             qWarning() << "Enter forum id to get";
+            quit = true;
         }
     } else if(args[0] == "probe") {
         if(parser.isSet(forumUrl)) {
             tool.probe(parser.value(forumUrl));
         } else {
-            qWarning() << "Enter forum URL to probe";
+            qWarning() << "Enter forum URL to probe with --url";
+            quit = true;
         }
     } else if(args[0] == "list-groups") {
         if(parser.isSet(forumUrl)) {
             tool.listGroups(parser.value(forumUrl));
         } else {
-            qWarning() << "Enter forum URL to list groups from";
+            qWarning() << "Enter forum URL to list groups from with  --url";
+            quit = true;
         }
     }
-    return a.exec();
+    return quit ? -1 : a.exec();
 }

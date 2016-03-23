@@ -19,7 +19,7 @@
 #include "subscriptionmanagement.h"
 
 ClientLogic::ClientLogic(QObject *parent) : QObject(parent), m_settings(0), m_forumDatabase(this),  m_syncmaster(this, m_forumDatabase, m_protocol),
-    m_parserManager(0), m_subscriptionManagement(0), currentCredentialsRequest(0), currentState(SH_OFFLINE) {
+    m_parserManager(0), currentCredentialsRequest(0), currentState(SH_OFFLINE), m_subscriptionManagement(0) {
     endSyncDone = false;
     firstRun = true;
     dbStored = false;

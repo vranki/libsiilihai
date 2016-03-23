@@ -71,6 +71,7 @@ public:
     virtual void doUpdateGroup(ForumGroup *group);
     virtual void doUpdateThread(ForumThread *thread);
 
+    virtual void probeUrl(QUrl url);
 public slots:
     virtual void cancelOperation();
     virtual void credentialsEntered(CredentialsRequest* cr);

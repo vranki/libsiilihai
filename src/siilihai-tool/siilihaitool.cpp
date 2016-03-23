@@ -3,7 +3,9 @@
 #include "siilihai/forumdata/forumgroup.h"
 #include "siilihai/updateengine.h"
 
-SiilihaiTool::SiilihaiTool(QObject *parent) : QObject(parent), forumProbe(0, &protocol), currentSubscription(0), updateEngine(0)
+SiilihaiTool::SiilihaiTool(QObject *parent) :
+    QObject(parent), forumProbe(0, &protocol),
+    currentSubscription(0), updateEngine(0), m_noServer(false)
 {
     providers << "[NONE  ]" << "[PARSER]" << "[TAPATA]" << "[ERROR ]";
 }
@@ -11,6 +13,11 @@ SiilihaiTool::SiilihaiTool(QObject *parent) : QObject(parent), forumProbe(0, &pr
 SiilihaiTool::~SiilihaiTool()
 {
     if(currentSubscription) delete currentSubscription;
+}
+
+void SiilihaiTool::setNoServer(bool ns)
+{
+    m_noServer = ns;
 }
 
 void SiilihaiTool::listForums()
@@ -49,7 +56,7 @@ void SiilihaiTool::probe(QUrl url)
 {
     qDebug() << "Probing " << url << "...";
     connect(&forumProbe, SIGNAL(probeResults(ForumSubscription*)), this, SLOT(probeResults(ForumSubscription*)));
-    forumProbe.probeUrl(url);
+    forumProbe.probeUrl(url, m_noServer);
 }
 
 void SiilihaiTool::listGroups(QUrl url)

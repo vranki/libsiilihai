@@ -14,7 +14,7 @@ class SiilihaiTool : public QObject
 public:
     explicit SiilihaiTool(QObject *parent = 0);
     ~SiilihaiTool();
-
+    void setNoServer(bool ns);
 signals:
 
 public slots:
@@ -38,6 +38,7 @@ private:
     ForumSubscription *currentSubscription;
     QString command;
     UpdateEngine *updateEngine;
+    bool m_noServer; // Don't use server when probing
 };
 
 #endif // SIILIHAITOOL_H

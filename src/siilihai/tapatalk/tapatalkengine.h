@@ -35,19 +35,21 @@ public:
     virtual void probeUrl(QUrl url);
     virtual bool supportsPosting();
     virtual QString convertDate(QString &date);
+
 public slots:
     virtual bool postMessage(ForumGroup *grp, ForumThread *thr, QString subject, QString body);
-signals:
-    void urlProbeResults(ForumSubscription *sub);
 
 protected:
     virtual void doUpdateForum();
     virtual void doUpdateGroup(ForumGroup *group);
     virtual void doUpdateThread(ForumThread *thread);
+
 private slots:
     void networkReply(QNetworkReply *reply);
+
 protected:
     virtual void requestCredentials();
+
 private:
     void updateCurrentThreadPage(); // Get next 50 messages in current thread
     void protocolErrorDetected(); // Print output & cause networkFailure()
@@ -77,7 +79,7 @@ private:
     QString valueElementToString(QDomElement valueElement); // Value should be something like <value><int>29</int></value>
     ForumSubscriptionTapaTalk *subscriptionTapaTalk() const;
     void convertBodyToHtml(ForumMessage *msg); // convert [url=][/url] etc to real html
-    QString connectorUrl;
+
     bool loggedIn;
     // TapaTalk sends only 50 messages per request, so we must use "pages" to update longer threads
     int currentMessagePage;

@@ -265,6 +265,12 @@ void ParserEngine::doUpdateThread(ForumThread *thread)
     listMessagesOnNextPage();
 }
 
+void ParserEngine::probeUrl(QUrl url)
+{
+    Q_UNUSED(url);
+    emit urlProbeResults(0);
+}
+
 void ParserEngine::networkReply(QNetworkReply *reply) {
     int operationAttribute = reply->request().attribute(QNetworkRequest::User).toInt();
     int forumId = reply->request().attribute(FORUMID_ATTRIBUTE).toInt();

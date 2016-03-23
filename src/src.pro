@@ -41,7 +41,10 @@ headers.files += \
     siilihai/credentialsrequest.h \
     siilihai/forumprobe.h \
     siilihai/updateengine.h \
-    siilihai/siilihaisettings.h
+    siilihai/siilihaisettings.h \
+    siilihai/tapatalk/tapatalkengine.h \
+    siilihai/discourse/discourseengine.h
+
 headers.path = $$[QT_INSTALL_PREFIX]/include/siilihai
 
 parser.files += siilihai/parser/parserreport.h \
@@ -70,8 +73,7 @@ forumdatabase.files += siilihai/forumdatabase/forumdatabase.h \
     siilihai/forumdatabase/forumdatabasexml.h
 forumdatabase.path = $$headers.path/forumdatabase
 
-HEADERS += $$tapatalk.files $$parser.files $$forumdata.files $$forumdatabase.files $$headers.files \
-    siilihai/tapatalk/tapatalkengine.h
+HEADERS += $$tapatalk.files $$parser.files $$forumdata.files $$forumdatabase.files $$headers.files
 
 SOURCES += siilihai/syncmaster.cpp \
     siilihai/parser/parserreport.cpp \
@@ -103,6 +105,7 @@ SOURCES += siilihai/syncmaster.cpp \
     siilihai/parser/patternmatcher.cpp \
     siilihai/tapatalk/forumsubscriptiontapatalk.cpp \
     siilihai/tapatalk/tapatalkengine.cpp \
-    siilihai/forumdata/updateerror.cpp
+    siilihai/forumdata/updateerror.cpp \
+    siilihai/discourse/discourseengine.cpp
 
 INSTALLS += headers tapatalk parser forumdata forumdatabase
