@@ -382,10 +382,10 @@ void ClientLogic::listSubscriptionsFinished(QList<int> serversSubscriptions) {
         }
     }
     foreach (ForumSubscription *sub, unsubscribedForums) {
-        if(sub->isParsed()) {
+        if(sub->provider() == ForumSubscription::FP_PARSER) {
             m_parserManager->deleteParser(qobject_cast<ForumSubscriptionParsed*>(sub)->parserId());
         }
-        if(sub->isParsed()) // @todo not tapatalk yet!
+        if(sub->provider() == ForumSubscription::FP_PARSER) // @todo not tapatalk yet!
             m_forumDatabase.deleteSubscription(sub);
     }
 }
@@ -601,7 +601,7 @@ void ClientLogic::updateGroupSubscriptions(ForumSubscription *sub) {
 void ClientLogic::updateAllParsers() {
     if(currentState != SH_READY) return;
     foreach(UpdateEngine *eng, engines) {
-        if(eng->state()==UpdateEngine::UES_IDLE && eng->subscription()->isParsed()) {
+        if(eng->state()==UpdateEngine::UES_IDLE && eng->subscription()->provider() == ForumSubscription::FP_PARSER) {
             ForumSubscriptionParsed *subParser = qobject_cast<ForumSubscriptionParsed*> (eng->subscription());
             Q_ASSERT(subParser);
             m_parserManager->updateParser(subParser->parserId());
@@ -745,6 +745,6 @@ void ClientLogic::unsubscribeForum(ForumSubscription* fs) {
     if(!noAccount())
         m_protocol.subscribeForum(fs, true);
     m_forumDatabase.deleteSubscription(fs);
-    if(fs->isParsed())
+    if(fs->provider() == ForumSubscription::FP_PARSER)
         m_parserManager->deleteParser(qobject_cast<ForumSubscriptionParsed*>(fs)->parserId());
 }

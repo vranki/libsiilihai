@@ -39,6 +39,7 @@ private:
     QString command;
     UpdateEngine *updateEngine;
     bool m_noServer; // Don't use server when probing
+    bool m_groupListReceived;
 };
 
 #endif // SIILIHAITOOL_H

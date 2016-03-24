@@ -24,6 +24,7 @@
 #include "parser/parserengine.h"
 #include "parser/parsermanager.h"
 #include "tapatalk/tapatalkengine.h"
+#include "discourse/discourseengine.h"
 
 static const QString stateNames[] = {"Unknown", "Missing Parser", "Idle", "Updating", "Error", "Updating parser" };
 
@@ -52,15 +53,18 @@ UpdateEngine *UpdateEngine::newForSubscription(ForumSubscription *fs, ForumDatab
 {
     UpdateEngine *ue = 0;
 
-    if(fs->isParsed()) {
+    if(fs->provider() == ForumSubscription::FP_PARSER) {
         ForumSubscriptionParsed *newFsParsed = qobject_cast<ForumSubscriptionParsed*>(fs);
         ParserEngine *pe = new ParserEngine(fdb, fdb, pm);
         ue = pe;
         pe->setParser(pm->getParser(newFsParsed->parserId()));
         if(!pe->parser()) pe->setParser(pm->getParser(newFsParsed->parserId())); // Load the (possibly old) parser
-    } else if(fs->isTapaTalk()) {
+    } else if(fs->provider() == ForumSubscription::FP_TAPATALK) {
         TapaTalkEngine *tte = new TapaTalkEngine(fdb, fdb);
         ue = tte;
+    } else if(fs->provider() == ForumSubscription::FP_DISCOURSE) {
+        DiscourseEngine *de = new DiscourseEngine(fdb, fdb);
+        ue = de;
     }
     return ue;
 }
@@ -402,8 +406,8 @@ void UpdateEngine::setState(UpdateEngineState newState) {
     currentState = newState;
 
     // Caution: subscription may be null!
-    if(subscription())
-        qDebug() << Q_FUNC_INFO << subscription()->alias() << stateNames[oldState] << " -> " << stateNames[newState];
+    // if(subscription())
+    //     qDebug() << Q_FUNC_INFO << subscription()->alias() << stateNames[oldState] << " -> " << stateNames[newState];
     //
     if(newState==UES_UPDATING) {
         Q_ASSERT(oldState==UES_IDLE || oldState==UES_ERROR);

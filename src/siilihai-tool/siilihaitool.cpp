@@ -5,14 +5,13 @@
 
 SiilihaiTool::SiilihaiTool(QObject *parent) :
     QObject(parent), forumProbe(0, &protocol),
-    currentSubscription(0), updateEngine(0), m_noServer(false)
+    currentSubscription(0), updateEngine(0), m_noServer(false), m_groupListReceived(false)
 {
-    providers << "[NONE  ]" << "[PARSER]" << "[TAPATA]" << "[ERROR ]";
+    providers << "[NONE  ]" << "[PARSER]" << "[TAPATA]" << "[DISCOU]" << "[ERROR ]";
 }
 
 SiilihaiTool::~SiilihaiTool()
 {
-    if(currentSubscription) delete currentSubscription;
 }
 
 void SiilihaiTool::setNoServer(bool ns)
@@ -86,16 +85,24 @@ void SiilihaiTool::groupListChanged(ForumSubscription *sub)
 {
     qDebug() << "Group list:";
     for(ForumGroup *group : sub->values()) {
-        qDebug() << group->name();
+        qDebug() << group->id() << ": " << group->name();
     }
+    m_groupListReceived = true;
 }
 
 void SiilihaiTool::engineStateChanged(UpdateEngine *engine, UpdateEngine::UpdateEngineState newState, UpdateEngine::UpdateEngineState oldState)
 {
-    qDebug() << "UE State:" << engine->stateName(newState);
+    Q_UNUSED(oldState);
+    Q_UNUSED(engine);
+    // qDebug() << "UE State:" << engine->stateName(newState);
+
     if(newState == UpdateEngine::UES_IDLE) {
         if(command == "list-groups") {
-            updateEngine->updateGroupList();
+            if(!m_groupListReceived) {
+                updateEngine->updateGroupList();
+            } else {
+                QCoreApplication::quit();
+            }
         }
     }
 }

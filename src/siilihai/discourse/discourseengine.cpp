@@ -4,6 +4,10 @@
 #include <QNetworkReply>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QJsonArray>
+#include "../forumdata/forumsubscription.h"
+#include "../forumdata/forumgroup.h"
+#include "forumsubscriptiondiscourse.h"
 
 DiscourseEngine::DiscourseEngine(QObject *parent, ForumDatabase *fd) :
     UpdateEngine(parent, fd)
@@ -15,29 +19,15 @@ DiscourseEngine::DiscourseEngine(QObject *parent, ForumDatabase *fd) :
 
 void DiscourseEngine::probeUrl(QUrl url)
 {
-    apiUrl = url.toString(QUrl::StripTrailingSlash) + "categories.json";
-    qDebug() << Q_FUNC_INFO << "will now probe " << apiUrl;
+    apiUrl = url;
+    QUrl aboutUrl = apiUrl;
+    aboutUrl.setPath("/about.json");
+    qDebug() << Q_FUNC_INFO << "will now probe " << aboutUrl;
 
-    QNetworkRequest req = QNetworkRequest(QUrl(apiUrl));
+    QNetworkRequest req = QNetworkRequest(aboutUrl);
 
     req.setAttribute(QNetworkRequest::User, DO_Probe);
     nam.get(req);
-    qDebug() << Q_FUNC_INFO << req.url().toString();
-}
-
-void DiscourseEngine::doUpdateForum()
-{
-
-}
-
-void DiscourseEngine::doUpdateGroup(ForumGroup *group)
-{
-
-}
-
-void DiscourseEngine::doUpdateThread(ForumThread *thread)
-{
-
 }
 
 void DiscourseEngine::replyProbe(QNetworkReply *reply)
@@ -47,10 +37,73 @@ void DiscourseEngine::replyProbe(QNetworkReply *reply)
         return;
     }
     QString docs = QString().fromUtf8(reply->readAll());
-    qDebug( ) << Q_FUNC_INFO << docs;
     QJsonDocument docj = QJsonDocument::fromJson(docs.toUtf8());
-    qDebug() << Q_FUNC_INFO << docj.isNull() << docj.isObject() << docj.object().keys();
-    emit urlProbeResults(0);
+    if(!docj.isNull() && docj.isObject() && docj.object().contains("about")) {
+        QJsonValue about = docj.object().value("about");
+        QString title = about.toObject().value("title").toString();
+        ForumSubscription sub(0, true, ForumSubscription::FP_DISCOURSE);
+        sub.setAlias(title);
+        sub.setForumUrl(apiUrl);
+        emit urlProbeResults(&sub);
+    } else {
+        qDebug() << Q_FUNC_INFO << "No discourse found, got reply: \n" << docs;
+        emit urlProbeResults(0);
+    }
+}
+
+void DiscourseEngine::replyListGroups(QNetworkReply *reply)
+{
+    if (reply->error() != QNetworkReply::NoError) {
+        emit networkFailure("Got error while updating forum");
+        return;
+    }
+    QString docs = QString().fromUtf8(reply->readAll());
+    QJsonDocument docj = QJsonDocument::fromJson(docs.toUtf8());
+
+    QList<ForumGroup*> tempGroups;
+    QJsonArray catList = docj.object().value("category_list").toObject().value("categories").toArray();
+    for(QJsonValue cat : catList) {
+        QJsonObject catObj = cat.toObject();
+        // qDebug() << Q_FUNC_INFO << catObj.value("id").toInt() << catObj.value("name").toString() << catObj.value("last_posted_at").toString();
+        // qDebug() << Q_FUNC_INFO << catObj.keys();
+        ForumGroup *newGroup = new ForumGroup(this, true);
+
+        newGroup->setName(catObj.value("name").toString());
+        newGroup->setId(QString::number(catObj.value("id").toInt()));
+        newGroup->setLastchange(QString::number(rand()));
+        newGroup->setChangeset(rand());
+        tempGroups.append(newGroup);
+    }
+
+    listGroupsFinished(tempGroups, subscription());
+}
+
+ForumSubscriptionDiscourse *DiscourseEngine::subscriptionDiscourse() const
+{
+    return qobject_cast<ForumSubscriptionDiscourse*>(subscription());
+}
+
+void DiscourseEngine::doUpdateForum()
+{
+    qDebug( ) << Q_FUNC_INFO;
+    QUrl categoriesUrl = apiUrl;
+    categoriesUrl.setPath("/categories.json");
+
+    QNetworkRequest req = QNetworkRequest(categoriesUrl);
+
+    req.setAttribute(QNetworkRequest::User, DO_ListGroups);
+    nam.get(req);
+    qDebug() << Q_FUNC_INFO << req.url().toString();
+}
+
+void DiscourseEngine::doUpdateGroup(ForumGroup *group)
+{
+    qDebug() << Q_FUNC_INFO;
+}
+
+void DiscourseEngine::doUpdateThread(ForumThread *thread)
+{
+    qDebug() << Q_FUNC_INFO;
 }
 
 void DiscourseEngine::networkReply(QNetworkReply *reply)
@@ -65,6 +118,8 @@ void DiscourseEngine::networkReply(QNetworkReply *reply)
         Q_ASSERT(false);
     } else if(operationAttribute==DO_Probe) {
         replyProbe(reply);
+    }  else if(operationAttribute==DO_ListGroups) {
+        replyListGroups(reply);
     } else {
         Q_ASSERT(false);
     }
@@ -85,4 +140,15 @@ void DiscourseEngine::authenticationRequired(QNetworkReply *reply, QAuthenticato
 void DiscourseEngine::encrypted(QNetworkReply *reply)
 {
     qDebug( ) << Q_FUNC_INFO;
+}
+
+void DiscourseEngine::setSubscription(ForumSubscription *fs)
+{
+    Q_ASSERT(!fs || qobject_cast<ForumSubscriptionDiscourse*>(fs));
+    UpdateEngine::setSubscription(fs);
+    if(!fs) return;
+    Q_ASSERT(fs->forumUrl().isValid());
+    subscriptionDiscourse()->setDiscourseEngine(this);
+    apiUrl = subscriptionDiscourse()->forumUrl().toString(QUrl::StripTrailingSlash) + "/mobiquo/mobiquo.php";
+    setState(UES_IDLE);
 }

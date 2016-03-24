@@ -14,7 +14,6 @@ ForumProbe::ForumProbe(QObject *parent, SiilihaiProtocol *proto) :
 }
 
 void ForumProbe::probeUrl(QUrl urlToProbe, bool noServer) {
-    qDebug() << Q_FUNC_INFO << urlToProbe.toString();
     Q_ASSERT(urlToProbe.isValid());
     Q_ASSERT(!currentEngine);
     typesProbed = 0;
@@ -32,7 +31,6 @@ void ForumProbe::probeUrl(QUrl urlToProbe, bool noServer) {
 }
 
 void ForumProbe::probeUrl(int id, bool noServer) {
-    qDebug() << Q_FUNC_INFO << id;
     typesProbed = 0;
 
     Q_ASSERT(id > 0);
@@ -49,18 +47,15 @@ void ForumProbe::probeUrl(int id, bool noServer) {
 }
 
 void ForumProbe::forumGot(ForumSubscription *sub) {
-    qDebug() << Q_FUNC_INFO << url.toString() << sub;
     disconnect(m_protocol, SIGNAL(forumGot(ForumSubscription*)), this, SLOT(forumGot(ForumSubscription*)));
     if(!sub) { // Unknown forum - try to probe for known type
         probeNextType();
     } else { // Forum found from server - just use it
-        qDebug() << Q_FUNC_INFO << "known forum " << sub->toString();
         emit probeResults(sub);
     }
 }
 
 void ForumProbe::engineProbeResults(ForumSubscription *sub) {
-    qDebug() << Q_FUNC_INFO << url.toString() << sub;
     Q_ASSERT(!probedSub);
     typesProbed++;
     if(sub) {
@@ -70,11 +65,10 @@ void ForumProbe::engineProbeResults(ForumSubscription *sub) {
             probedSub->setForumUrl(url);
 
         if(sub->alias().isNull()) {
-            qDebug() << Q_FUNC_INFO << "Getting title";
             // Dang, we need to figure out a name for the forum
             nam.get(QNetworkRequest(url));
         } else {
-            emit probeResults(sub);
+            emit probeResults(probedSub);
         }
     } else {
         if(typesProbed < FORUM_TYPE_COUNT) {
@@ -111,11 +105,9 @@ void ForumProbe::probeNextType()
     }
     if(typesProbed == 0) {
         // Test for TapaTalk
-        qDebug() << Q_FUNC_INFO << "unknown, checking for tapatalk";
         TapaTalkEngine *tte = new TapaTalkEngine(this, 0); // Deleted in engineProbeResults
         currentEngine = tte;
     } else if(typesProbed == 1) {
-        qDebug() << Q_FUNC_INFO << "unknown, checking for discourse";
         DiscourseEngine *de = new DiscourseEngine(this, 0);
         currentEngine = de;
     } else {
@@ -139,7 +131,6 @@ void ForumProbe::finishedSlot(QNetworkReply *reply) {
             qDebug() << Q_FUNC_INFO << "couldn't get title - setting url instead";
             title = reply->url().host();
         }
-        qDebug() << Q_FUNC_INFO << "title:" << title << " codec: " << codec->name();
         probedSub->setAlias(MessageFormatting::stripHtml(title));
         Q_ASSERT(probedSub->provider() != ForumSubscription::FP_NONE);
         emit probeResults(probedSub);

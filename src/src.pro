@@ -12,11 +12,13 @@ unix {
     CONFIG -= release
 }
 
-QT += core xml network webkitwidgets
+QT += core xml network
+
+DEFINES += NO_WEBKITWIDGETS
+# QT += webkitwidgets
 
 QT -= gui
 CONFIG += c++11
-
 
 debug {
 #    message(Debug build - enabling sanity checks)
@@ -43,7 +45,8 @@ headers.files += \
     siilihai/updateengine.h \
     siilihai/siilihaisettings.h \
     siilihai/tapatalk/tapatalkengine.h \
-    siilihai/discourse/discourseengine.h
+    siilihai/discourse/discourseengine.h \
+    siilihai/discourse/forumsubscriptiondiscourse.h
 
 headers.path = $$[QT_INSTALL_PREFIX]/include/siilihai
 
@@ -106,6 +109,7 @@ SOURCES += siilihai/syncmaster.cpp \
     siilihai/tapatalk/forumsubscriptiontapatalk.cpp \
     siilihai/tapatalk/tapatalkengine.cpp \
     siilihai/forumdata/updateerror.cpp \
-    siilihai/discourse/discourseengine.cpp
+    siilihai/discourse/discourseengine.cpp \
+    siilihai/discourse/forumsubscriptiondiscourse.cpp
 
 INSTALLS += headers tapatalk parser forumdata forumdatabase

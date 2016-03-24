@@ -129,7 +129,8 @@ QString TapaTalkEngine::convertDate(QString &date) {
 
 void TapaTalkEngine::probeUrl(QUrl url)
 {
-    apiUrl = url.toString(QUrl::StripTrailingSlash) + "/mobiquo/mobiquo.php";
+    apiUrl = url;
+    apiUrl.setPath("/mobiquo/mobiquo.php");
     qDebug() << Q_FUNC_INFO << "will now probe " << apiUrl;
     QNetworkRequest req(apiUrl);
     QList<QPair<QString, QString> > params;
@@ -155,6 +156,8 @@ void TapaTalkEngine::replyProbe(QNetworkReply *reply)
     QDomElement arrayDataElement = doc.firstChildElement("methodResponse");
     if(!arrayDataElement.isNull()) {
         ForumSubscription sub(0, true, ForumSubscription::FP_TAPATALK);
+        // sub.setForumUrl(apiUrl);
+        // @todo we could figure out forum name here..
         emit urlProbeResults(&sub);
     } else {
         emit urlProbeResults(0);
@@ -560,7 +563,7 @@ void TapaTalkEngine::replyListGroups(QNetworkReply *reply)
     QDomDocument doc;
     doc.setContent(docs);
     QDomElement resultElement = doc.firstChildElement("methodResponse").firstChildElement("params").firstChildElement("param").firstChildElement("value");
-    qDebug() << Q_FUNC_INFO << resultElement.tagName();
+
     QString result = getValueFromStruct(resultElement, "result");
     if(result.isEmpty() || result != "0") { // Getting list succeeded
         QDomElement arrayDataElement = doc.firstChildElement("methodResponse").firstChildElement("params").firstChildElement("param").firstChildElement("value").firstChildElement("array").firstChildElement("data");
@@ -580,7 +583,7 @@ void TapaTalkEngine::replyListGroups(QNetworkReply *reply)
 }
 
 void TapaTalkEngine::getGroups(QDomElement arrayDataElement, QList<ForumGroup *> *grps, QMap<QString, GroupHierarchyItem> &groupHierarchy) {
-    if(arrayDataElement.nodeName()!="data") {
+    if(arrayDataElement.nodeName() != "data") {
         qDebug() << Q_FUNC_INFO << "Error: arrayDataElement node name is not 'data'!!";
         protocolErrorDetected();
         return;

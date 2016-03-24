@@ -26,7 +26,6 @@
 #include "updateableitem.h"
 #include "updateerror.h"
 
-
 class ForumGroup;
 class UpdateEngine;
 
@@ -68,7 +67,8 @@ public:
     enum ForumProvider {
         FP_NONE=0, // Error in practice..
         FP_PARSER,
-        FP_TAPATALK
+        FP_TAPATALK,
+        FP_DISCOURSE
     };
 
     ForumSubscription(QObject *parent, bool temp, ForumProvider p);
@@ -109,8 +109,7 @@ public:
     bool scheduledForSync() const;
     bool scheduledForUpdate() const;
     ForumProvider provider() const;
-    bool isParsed() const; // Just helpers
-    bool isTapaTalk() const;
+
     static ForumSubscription *newForProvider(ForumProvider fp, QObject *parent, bool temp);
     virtual QDomElement serialize(QDomElement &parent, QDomDocument &doc);
     static ForumSubscription* readSubscription(QDomElement &element, QObject *parent);

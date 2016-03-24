@@ -669,7 +669,7 @@ void SiilihaiProtocol::replyDownsync(QNetworkReply *reply) {
             int forumid = forumElement.attribute("id").toInt();
             int forumProvider = forumElement.attribute("provider").toInt();
             ForumSubscription *forum = ForumSubscription::newForProvider((ForumSubscription::ForumProvider) forumProvider, 0, true);
-            if(forum->isParsed()) {
+            if(forum->provider() == ForumSubscription::FP_PARSER) {
                 ForumSubscriptionParsed *forumParsed = qobject_cast<ForumSubscriptionParsed*> (forum);
                 int forumparser = forumElement.attribute("id").toInt();
                 forumParsed->setParserId(forumparser);
@@ -749,7 +749,7 @@ void SiilihaiProtocol::replyGetSyncSummary(QNetworkReply *reply) {
             int forumprovider = forumElement.attribute("provider").toInt();
 
             ForumSubscription *sub = ForumSubscription::newForProvider((ForumSubscription::ForumProvider) forumprovider, this, true);
-            if(sub->isParsed()) {
+            if(sub->provider() == ForumSubscription::FP_PARSER) {
                 ForumSubscriptionParsed *forumParsed = qobject_cast<ForumSubscriptionParsed*>(sub);
                 int forumparser = forumElement.attribute("parser").toInt();
                 forumParsed->setParserId(forumparser);

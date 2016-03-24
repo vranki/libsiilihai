@@ -4,6 +4,8 @@
 #include <QObject>
 #include "../updateengine.h"
 
+class ForumSubscriptionDiscourse;
+
 class DiscourseEngine : public UpdateEngine
 {
     Q_OBJECT
@@ -15,7 +17,7 @@ public:
 
     DiscourseEngine(QObject *parent, ForumDatabase *fd);
     virtual void probeUrl(QUrl url);
-
+    virtual void setSubscription(ForumSubscription *fs);
 protected:
     virtual void doUpdateForum();
     virtual void doUpdateGroup(ForumGroup *group);
@@ -23,6 +25,8 @@ protected:
 
 private:
     void replyProbe(QNetworkReply *reply);
+    void replyListGroups(QNetworkReply *reply);
+    ForumSubscriptionDiscourse *subscriptionDiscourse() const;
 
 private slots:
     void networkReply(QNetworkReply *reply);

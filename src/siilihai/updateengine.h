@@ -124,7 +124,7 @@ protected:
     bool updateCanceled;
     int authenticationRetries; // How many times authentication has been tried
     ForumDatabase *fdb;
-    QString apiUrl; // Url of the API, without / at end. Usage optional.
+    QUrl apiUrl; // Url of the API, without / at end. Usage optional.
     QQueue<ForumThread*> threadsToUpdateQueue;
     bool updateWhenEngineReady;
     QNetworkAccessManager nam;

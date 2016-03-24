@@ -16,6 +16,7 @@
 #include "forumgroup.h"
 #include "../parser/forumsubscriptionparsed.h"
 #include "../tapatalk/forumsubscriptiontapatalk.h"
+#include "../discourse/forumsubscriptiondiscourse.h"
 #include "../xmlserialization.h"
 
 ForumSubscription::ForumSubscription(QObject *parent, bool temp, ForumProvider p) : QObject(parent) {
@@ -46,6 +47,7 @@ void ForumSubscription::copyFrom(ForumSubscription * other) {
     setAuthenticated(other->isAuthenticated());
     setSupportsLogin(other->supportsLogin());
     setForumUrl(other->forumUrl());
+    setProvider(other->provider());
 }
 
 ForumSubscription::~ForumSubscription() {
@@ -240,21 +242,13 @@ ForumSubscription::ForumProvider ForumSubscription::provider() const
     return _provider;
 }
 
-bool ForumSubscription::isParsed() const
-{
-    return _provider == FP_PARSER;
-}
-
-bool ForumSubscription::isTapaTalk() const
-{
-    return _provider == FP_TAPATALK;
-}
-
 ForumSubscription *ForumSubscription::newForProvider(ForumSubscription::ForumProvider fp, QObject *parent, bool temp) {
     if(fp==ForumSubscription::FP_PARSER)
         return new ForumSubscriptionParsed(parent, temp);
     if(fp==ForumSubscription::FP_TAPATALK)
         return new ForumSubscriptionTapaTalk(parent, temp);
+    if(fp==ForumSubscription::FP_DISCOURSE)
+        return new ForumSubscriptionDiscourse(parent, temp);
     Q_ASSERT(false);
     return 0;
 }
