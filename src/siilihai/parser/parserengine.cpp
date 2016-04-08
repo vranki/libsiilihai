@@ -271,6 +271,11 @@ void ParserEngine::probeUrl(QUrl url)
     emit urlProbeResults(0);
 }
 
+QString ParserEngine::engineTypeName()
+{
+    return "Parser";
+}
+
 void ParserEngine::networkReply(QNetworkReply *reply) {
     int operationAttribute = reply->request().attribute(QNetworkRequest::User).toInt();
     int forumId = reply->request().attribute(FORUMID_ATTRIBUTE).toInt();

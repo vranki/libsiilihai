@@ -18,6 +18,8 @@ public:
     DiscourseEngine(QObject *parent, ForumDatabase *fd);
     virtual void probeUrl(QUrl url);
     virtual void setSubscription(ForumSubscription *fs);
+    virtual QString engineTypeName();
+
 protected:
     virtual void doUpdateForum();
     virtual void doUpdateGroup(ForumGroup *group);
@@ -26,6 +28,8 @@ protected:
 private:
     void replyProbe(QNetworkReply *reply);
     void replyListGroups(QNetworkReply *reply);
+    void replyListThreads(QNetworkReply *reply);
+    void replyListMessages(QNetworkReply *reply);
     ForumSubscriptionDiscourse *subscriptionDiscourse() const;
 
 private slots:

@@ -7,6 +7,8 @@
 #include <QJsonArray>
 #include "../forumdata/forumsubscription.h"
 #include "../forumdata/forumgroup.h"
+#include "../forumdata/forumthread.h"
+#include "../forumdata/forummessage.h"
 #include "forumsubscriptiondiscourse.h"
 
 DiscourseEngine::DiscourseEngine(QObject *parent, ForumDatabase *fd) :
@@ -78,6 +80,58 @@ void DiscourseEngine::replyListGroups(QNetworkReply *reply)
     listGroupsFinished(tempGroups, subscription());
 }
 
+void DiscourseEngine::replyListThreads(QNetworkReply *reply)
+{
+    if (reply->error() != QNetworkReply::NoError) {
+        emit networkFailure("Got error while updating forum");
+        return;
+    }
+    QString docs = QString().fromUtf8(reply->readAll());
+    QJsonDocument docj = QJsonDocument::fromJson(docs.toUtf8());
+
+    QList<ForumThread*> tempThreads;
+    QJsonArray topicsArray = docj.object().value("topic_list").toObject().value("topics").toArray();
+    for(auto topic : topicsArray) {
+        QJsonObject topicObject = topic.toObject();
+        ForumThread *newThread = new ForumThread(groupBeingUpdated);
+        newThread->setId(QString::number(topicObject.value("id").toInt()));
+        newThread->setName(topicObject.value("title").toString());
+        newThread->setLastchange(topicObject.value("last_posted_at").toString());
+        tempThreads.append(newThread);
+    }
+    ForumGroup *groupJustUpdated = groupBeingUpdated;
+    groupBeingUpdated = 0;
+    listThreadsFinished(tempThreads, groupJustUpdated);
+}
+
+void DiscourseEngine::replyListMessages(QNetworkReply *reply)
+{
+    if (reply->error() != QNetworkReply::NoError) {
+        emit networkFailure("Got error while updating forum");
+        return;
+    }
+    QString docs = QString().fromUtf8(reply->readAll());
+    QJsonDocument docj = QJsonDocument::fromJson(docs.toUtf8());
+
+    QList<ForumMessage*> tempMessages;
+    // qDebug() << Q_FUNC_INFO << docj.object().value("post_stream").toObject().value("posts");
+    QJsonArray postsArray = docj.object().value("post_stream").toObject().value("posts").toArray();
+    for(auto post : postsArray) {
+        QJsonObject postObject = post.toObject();
+        qDebug() << Q_FUNC_INFO << postObject.keys();
+        ForumMessage *newMessage = new ForumMessage(threadBeingUpdated);
+        newMessage->setId(QString::number(postObject.value("id").toInt()));
+        newMessage->setAuthor(postObject.value("name").toString());
+        newMessage->setBody(postObject.value("cooked").toString());
+        newMessage->setLastchange(postObject.value("updated_at").toString());
+        tempMessages.append(newMessage);
+    }
+
+    ForumThread *threadJustUpdated = threadBeingUpdated;
+    threadBeingUpdated = 0;
+    listMessagesFinished(tempMessages, threadJustUpdated, false);
+}
+
 ForumSubscriptionDiscourse *DiscourseEngine::subscriptionDiscourse() const
 {
     return qobject_cast<ForumSubscriptionDiscourse*>(subscription());
@@ -85,7 +139,6 @@ ForumSubscriptionDiscourse *DiscourseEngine::subscriptionDiscourse() const
 
 void DiscourseEngine::doUpdateForum()
 {
-    qDebug( ) << Q_FUNC_INFO;
     QUrl categoriesUrl = apiUrl;
     categoriesUrl.setPath("/categories.json");
 
@@ -93,17 +146,38 @@ void DiscourseEngine::doUpdateForum()
 
     req.setAttribute(QNetworkRequest::User, DO_ListGroups);
     nam.get(req);
-    qDebug() << Q_FUNC_INFO << req.url().toString();
 }
 
 void DiscourseEngine::doUpdateGroup(ForumGroup *group)
 {
-    qDebug() << Q_FUNC_INFO;
+    Q_ASSERT(!groupBeingUpdated);
+
+    groupBeingUpdated = group;
+
+    QUrl threadsUrl = apiUrl;
+    threadsUrl.setPath(QString("/c/%1.json").arg(group->id()));
+
+    QNetworkRequest req = QNetworkRequest(threadsUrl);
+
+    req.setAttribute(QNetworkRequest::User, DO_UpdateGroup);
+    nam.get(req);
 }
 
 void DiscourseEngine::doUpdateThread(ForumThread *thread)
 {
-    qDebug() << Q_FUNC_INFO;
+    qDebug( ) << Q_FUNC_INFO;
+    Q_ASSERT(!threadBeingUpdated);
+
+    threadBeingUpdated = thread;
+
+    QUrl messagesUrl = apiUrl;
+    messagesUrl.setPath(QString("/t/%1.json").arg(thread->id()));
+
+    QNetworkRequest req = QNetworkRequest(messagesUrl);
+
+    req.setAttribute(QNetworkRequest::User, DO_UpdateThread);
+    nam.get(req);
+    qDebug() << Q_FUNC_INFO << req.url().toString();
 }
 
 void DiscourseEngine::networkReply(QNetworkReply *reply)
@@ -118,8 +192,12 @@ void DiscourseEngine::networkReply(QNetworkReply *reply)
         Q_ASSERT(false);
     } else if(operationAttribute==DO_Probe) {
         replyProbe(reply);
-    }  else if(operationAttribute==DO_ListGroups) {
+    } else if(operationAttribute==DO_ListGroups) {
         replyListGroups(reply);
+    } else if(operationAttribute==DO_UpdateGroup) {
+        replyListThreads(reply);
+    } else if(operationAttribute==DO_UpdateThread) {
+        replyListMessages(reply);
     } else {
         Q_ASSERT(false);
     }
@@ -151,4 +229,9 @@ void DiscourseEngine::setSubscription(ForumSubscription *fs)
     subscriptionDiscourse()->setDiscourseEngine(this);
     apiUrl = subscriptionDiscourse()->forumUrl().toString(QUrl::StripTrailingSlash) + "/mobiquo/mobiquo.php";
     setState(UES_IDLE);
+}
+
+QString DiscourseEngine::engineTypeName()
+{
+    return "Discourse";
 }

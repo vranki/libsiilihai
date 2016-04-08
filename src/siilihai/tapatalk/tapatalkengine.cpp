@@ -127,6 +127,11 @@ QString TapaTalkEngine::convertDate(QString &date) {
     return qdd.isValid() ? qdd.toString() : date;
 }
 
+QString TapaTalkEngine::engineTypeName()
+{
+    return "TapaTalk";
+}
+
 void TapaTalkEngine::probeUrl(QUrl url)
 {
     apiUrl = url;
@@ -409,8 +414,9 @@ void TapaTalkEngine::replyUpdateThread(QNetworkReply *reply) {
     QString totalPostNumString = valueElementToString(totalPostNumElement);
     int totalPostNum = totalPostNumString.toInt();
     qDebug() << Q_FUNC_INFO << "Got " << messages.size() << " messages now, total" << totalPostNum << ", limit " << threadBeingUpdated->getMessagesCount();
-    if(messages.size() < threadBeingUpdated->getMessagesCount() &&
-            messages.size() < totalPostNum && (currentMessagePage+1) * 50 < threadBeingUpdated->getMessagesCount()) {
+    if((messages.size() < threadBeingUpdated->getMessagesCount())
+            && (messages.size() < totalPostNum)
+            && ((currentMessagePage+1) * 50) < threadBeingUpdated->getMessagesCount()) {
         /*
         The last in previous if is a bit strange.. For some reason a server returned 102 messages although tried to fetch messages 100-110.
         Consider it defense against buggy server implementation. I hope it breaks nothing.

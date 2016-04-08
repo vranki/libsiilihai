@@ -253,6 +253,8 @@ void UpdateEngine::listThreadsFinished(QList<ForumThread*> &tempThreads, ForumGr
     group->markToBeUpdated(false);
     threadBeingUpdated = 0;
 
+    group->threadsChanged();
+
     if(updateAll)
         updateNextChangedThread();
 }
@@ -270,9 +272,9 @@ void UpdateEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages, Foru
     dbThread->markToBeUpdated(false);
     if(tempMessages.size()==0) qDebug() << Q_FUNC_INFO << "got 0 messages in thread " << dbThread->toString();
 
-    foreach (ForumMessage *tempMessage, tempMessages) {
+    for (ForumMessage *tempMessage : tempMessages) {
         bool foundInDb = false;
-        foreach (ForumMessage *dbMessage, dbThread->values()) {
+        for (ForumMessage *dbMessage : dbThread->values()) {
             if (dbMessage->id() == tempMessage->id()) {
                 foundInDb = true;
                 bool wasRead = dbMessage->isRead();
@@ -291,9 +293,9 @@ void UpdateEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages, Foru
     }
 
     // check for DELETED threads
-    foreach (ForumMessage *dbmessage, dbThread->values()) {
+    for(ForumMessage *dbmessage : dbThread->values()) {
         bool messageFound = false;
-        foreach (ForumMessage *tempMsg, tempMessages) {
+        for(ForumMessage *tempMsg : tempMessages) {
             if (dbmessage->id() == tempMsg->id()) {
                 messageFound = true;
             }
@@ -306,6 +308,7 @@ void UpdateEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages, Foru
     // update thread
     dbThread->setHasMoreMessages(moreAvailable);
     dbThread->commitChanges();
+    dbThread->messagesChanged();
     threadBeingUpdated = 0;
     if(updateAll) {
         updateNextChangedThread();
@@ -344,9 +347,9 @@ void UpdateEngine::updateNextChangedGroup() {
     Q_ASSERT(state() == UES_UPDATING);
 
     if(!updateOnlyThread) {
-        foreach(ForumGroup *group, subscription()->values()) {
+        for(ForumGroup *group : subscription()->values()) {
             if(group->needsToBeUpdated() && group->isSubscribed()) {
-                doUpdateGroup(group);
+                updateGroup(group, forceUpdate);
                 return;
             }
         }
@@ -504,6 +507,13 @@ void UpdateEngine::updateForum(bool force) {
     } else {
         setState(UES_UPDATING);
     }
+}
+
+void UpdateEngine::updateGroup(ForumGroup *group, bool force)
+{
+    Q_UNUSED(force);
+    updateCanceled = false;
+    doUpdateGroup(group);
 }
 
 

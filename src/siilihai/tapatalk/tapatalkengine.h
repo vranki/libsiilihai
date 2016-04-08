@@ -35,7 +35,7 @@ public:
     virtual void probeUrl(QUrl url);
     virtual bool supportsPosting();
     virtual QString convertDate(QString &date);
-
+    virtual QString engineTypeName();
 public slots:
     virtual bool postMessage(ForumGroup *grp, ForumThread *thr, QString subject, QString body);
 

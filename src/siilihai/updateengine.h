@@ -65,6 +65,7 @@ public:
     // These are the main update functions called by UI. Call only for IDLE engine.
     virtual void updateGroupList();
     virtual void updateForum(bool force=false);
+    virtual void updateGroup(ForumGroup *group, bool force=false);
     virtual void updateThread(ForumThread *thread, bool force=false);
 
     virtual bool supportsPosting(); // Returns true if this engine can post new threads & messages
@@ -75,6 +76,7 @@ public:
     QNetworkAccessManager *networkAccessManager();
     // @todo add function to reset login state (error, u/p changed or something)
     virtual void probeUrl(QUrl url)=0;
+
 public slots:
     virtual void cancelOperation();
     virtual void credentialsEntered(CredentialsRequest* cr);
@@ -115,9 +117,10 @@ protected:
     virtual void doUpdateForum()=0;
     virtual void doUpdateGroup(ForumGroup *group)=0;
     virtual void doUpdateThread(ForumThread *thread)=0;
+    virtual QString engineTypeName()=0; // Engine type as human readable
 
 protected:
-    bool updateAll; // Set to false to just get group list
+    bool updateAll; // Set to false to just get single list
     bool forceUpdate; // Update even if no changes
     bool updateOnlyThread;
     bool requestingCredentials;

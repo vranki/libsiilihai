@@ -19,6 +19,8 @@
 #include "../discourse/forumsubscriptiondiscourse.h"
 #include "../xmlserialization.h"
 
+const QString providerNames[] = {"None", "Parser", "TapaTalk", "Discourse"};
+
 ForumSubscription::ForumSubscription(QObject *parent, bool temp, ForumProvider p) : QObject(parent) {
     _provider = p;
     _alias = QString::null;
@@ -240,6 +242,11 @@ bool ForumSubscription::scheduledForUpdate() const {
 ForumSubscription::ForumProvider ForumSubscription::provider() const
 {
     return _provider;
+}
+
+QString ForumSubscription::providerName() const
+{
+    return providerNames[provider()];
 }
 
 ForumSubscription *ForumSubscription::newForProvider(ForumSubscription::ForumProvider fp, QObject *parent, bool temp) {

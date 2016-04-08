@@ -58,6 +58,8 @@ void ForumProbe::forumGot(ForumSubscription *sub) {
 void ForumProbe::engineProbeResults(ForumSubscription *sub) {
     Q_ASSERT(!probedSub);
     typesProbed++;
+    currentEngine->deleteLater();
+    currentEngine = 0;
     if(sub) {
         probedSub = ForumSubscription::newForProvider(sub->provider(), 0, true);
         probedSub->copyFrom(sub);
@@ -137,5 +139,6 @@ void ForumProbe::finishedSlot(QNetworkReply *reply) {
     } else {
         emit probeResults(0);
     }
+
     reply->deleteLater();
 }

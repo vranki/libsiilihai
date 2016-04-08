@@ -23,6 +23,14 @@ int main(int argc, char *argv[])
                                QCoreApplication::translate("main", "Forum URL"),
                                QCoreApplication::translate("main", "string value"));
     parser.addOption(forumUrl);
+    QCommandLineOption groupId(QStringList() << "group",
+                               QCoreApplication::translate("main", "Group ID"),
+                               QCoreApplication::translate("main", "string value"));
+    parser.addOption(groupId);
+    QCommandLineOption threadId(QStringList() << "thread",
+                               QCoreApplication::translate("main", "Thread ID"),
+                               QCoreApplication::translate("main", "string value"));
+    parser.addOption(threadId);
     QCommandLineOption noServerOption(QStringList() << "noserver", "Don't ask server when probing");
     parser.addOption(noServerOption);
     parser.process(a);
@@ -56,6 +64,20 @@ int main(int argc, char *argv[])
             tool.listGroups(parser.value(forumUrl));
         } else {
             qWarning() << "Enter forum URL to list groups from with  --url";
+            quit = true;
+        }
+    } else if(args[0] == "list-threads") {
+        if(parser.isSet(forumUrl) && parser.isSet(groupId)) {
+            tool.listThreads(parser.value(forumUrl), parser.value(groupId));
+        } else {
+            qWarning() << "Enter forum URL and group id to list threads with  --url and --group";
+            quit = true;
+        }
+    } else if(args[0] == "list-messages") {
+        if(parser.isSet(forumUrl) && parser.isSet(groupId) && parser.isSet(threadId)) {
+            tool.listMessages(parser.value(forumUrl), parser.value(groupId), parser.value(threadId));
+        } else {
+            qWarning() << "Enter forum URL, group id and thread id to list messages with --url, --group and --thread";
             quit = true;
         }
     }

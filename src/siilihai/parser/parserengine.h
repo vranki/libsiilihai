@@ -72,6 +72,7 @@ public:
     virtual void doUpdateThread(ForumThread *thread);
 
     virtual void probeUrl(QUrl url);
+    virtual QString engineTypeName();
 public slots:
     virtual void cancelOperation();
     virtual void credentialsEntered(CredentialsRequest* cr);

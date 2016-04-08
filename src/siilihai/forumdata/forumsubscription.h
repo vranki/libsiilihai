@@ -109,6 +109,7 @@ public:
     bool scheduledForSync() const;
     bool scheduledForUpdate() const;
     ForumProvider provider() const;
+    QString providerName() const;
 
     static ForumSubscription *newForProvider(ForumProvider fp, QObject *parent, bool temp);
     virtual QDomElement serialize(QDomElement &parent, QDomDocument &doc);
@@ -127,9 +128,7 @@ public:
     void appendError(UpdateError *ue); // Ownership changes
     Q_INVOKABLE void clearErrors();
     QQmlListProperty<UpdateError> errors();
-
     QList<QObject*> groups() const;
-
     QList<QObject*> subscribedGroups() const;
 
 signals:
