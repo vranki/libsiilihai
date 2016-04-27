@@ -186,7 +186,11 @@ void SiilihaiProtocol::replyListForums(QNetworkReply *reply) {
 
                  // @todo current way of distinguishing between parser & tapatalk providers. Not good way.
                  ForumSubscription::ForumProvider provider = ForumSubscription::FP_PARSER;
-                 if(parser->login_path == "TAPATALK") provider = ForumSubscription::FP_TAPATALK;
+                 if(parser->login_path == "TAPATALK") {
+                     provider = ForumSubscription::FP_TAPATALK;
+                 } else if(parser->login_path == "DISCOURSE") {
+                     provider = ForumSubscription::FP_DISCOURSE;
+                 }
 
                  ForumSubscription *sub = new ForumSubscription(0, true, provider);
                  sub->setId(parser->id());

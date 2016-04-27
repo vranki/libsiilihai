@@ -34,12 +34,3 @@ QDomElement ForumSubscriptionTapaTalk::serialize(QDomElement &parent, QDomDocume
     XmlSerialization::appendValue(SUB_FORUMURL, forumUrl().toString(), subElement, doc);
     return subElement;
 }
-
-void ForumSubscriptionTapaTalk::readSubscriptionXml(QDomElement &element)
-{
-    ForumSubscription::readSubscriptionXml(element);
-
-    QUrl forumUrl = QUrl(element.firstChildElement(SUB_FORUMURL).text());
-    Q_ASSERT(forumUrl.isValid());
-    setForumUrl(forumUrl);
-}

@@ -202,11 +202,8 @@ ForumParser *XmlSerialization::readParser(QDomElement &element, QObject *parent)
     parser->posting_parameters = element.firstChildElement("posting_parameters").text();
     parser->posting_hints = element.firstChildElement("posting_hints").text();
     QString ud = element.firstChildElement("update_date").text();
-    if(ud.isNull()) {
-        parser->update_date = QDate(1970, 1, 1);
-    } else {
-        parser->update_date = QDate::fromString(ud);
-    }
+    parser->update_date = ud.isNull() ? QDate(1970, 1, 1) : QDate::fromString(ud);
+
     return parser;
 }
 

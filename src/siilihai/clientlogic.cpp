@@ -333,7 +333,7 @@ void ClientLogic::cancelClicked() {
 int ClientLogic::busyForumCount() {
     int busyForums = 0;
     for(ForumSubscription *sub : m_forumDatabase) {
-        if(sub->updateEngine()->state()==UpdateEngine::UES_UPDATING) {
+        if(sub->updateEngine() && sub->updateEngine()->state()==UpdateEngine::UES_UPDATING) {
             busyForums++;
         }
     }
@@ -416,6 +416,7 @@ void ClientLogic::loginFinished(bool success, QString motd, bool sync) {
 // Note: fs *MUST* be a real ForumSubscription derived class, NOT just ForumSubscription with provider set!
 void ClientLogic::forumAdded(ForumSubscription *fs) {
     Q_ASSERT(fs->id());
+
     if(m_forumDatabase.contains(fs->id())) {
         errorDialog("You have already subscribed to " + fs->alias());
     } else {

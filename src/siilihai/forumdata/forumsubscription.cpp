@@ -12,6 +12,7 @@
 
     You should have received a copy of the GNU Lesser General Public License
     along with libSiilihai.  If not, see <http://www.gnu.org/licenses/>. */
+#include <QUrl>
 #include "forumsubscription.h"
 #include "forumgroup.h"
 #include "../parser/forumsubscriptionparsed.h"
@@ -270,7 +271,9 @@ QDomElement ForumSubscription::serialize(QDomElement &parent, QDomDocument &doc)
     XmlSerialization::appendValue(SUB_PASSWORD, password(), subElement, doc);
     XmlSerialization::appendValue(SUB_LATEST_THREADS, QString::number(latestThreads()), subElement, doc);
     XmlSerialization::appendValue(SUB_LATEST_MESSAGES, QString::number(latestMessages()), subElement, doc);
-
+    if(_provider != FP_PARSER) {
+        XmlSerialization::appendValue(SUB_FORUMURL, forumUrl().toString(), subElement, doc);
+    }
     parent.appendChild(subElement);
 
     return subElement;
@@ -297,6 +300,11 @@ void ForumSubscription::readSubscriptionXml(QDomElement &element)
     setLatestThreads(QString(element.firstChildElement(SUB_LATEST_THREADS).text()).toInt());
     setLatestMessages(QString(element.firstChildElement(SUB_LATEST_MESSAGES).text()).toInt());
     setAuthenticated(username().length() > 0);
+    if(_provider != FP_PARSER) {
+        QUrl forumUrl = QUrl(element.firstChildElement(SUB_FORUMURL).text());
+        // Q_ASSERT(forumUrl.isValid());
+        setForumUrl(forumUrl);
+    }
 }
 
 void ForumSubscription::setForumUrl(QUrl url)

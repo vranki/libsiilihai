@@ -97,6 +97,7 @@ void DiscourseEngine::replyListThreads(QNetworkReply *reply)
         newThread->setId(QString::number(topicObject.value("id").toInt()));
         newThread->setName(topicObject.value("title").toString());
         newThread->setLastchange(topicObject.value("last_posted_at").toString());
+        newThread->setOrdernum(tempThreads.size());
         tempThreads.append(newThread);
     }
     ForumGroup *groupJustUpdated = groupBeingUpdated;
@@ -121,9 +122,14 @@ void DiscourseEngine::replyListMessages(QNetworkReply *reply)
         qDebug() << Q_FUNC_INFO << postObject.keys();
         ForumMessage *newMessage = new ForumMessage(threadBeingUpdated);
         newMessage->setId(QString::number(postObject.value("id").toInt()));
-        newMessage->setAuthor(postObject.value("name").toString());
+        QString username = postObject.value("username").toString();
+        QString realname = postObject.value("name").toString();
+        if(!realname.isEmpty()) username = realname + " (" + username + ")";
+        newMessage->setAuthor(username);
         newMessage->setBody(postObject.value("cooked").toString());
         newMessage->setLastchange(postObject.value("updated_at").toString());
+        newMessage->setRead(false);
+        newMessage->setOrdernum(tempMessages.size());
         tempMessages.append(newMessage);
     }
 
@@ -225,7 +231,12 @@ void DiscourseEngine::setSubscription(ForumSubscription *fs)
     Q_ASSERT(!fs || qobject_cast<ForumSubscriptionDiscourse*>(fs));
     UpdateEngine::setSubscription(fs);
     if(!fs) return;
-    Q_ASSERT(fs->forumUrl().isValid());
+    if(!fs->forumUrl().isValid()) {
+        qDebug() << Q_FUNC_INFO << "Error: subscription has no valid url! This shouldn't happen.";
+        subscriptionDiscourse()->setDiscourseEngine(this);
+        UpdateEngine::setSubscription(0);
+        return;
+    }
     subscriptionDiscourse()->setDiscourseEngine(this);
     apiUrl = subscriptionDiscourse()->forumUrl().toString(QUrl::StripTrailingSlash) + "/mobiquo/mobiquo.php";
     setState(UES_IDLE);

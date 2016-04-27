@@ -56,14 +56,14 @@ bool ForumDatabaseXml::openDatabase(QIODevice *source, bool loadContent) {
                 // Fix unread counts
                 sub->incrementUnreadCount(-sub->unreadCount());
                 Q_ASSERT(sub->unreadCount()==0);
-                foreach(ForumGroup *grp, sub->values()) {
+                for(ForumGroup *grp : sub->values()) {
                     grp->incrementUnreadCount(-grp->unreadCount());
                     Q_ASSERT(grp->unreadCount()==0);
                     if(grp->isSubscribed()) {
-                        foreach(ForumThread *thr, grp->values()) {
+                        for(ForumThread *thr : grp->values()) {
                             thr->incrementUnreadCount(-thr->unreadCount());
                             Q_ASSERT(thr->unreadCount()==0);
-                            foreach(ForumMessage *msg, thr->values()) {
+                            for(ForumMessage *msg : thr->values()) {
                                 if(!msg->isRead()) {
                                     thr->incrementUnreadCount(1);
                                     grp->incrementUnreadCount(1);
@@ -95,7 +95,7 @@ bool ForumDatabaseXml::addSubscription(ForumSubscription *fs){
     emit subscriptionFound(fs);
     checkSanity();
 #ifdef SANITY_CHECKS
-    foreach(ForumGroup *g, fs->values())
+    for(ForumGroup *g : fs->values())
         connect(g, SIGNAL(threadAdded(ForumThread*)), this, SLOT(checkSanity()));
 #endif
     return true;
