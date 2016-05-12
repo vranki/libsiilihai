@@ -5,6 +5,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QDateTime>
 #include "../forumdata/forumsubscription.h"
 #include "../forumdata/forumgroup.h"
 #include "../forumdata/forumthread.h"
@@ -96,7 +97,8 @@ void DiscourseEngine::replyListThreads(QNetworkReply *reply)
         ForumThread *newThread = new ForumThread(groupBeingUpdated);
         newThread->setId(QString::number(topicObject.value("id").toInt()));
         newThread->setName(topicObject.value("title").toString());
-        newThread->setLastchange(topicObject.value("last_posted_at").toString());
+        QDateTime dateTime = QDateTime::fromString(topicObject.value("last_posted_at").toString(), Qt::ISODate);
+        newThread->setLastchange(dateTime.toString());
         newThread->setOrdernum(tempThreads.size());
         tempThreads.append(newThread);
     }
@@ -127,7 +129,8 @@ void DiscourseEngine::replyListMessages(QNetworkReply *reply)
         if(!realname.isEmpty()) username = realname + " (" + username + ")";
         newMessage->setAuthor(username);
         newMessage->setBody(postObject.value("cooked").toString());
-        newMessage->setLastchange(postObject.value("updated_at").toString());
+        QDateTime dateTime = QDateTime::fromString(postObject.value("updated_at").toString(), Qt::ISODate);
+        newMessage->setLastchange(dateTime.toString());
         newMessage->setRead(false);
         newMessage->setOrdernum(tempMessages.size());
         tempMessages.append(newMessage);

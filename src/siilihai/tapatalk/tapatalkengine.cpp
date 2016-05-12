@@ -272,7 +272,7 @@ void TapaTalkEngine::getThreads(QDomElement arrayDataElement, QList<ForumThread 
         while(!dataValueElement.isNull()) {
             QString name = getValueFromStruct(dataValueElement, "topic_title");
             QString id = getValueFromStruct(dataValueElement, "topic_id");
-            QString author = getValueFromStruct(dataValueElement, "topic_author_name");
+            // QString author = getValueFromStruct(dataValueElement, "topic_author_name");
             QString lc = getValueFromStruct(dataValueElement, "last_reply_time");
 
             if(!id.isNull()) {
@@ -327,7 +327,6 @@ void TapaTalkEngine::replyPost(QNetworkReply *reply) {
         return;
     }
     QString docs = QString().fromUtf8(reply->readAll());
-    qDebug() << Q_FUNC_INFO << "RX:" << docs;
     QDomDocument doc;
     doc.setContent(docs);
 
