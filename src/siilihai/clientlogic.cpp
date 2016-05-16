@@ -18,8 +18,10 @@
 #include "messageformatting.h"
 #include "subscriptionmanagement.h"
 
-ClientLogic::ClientLogic(QObject *parent) : QObject(parent), m_settings(0), m_forumDatabase(this),  m_syncmaster(this, m_forumDatabase, m_protocol),
-    m_parserManager(0), currentCredentialsRequest(0), currentState(SH_OFFLINE), m_subscriptionManagement(0) {
+ClientLogic::ClientLogic(QObject *parent) : QObject(parent), m_settings(0),
+    m_forumDatabase(this),  m_syncmaster(this, m_forumDatabase, m_protocol),
+    m_parserManager(0), currentCredentialsRequest(0), currentState(SH_OFFLINE),
+    m_subscriptionManagement(0, &m_protocol, m_settings) {
     endSyncDone = false;
     firstRun = true;
     dbStored = false;
@@ -31,6 +33,10 @@ ClientLogic::ClientLogic(QObject *parent) : QObject(parent), m_settings(0), m_fo
     statusMsgTimer.setSingleShot(true);
 
     connect(&statusMsgTimer, SIGNAL(timeout()), this, SLOT(clearStatusMessage()));
+
+    connect(&m_subscriptionManagement, SIGNAL(forumUnsubscribed(ForumSubscription*)), this, SLOT(unsubscribeForum(ForumSubscription*)));
+    connect(&m_subscriptionManagement, SIGNAL(showError(QString)), this, SLOT(errorDialog(QString)));
+    connect(&m_subscriptionManagement, SIGNAL(forumAdded(ForumSubscription*)), this, SLOT(forumAdded(ForumSubscription*)));
 
     // Make sure Siilihai::subscriptionFound is called first to get ParserEngine
     connect(&m_forumDatabase, SIGNAL(subscriptionFound(ForumSubscription*)), this, SLOT(subscriptionFound(ForumSubscription*)));
@@ -169,15 +175,9 @@ QObject *ClientLogic::settings()
     return qobject_cast<QObject*> (m_settings);
 }
 
-SubscriptionManagement* ClientLogic::subscriptionManagement()
+SubscriptionManagement *ClientLogic::subscriptionManagement()
 {
-    if(!m_subscriptionManagement) {
-        m_subscriptionManagement = new SubscriptionManagement(this, &m_protocol, m_settings);
-        connect(m_subscriptionManagement, SIGNAL(forumUnsubscribed(ForumSubscription*)), this, SLOT(unsubscribeForum(ForumSubscription*)));
-        connect(m_subscriptionManagement, SIGNAL(showError(QString)), this, SLOT(errorDialog(QString)));
-        connect(m_subscriptionManagement, SIGNAL(forumAdded(ForumSubscription*)), this, SLOT(forumAdded(ForumSubscription*)));
-    }
-    return m_subscriptionManagement;
+    return &m_subscriptionManagement;
 }
 
 void ClientLogic::settingsChanged(bool byUser) {

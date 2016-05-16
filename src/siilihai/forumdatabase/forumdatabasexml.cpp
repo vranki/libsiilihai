@@ -101,7 +101,11 @@ bool ForumDatabaseXml::addSubscription(ForumSubscription *fs){
     return true;
 }
 
-void ForumDatabaseXml::deleteSubscription(ForumSubscription *sub){
+void ForumDatabaseXml::deleteSubscription(ForumSubscription *sub) {
+    // Delete the groups first.
+    for(ForumGroup *g : sub->values())
+        sub->removeGroup(g, false, false);
+    // Then delete the whole sub
     removeAll(sub);
     emit subscriptionsChanged();
     emit subscriptionRemoved(sub);

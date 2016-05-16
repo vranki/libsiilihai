@@ -110,9 +110,7 @@ void SubscriptionManagement::resetNewForum()
 
 void SubscriptionManagement::subscribeForumFinished(ForumSubscription *sub, bool success) {
     Q_UNUSED(sub);
-    if (!success) {
-        emit showError("Subscribing to forum failed. Please check network connection.");
-    }
+    if (!success) emit showError("Subscription to forum failed. Please check network connection.");
 }
 
 void SubscriptionManagement::probeResults(ForumSubscription *probedSub) {

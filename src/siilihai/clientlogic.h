@@ -18,7 +18,7 @@
 #include "syncmaster.h"
 #include "usersettings.h"
 #include "credentialsrequest.h"
-
+#include "subscriptionmanagement.h"
 
 #define MAX_CONCURRENT_UPDATES 2
 
@@ -33,7 +33,6 @@
 
 class ParserManager;
 class SiilihaiSettings;
-class SubscriptionManagement;
 
 class ClientLogic : public QObject
 {
@@ -169,7 +168,7 @@ private:
     QQueue<CredentialsRequest*> credentialsRequests;
     QString statusMsg; // One-liner describing current status
     QTimer statusMsgTimer; // Hides the message after a short delay
-    SubscriptionManagement *m_subscriptionManagement;
+    SubscriptionManagement m_subscriptionManagement;
 
     bool devMode; // Enables some debugging features on UI etc..
     bool m_developerMode;
