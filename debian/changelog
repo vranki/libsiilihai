@@ -1,4 +1,4 @@
-libsiilihai (2.5.0) xenial; urgency=low
+libsiilihai (2.5.0-1) xenial; urgency=low
 
   * Discourse support
   * Fixes
