@@ -1,9 +1,9 @@
-libsiilihai (2.5.0-1) xenial; urgency=low
+libsiilihai (2.5.0-3) xenial; urgency=low
 
   * Discourse support
   * Fixes
 
- -- Ville Ranki <ville.ranki@iki.fi>  Thu, 12 May 2016 12:34:56 +0300
+ -- Ville Ranki <ville.ranki@iki.fi>  Tue, 07 Jun 2016 12:34:56 +0300
 
 libsiilihai (2.4.1-1) wily; urgency=low
 

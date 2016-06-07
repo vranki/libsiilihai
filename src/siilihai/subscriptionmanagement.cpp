@@ -5,6 +5,8 @@
 SubscriptionManagement::SubscriptionManagement(QObject *parent, SiilihaiProtocol *protocol, SiilihaiSettings *settings)
     : QObject(parent), m_protocol(protocol), m_newForum(0), m_probe(0, m_protocol), m_settings(settings)
 {
+    Q_ASSERT(m_settings);
+    Q_ASSERT(m_protocol);
     connect(m_protocol, SIGNAL(listForumsFinished(QList <ForumSubscription*>)), this, SLOT(listForumsFinished(QList <ForumSubscription*>)));
     connect(m_protocol, SIGNAL(subscribeForumFinished(ForumSubscription*, bool)), this, SLOT(subscribeForumFinished(ForumSubscription*,bool)));
     connect(&m_probe, SIGNAL(probeResults(ForumSubscription*)), this, SLOT(probeResults(ForumSubscription*)));

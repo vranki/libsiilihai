@@ -168,7 +168,7 @@ private:
     QQueue<CredentialsRequest*> credentialsRequests;
     QString statusMsg; // One-liner describing current status
     QTimer statusMsgTimer; // Hides the message after a short delay
-    SubscriptionManagement m_subscriptionManagement;
+    SubscriptionManagement *m_subscriptionManagement;
 
     bool devMode; // Enables some debugging features on UI etc..
     bool m_developerMode;

@@ -78,7 +78,7 @@ void TapaTalkEngine::convertBodyToHtml(ForumMessage *msg)
     } while(urlPosition >= 0);
 
     // Replace [url]http://foobar</a> with <a href="http://foobar">http://foobar</a>
-    urlPosition = -1;
+
     do {
         urlPosition = newBody.indexOf("[url]");
         if(urlPosition >= 0) {
