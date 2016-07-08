@@ -37,6 +37,7 @@ public:
     Q_INVOKABLE virtual void getForum(QUrl url);
     Q_INVOKABLE virtual void subscribeThisForum(QString user, QString pass);
     Q_INVOKABLE virtual void resetNewForum(); // Sets new forum to null
+    Q_INVOKABLE virtual void resetForumList(); // Clears the forum list, freeing up resources
 
     // List of (incomplete) forums for subscribing. Use listForums() to update.
     QList<QObject*> forumList();

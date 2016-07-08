@@ -117,9 +117,9 @@ void UpdateEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups, ForumSubsc
     }
     // Diff the group list
     bool groupsChanged = false;
-    foreach(ForumGroup *tempGroup, tempGroups) {
+    for(ForumGroup *tempGroup : tempGroups) {
         bool foundInDb = false;
-        foreach(ForumGroup *dbGroup, fsubscription->values()) {
+        for(ForumGroup *dbGroup : fsubscription->values()) {
             if (dbGroup->id() == tempGroup->id()) {
                 foundInDb = true;
 
@@ -159,9 +159,9 @@ void UpdateEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups, ForumSubsc
     }
 
     // check for DELETED groups
-    foreach(ForumGroup *dbGroup, fsubscription->values()) {
+    for(ForumGroup *dbGroup : fsubscription->values()) {
         bool groupFound = false;
-        foreach(ForumGroup *grp, tempGroups) {
+        for(ForumGroup *grp : tempGroups) {
             if (dbGroup->id() == grp->id()) {
                 groupFound = true;
             }
@@ -207,7 +207,7 @@ void UpdateEngine::listThreadsFinished(QList<ForumThread*> &tempThreads, ForumGr
     }
 
     // Diff the group list
-    foreach(ForumThread *serverThread, tempThreads) {
+    for(ForumThread *serverThread : tempThreads) {
         ForumThread *dbThread = fdb ? fdb->getThread(group->subscription()->id(), group->id(), serverThread->id()) : 0;
         if (dbThread) {
             dbThread->setName(serverThread->name());
@@ -236,9 +236,9 @@ void UpdateEngine::listThreadsFinished(QList<ForumThread*> &tempThreads, ForumGr
     }
     QSet<ForumThread*> deletedThreads;
     // check for DELETED threads
-    foreach (ForumThread *dbThread, group->values()) { // Iterate all db threads and find if any is missing
+    for (ForumThread *dbThread : group->values()) { // Iterate all db threads and find if any is missing
         bool threadFound = false;
-        foreach(ForumThread *tempThread, tempThreads) {
+        for(ForumThread *tempThread : tempThreads) {
             if (dbThread->group()->id() == group->id() && dbThread->id() == tempThread->id()) {
                 threadFound = true;
             }
@@ -247,7 +247,7 @@ void UpdateEngine::listThreadsFinished(QList<ForumThread*> &tempThreads, ForumGr
             deletedThreads.insert(dbThread);
         }
     }
-    foreach(ForumThread *thr, deletedThreads.values())
+    for(ForumThread *thr : deletedThreads.values())
         thr->group()->removeThread(thr);
 
     group->markToBeUpdated(false);
@@ -385,13 +385,13 @@ void UpdateEngine::cancelOperation() {
     updateCanceled = true;
     if(currentState==UES_IDLE || currentState==UES_ERROR) return;
     updateAll = false;
-    foreach(ForumGroup *group, subscription()->values())
+
+    for(ForumGroup *group : subscription()->values())
         group->markToBeUpdated(false);
+
     threadsToUpdateQueue.clear();
-    if(currentState==UES_UPDATING)
-        setState(UES_IDLE);
-    if(requestingCredentials)
-        emit loginFinished(subscription(), false);
+    if(currentState==UES_UPDATING) setState(UES_IDLE);
+    if(requestingCredentials) emit loginFinished(subscription(), false);
     requestingCredentials = false;
     threadBeingUpdated = 0;
     groupBeingUpdated = 0;

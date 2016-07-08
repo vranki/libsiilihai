@@ -110,6 +110,13 @@ void SubscriptionManagement::resetNewForum()
     emit newForumChanged(m_newForum);
 }
 
+void SubscriptionManagement::resetForumList()
+{
+    qDeleteAll(m_forumList);
+    m_forumList.clear();
+    emit forumListChanged();
+}
+
 void SubscriptionManagement::subscribeForumFinished(ForumSubscription *sub, bool success) {
     Q_UNUSED(sub);
     if (!success) emit showError("Subscription to forum failed. Please check network connection.");

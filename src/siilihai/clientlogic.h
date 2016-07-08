@@ -88,7 +88,7 @@ public slots:
     virtual void subscriptionFound(ForumSubscription* sub);
     virtual void errorDialog(QString message)=0;
     virtual void loginFinished(bool success, QString motd, bool sync);
-    virtual void updateGroupSubscriptions(ForumSubscription *sub);
+    virtual void updateGroupSubscriptions(ForumSubscription *sub); // Call after subscriptions have changed (uploads to server)
     virtual void updateAllParsers();
     virtual void unregisterSiilihai();
     virtual void aboutToQuit();
@@ -171,7 +171,6 @@ private:
     SubscriptionManagement *m_subscriptionManagement;
 
     bool devMode; // Enables some debugging features on UI etc..
-    bool m_developerMode;
 };
 
 #endif // CLIENTLOGIC_H

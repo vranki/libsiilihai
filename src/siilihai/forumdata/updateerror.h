@@ -6,9 +6,9 @@
 class UpdateError : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(QString title READ title)
-    Q_PROPERTY(QString description READ description)
-    Q_PROPERTY(QString technicalData READ technicalData)
+    Q_PROPERTY(QString title READ title NOTIFY errorChanged)
+    Q_PROPERTY(QString description READ description NOTIFY errorChanged)
+    Q_PROPERTY(QString technicalData READ technicalData NOTIFY errorChanged)
 public:
     UpdateError();
     UpdateError(const UpdateError &o);
@@ -16,6 +16,9 @@ public:
     QString title() const;
     QString description() const;
     QString technicalData() const;
+
+signals:
+    void errorChanged(); // Never changes
 
 private:
     QString m_title;
