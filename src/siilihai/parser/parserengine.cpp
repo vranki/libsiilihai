@@ -355,7 +355,7 @@ void ParserEngine::loginToForum() {
         setRequestAttributes(req, PEOLogin);
         QHash<QString, QString> params;
         QStringList loginParamPairs = parser()->login_parameters.split(",", QString::SkipEmptyParts);
-        foreach(QString paramPair, loginParamPairs) {
+        for(QString paramPair : loginParamPairs) {
             paramPair = paramPair.replace("%u", subscription()->username());
             paramPair = paramPair.replace("%p", subscription()->password());
 
@@ -428,8 +428,7 @@ void ParserEngine::performListGroups(QString &html) {
     QList<ForumGroup*> groups;
     patternMatcher->setPattern(parser()->group_list_pattern);
     QList<QHash<QString, QString> > matches = patternMatcher->findMatches(html);
-    QHash<QString, QString> match;
-    foreach (match, matches) {
+    for(QHash<QString, QString> match : matches) {
         ForumGroup *fg = new ForumGroup(this);
         fg->setId(match["%a"]);
         fg->setName(match["%b"]);
@@ -477,8 +476,7 @@ void ParserEngine::performListThreads(QString &html) {
     patternMatcher->setPattern(parser()->thread_list_pattern);
     QList<QHash<QString, QString> > matches = patternMatcher->findMatches(html);
     // Iterate through matches on page
-    QHash<QString, QString> match;
-    foreach(match, matches) {
+    for(QHash<QString, QString>  match : matches) {
         ForumThread *ft = new ForumThread(this);
         ft->setId(match["%a"]);
         ft->setName(match["%b"]);
@@ -499,7 +497,7 @@ void ParserEngine::performListThreads(QString &html) {
     while(!newThreads.isEmpty()) {
         ForumThread *newThread = newThreads.takeFirst();
         bool threadFound = false;
-        foreach (ForumThread *thread, foundThreads) {
+        for (auto thread : foundThreads) {
             if (newThread->id() == thread->id()) {
                 threadFound = true;
             }
@@ -586,9 +584,8 @@ void ParserEngine::performListMessages(QString &html) {
     operationInProgress = PEOUpdateThread;
     patternMatcher->setPattern(parser()->message_list_pattern);
     QList<QHash<QString, QString> > matches = patternMatcher->findMatches(html);
-    QHash<QString, QString> match;
 
-    foreach(match, matches){
+    for(QHash<QString, QString> match : matches){
         // This will be deleted or added to messages
         ForumMessage *fm = new ForumMessage(this);
         fm->setRead(false, false);

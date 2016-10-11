@@ -11,7 +11,7 @@
 
 void XmlSerialization::serialize(ForumSubscription *sub, QDomElement &parent, QDomDocument &doc) {
     QDomElement subElement = sub->serialize(parent, doc);
-    foreach(ForumGroup *grp, sub->values())
+    for(ForumGroup *grp : sub->values())
         serialize(grp, subElement, doc);
 }
 
@@ -23,7 +23,7 @@ void XmlSerialization::serialize(ForumGroup *grp, QDomElement &parent, QDomDocum
     if(grp->isSubscribed())
         newElement.setAttribute(GRP_SUBSCRIBED, "true");
 
-    foreach(ForumThread *thread, grp->values())
+    for(ForumThread *thread : grp->values())
         serialize(thread, newElement, doc);
 
     parent.appendChild(newElement);
@@ -40,7 +40,7 @@ void XmlSerialization::serialize(ForumThread *thr, QDomElement &parent, QDomDocu
     if(thr->hasMoreMessages())
         newElement.setAttribute(THR_HASMOREMESSAGES, "true");
 
-    foreach(ForumMessage *msg, thr->values())
+    for(ForumMessage *msg : thr->values())
         serialize(msg, newElement, doc);
 
     parent.appendChild(newElement);

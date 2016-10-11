@@ -140,7 +140,7 @@ void ClientLogic::launchSiilihai(bool offline) {
 void ClientLogic::haltSiilihai() {
     cancelClicked();
 
-    foreach(UpdateEngine *engine, engines.values()) {
+    for(auto engine : engines.values()) {
         engine->subscription()->engineDestroyed();
         engine->setSubscription(0);
         engine->deleteLater();
@@ -192,7 +192,7 @@ void ClientLogic::settingsChanged(bool byUser) {
     m_settings->sync();
     if(usettings.syncEnabled()) { // Force upsync of everything
         for(ForumSubscription *sub : m_forumDatabase) {
-            foreach(ForumGroup *group, sub->values()) {
+            for(auto group : sub->values()) {
                 group->setHasChanged(true);
             }
         }
@@ -318,17 +318,17 @@ void ClientLogic::updateClicked(ForumSubscription* sub , bool force) {
             engine->updateForum(force);
         }
     } else { // Update all
-        foreach(UpdateEngine* engine, engines.values()) {
+        for(auto engine : engines.values()) {
             updateForum(engine->subscription());
         }
     }
 }
 
 void ClientLogic::cancelClicked() {
-    for(ForumSubscription *sub : m_forumDatabase) {
+    for(auto sub : m_forumDatabase) {
         sub->setScheduledForUpdate(false);
     }
-    foreach(UpdateEngine* engine, engines.values()) {
+    for(auto engine : engines.values()) {
         engine->cancelOperation();
     }
 }
@@ -350,8 +350,8 @@ void ClientLogic::syncFinished(bool success, QString message){
         errorDialog(QString("Syncing status to server failed.\n\n%1").arg(message));
     }
     if(currentState == SH_STARTSYNCING) {
-        foreach(ForumSubscription *sub, subscriptionsNotUpdated) {
-            updateForum(sub);
+        while(!subscriptionsNotUpdated.isEmpty()) {
+            updateForum(*subscriptionsNotUpdated.begin());
         }
         changeState(SH_READY);
     } else if(currentState == SH_ENDSYNC) {
@@ -376,7 +376,7 @@ void ClientLogic::listSubscriptionsFinished(QList<int> serversSubscriptions) {
     for(ForumSubscription* sub : m_forumDatabase) {
         bool found = false;
         if(sub->provider() == ForumSubscription::FP_PARSER) {
-            foreach(int serverSubscriptionId, serversSubscriptions) {
+            for(int serverSubscriptionId : serversSubscriptions) {
                 if(serverSubscriptionId == qobject_cast<ForumSubscriptionParsed*>(sub)->parserId())
                     found = true;
             }
@@ -385,7 +385,7 @@ void ClientLogic::listSubscriptionsFinished(QList<int> serversSubscriptions) {
             }
         }
     }
-    foreach (ForumSubscription *sub, unsubscribedForums) {
+    for(auto sub : unsubscribedForums) {
         if(sub->provider() == ForumSubscription::FP_PARSER) {
             m_parserManager->deleteParser(qobject_cast<ForumSubscriptionParsed*>(sub)->parserId());
         }
@@ -605,7 +605,7 @@ void ClientLogic::updateGroupSubscriptions(ForumSubscription *sub) {
 
 void ClientLogic::updateAllParsers() {
     if(currentState != SH_READY) return;
-    foreach(UpdateEngine *eng, engines) {
+    for(auto eng : engines) {
         if(eng->state()==UpdateEngine::UES_IDLE && eng->subscription()->provider() == ForumSubscription::FP_PARSER) {
             ForumSubscriptionParsed *subParser = qobject_cast<ForumSubscriptionParsed*> (eng->subscription());
             Q_ASSERT(subParser);

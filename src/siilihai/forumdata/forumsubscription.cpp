@@ -190,7 +190,7 @@ void ForumSubscription::setId(int newId)
 }
 
 void ForumSubscription::markRead(bool read) {
-    foreach(ForumGroup *group, values()) {
+    for(auto group : values()) {
         group->markRead(read);
     }
 }
@@ -364,8 +364,7 @@ void ForumSubscription::appendError(UpdateError *ue)
 
 void ForumSubscription::clearErrors()
 {
-    foreach(auto error, m_errors)
-        error->deleteLater();
+    for(auto error : m_errors) error->deleteLater();
     m_errors.clear();
     emit errorsChanged();
 }

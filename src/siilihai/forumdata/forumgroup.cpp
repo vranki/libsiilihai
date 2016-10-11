@@ -158,8 +158,8 @@ void ForumGroup::markToBeUpdated(bool toBe) {
 }
 
 void ForumGroup::markRead(bool read) {
-    foreach(ForumThread *ft, values()) {
-        foreach(ForumMessage *msg, ft->values()) {
+    for(ForumThread *ft : values()) {
+        for(ForumMessage *msg : ft->values()) {
             msg->setRead(read);
         }
     }

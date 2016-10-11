@@ -321,7 +321,7 @@ void SiilihaiProtocol::subscribeGroups(ForumSubscription *fs) {
     QDomText t = doc.createTextNode(QString().number(fs->id()));
     forumTag.appendChild(t);
 
-    foreach(ForumGroup *g, fs->values()) {
+    for(ForumGroup *g : fs->values()) {
         QDomElement subTag;
         if (g->isSubscribed()) {
             subTag = doc.createElement("subscribe");
@@ -592,7 +592,7 @@ void SiilihaiProtocol::sendThreadData(ForumGroup *grp, QList<ForumMessage*> &fms
 
     // Sort 'em to threads:
     QMap<ForumThread*, QList<ForumMessage*> > threadedMessages; // Thread id, message
-    foreach (ForumMessage *fm, fms) {
+    for (ForumMessage *fm : fms) {
         if (fm->isRead())
             threadedMessages[fm->thread()].append(fm);
     }
@@ -606,7 +606,7 @@ void SiilihaiProtocol::sendThreadData(ForumGroup *grp, QList<ForumMessage*> &fms
         threadTag.setAttribute("changeset", i.key()->changeset());
         threadTag.setAttribute("getmessagescount", i.key()->getMessagesCount());
 
-        foreach(ForumMessage *fm, i.value()) {
+        for(ForumMessage *fm : i.value()) {
             QDomElement messageTag = doc.createElement("message");
             messageTag.setAttribute("id", fm->id());
             threadTag.appendChild(messageTag);
@@ -638,15 +638,15 @@ void SiilihaiProtocol::downsync(QList<ForumGroup*> &groups) {
     doc.appendChild(root);
     // Sort them to sub/group structure
     QMap<ForumSubscription*,QList<ForumGroup*> > groupMap;
-    foreach(ForumGroup *grp, groups) {
+    for(ForumGroup *grp : groups) {
         groupMap[grp->subscription()].append(grp);
     }
-    foreach(ForumSubscription* sub, groupMap.keys()) {
+    for(ForumSubscription* sub : groupMap.keys()) {
         QDomElement forumTag = doc.createElement("forum");
         forumTag.setAttribute("id", sub->id());
         root.appendChild(forumTag);
 
-        foreach(ForumGroup *grp, groupMap.value(sub)) {
+        for(ForumGroup *grp : groupMap.value(sub)) {
             QDomElement groupTag = doc.createElement("group");
             forumTag.appendChild(groupTag);
             groupTag.appendChild(doc.createTextNode(grp->id()));
@@ -785,8 +785,7 @@ void SiilihaiProtocol::replyGetSyncSummary(QNetworkReply *reply) {
         qDebug() << Q_FUNC_INFO << "Network error: " << reply->errorString();
     }
     reply->deleteLater();
-    foreach(ForumSubscription *sub, subs)
-        sub->deleteLater();
+    for(ForumSubscription *sub : subs) sub->deleteLater();
     subs.clear();
 }
 

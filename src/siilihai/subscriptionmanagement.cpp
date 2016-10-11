@@ -89,7 +89,7 @@ void SubscriptionManagement::subscribeThisForum(QString user, QString pass)
 {
     if(!m_newForum) return;
 
-    m_newForum->setAuthenticated(user.length() > 0);
+    m_newForum->setAuthenticated(!user.isEmpty());
     if(m_newForum->isAuthenticated()) {
         m_newForum->setUsername(user);
         m_newForum->setPassword(pass);

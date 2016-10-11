@@ -61,7 +61,7 @@ void SyncMaster::endSync() {
             fsub->setGroupListChanged(false);
             fsub->setBeingSynced(true);
         }
-        foreach(ForumGroup *grp, fsub->values()) {
+        for(ForumGroup *grp : fsub->values()) {
             if(grp->isSubscribed()) totalGroups++;
             if(grp->isSubscribed() && grp->hasChanged()) {
                 groupsToUpload.append(grp);
@@ -76,7 +76,7 @@ void SyncMaster::endSync() {
 void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp objects!
     fdb.checkSanity();
     // Update local subs
-    foreach(ForumSubscription *serverSub, subs) {
+    for(ForumSubscription *serverSub : subs) {
         ForumSubscription *dbSub = fdb.findById(serverSub->id());
         if(!dbSub) { // Whole forum not found in db - add it
             qDebug() << Q_FUNC_INFO << "Forum not in db -  must add it!";
@@ -100,9 +100,9 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
             // forum is authenticated but no u/p are known
 
             // Check for unsubscribed groups
-            foreach(ForumGroup *dbGrp, dbSub->values()) {
+            for(ForumGroup *dbGrp : dbSub->values()) {
                 bool groupIsSubscribed = false;
-                foreach(ForumGroup *serverGrp, serverSub->values()) {
+                for(ForumGroup *serverGrp : serverSub->values()) {
                     if(dbGrp->id() == serverGrp->id())
                         groupIsSubscribed = true;
                 }
@@ -116,7 +116,7 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
     QQueue<ForumSubscription*> deletedSubs;
     for(ForumSubscription *dbSub : fdb) {
         bool found = false;
-        foreach(ForumSubscription *serverSub, subs) {
+        for(ForumSubscription *serverSub : subs) {
             if(serverSub->id()==dbSub->id())
                 found = true;
         }
@@ -127,8 +127,8 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
         fdb.deleteSubscription(deletedSubs.takeFirst());
 
     // Update group lists
-    foreach(ForumSubscription *serverSub, subs) {
-        foreach(ForumGroup *serverGrp, serverSub->values()) {
+    for(ForumSubscription *serverSub : subs) {
+        for(ForumGroup *serverGrp : serverSub->values()) {
             Q_ASSERT(serverGrp->subscription()->id() >= 0 || serverGrp->id().length() > 0);
             ForumSubscription *dbSub = fdb.findById(serverGrp->subscription()->id());
             Q_ASSERT(dbSub);
@@ -181,7 +181,7 @@ void SyncMaster::processGroups() {
         ForumGroup *g = groupsToUpload.takeFirst();
         g->subscription()->setBeingSynced(true);
         g->setChangeset(rand());
-        foreach(ForumThread *thread, g->values()) {
+        for(ForumThread *thread : g->values()) {
             Q_ASSERT(thread);
             messagesToUpload.append(thread->values());
         }
@@ -196,7 +196,7 @@ void SyncMaster::processGroups() {
 
     // Download groups
     if(!groupsToDownload.isEmpty()) {
-        foreach(ForumGroup *group, groupsToDownload) {
+        for(ForumGroup *group : groupsToDownload) {
             Q_ASSERT(!group->subscription()->beingUpdated());
             group->subscription()->setScheduledForSync(false);
             group->subscription()->setBeingSynced(true);
@@ -294,7 +294,7 @@ void SyncMaster::getThreadDataFinished(bool success, QString message){
     if(canceled) return;
     if(success) {
         for(ForumSubscription *fsub : fdb) {
-            foreach(ForumGroup *grp, fsub->values()) {
+            for(ForumGroup *grp : fsub->values()) {
                 grp->commitChanges();
             }
         }

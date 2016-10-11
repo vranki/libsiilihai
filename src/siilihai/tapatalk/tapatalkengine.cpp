@@ -718,7 +718,7 @@ QString TapaTalkEngine::groupHierarchyString(QMap<QString, GroupHierarchyItem> &
 
 void TapaTalkEngine::fixGroupNames(QList<ForumGroup *> *grps, QMap<QString, GroupHierarchyItem> &groupHierarchy)
 {
-    foreach(ForumGroup *grp, *grps) {
+    for(ForumGroup *grp : *grps) {
         QString hierarchy = groupHierarchyString(groupHierarchy, grp->id());
         grp->setHierarchy(hierarchy);
     }

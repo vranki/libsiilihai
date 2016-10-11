@@ -215,17 +215,21 @@ void DiscourseEngine::networkReply(QNetworkReply *reply)
 
 void DiscourseEngine::sslErrors(QNetworkReply *reply, const QList<QSslError> &errors)
 {
+    Q_UNUSED(errors);
     qDebug() << Q_FUNC_INFO;
     reply->ignoreSslErrors();
 }
 
 void DiscourseEngine::authenticationRequired(QNetworkReply *reply, QAuthenticator *authenticator)
 {
+    Q_UNUSED(authenticator);
+    Q_UNUSED(reply);
     qDebug( ) << Q_FUNC_INFO;
 }
 
 void DiscourseEngine::encrypted(QNetworkReply *reply)
 {
+    Q_UNUSED(reply);
     qDebug( ) << Q_FUNC_INFO;
 }
 

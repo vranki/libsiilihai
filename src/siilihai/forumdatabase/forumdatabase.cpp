@@ -62,14 +62,14 @@ QList<QObject*> ForumDatabase::subscriptions()
 
 #ifdef SANITY_CHECKS
 void ForumDatabase::checkSanity() {
-    foreach(ForumSubscription *s, values()) {
+    for(ForumSubscription *s : values()) {
         int uc = 0;
-        foreach(ForumGroup *g, s->values()) {
+        for(ForumGroup *g : s->values()) {
             if(g->isSubscribed()) {
                 int old_uc = uc;
-                foreach(ForumThread *t, g->values()) {
+                for(ForumThread *t : g->values()) {
                     int tuc=0;
-                    foreach(ForumMessage *m, t->values()) {
+                    for(ForumMessage *m : t->values()) {
                         if(!m->isRead()) tuc++;
                     }
                     Q_ASSERT(t->unreadCount() == tuc);

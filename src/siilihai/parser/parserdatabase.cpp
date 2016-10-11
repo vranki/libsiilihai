@@ -56,7 +56,7 @@ bool ParserDatabase::storeDatabase() {
     QDomElement root = doc.createElement("parserdatabase");
     doc.appendChild(root);
 
-    foreach(ForumParser *p, values()) {
+    for(ForumParser *p : values()) {
         XmlSerialization::serialize(p, root, doc);
     }
 
