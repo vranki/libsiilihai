@@ -645,9 +645,7 @@ void ClientLogic::forumLoginFinished(ForumSubscription *sub, bool success) {
 
 // Authenticator can be null!
 void ClientLogic::getHttpAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator) {
-    qDebug() << Q_FUNC_INFO << fsub->alias();
     bool failed = m_settings->updateFailed(fsub->id());
-    qDebug() << Q_FUNC_INFO << "Failed:" << failed;
     QString gname = QString().number(fsub->id());
     // Must exist and be longer than zero
     if(!failed &&
@@ -662,9 +660,10 @@ void ClientLogic::getHttpAuthentication(ForumSubscription *fsub, QAuthenticator 
     if(!authenticator || authenticator->user().isNull() || failed) { // Ask user the credentials
         qDebug() << Q_FUNC_INFO << "asking user for http credentials";
         // Return empty authenticator
-        authenticator->setUser(QString::null);
-        authenticator->setPassword(QString::null);
-
+        if(authenticator) {
+            authenticator->setUser(QString::null);
+            authenticator->setPassword(QString::null);
+        }
         CredentialsRequest *cr = new CredentialsRequest(this);
         cr->subscription = fsub;
         cr->credentialType = CredentialsRequest::SH_CREDENTIAL_HTTP;

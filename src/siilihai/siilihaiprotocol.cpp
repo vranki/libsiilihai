@@ -255,7 +255,7 @@ void SiilihaiProtocol::getParser(const int id) {
 
 void SiilihaiProtocol::replyGetParser(QNetworkReply *reply) {
     QString docs = QString().fromUtf8(reply->readAll());
-    ForumParser *parser=0;
+    ForumParser *parser = nullptr;
     if (reply->error() == QNetworkReply::NoError) {
         QDomDocument doc;
         doc.setContent(docs);
@@ -267,7 +267,7 @@ void SiilihaiProtocol::replyGetParser(QNetworkReply *reply) {
     }
     emit getParserFinished(parser);
     reply->deleteLater();
-    parser->deleteLater();
+    if(parser) parser->deleteLater();
 }
 
 void SiilihaiProtocol::subscribeForum(ForumSubscription *fs, bool unsubscribe) {

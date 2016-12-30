@@ -423,6 +423,7 @@ void UpdateEngine::setState(UpdateEngineState newState) {
                      << subscription()->username();
             requestCredentials();
         }
+        subscription()->setScheduledForUpdate(false);
         subscription()->setBeingUpdated(true);
         if(requestingCredentials) {
             qDebug() << Q_FUNC_INFO << "Requesting credentials - NOT updating!";

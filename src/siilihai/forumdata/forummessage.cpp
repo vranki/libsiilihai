@@ -61,9 +61,12 @@ QString ForumMessage::toString() const {
                 forumid = QString().number(_thread->group()->subscription()->id());
         }
     }
-
-    return QString().number(_thread->group()->subscription()->id()) + "/" +
+    if(_thread) {
+        return QString().number(_thread->group()->subscription()->id()) + "/" +
             _thread->group()->id() + "/" + _thread->id() + "/" + id() + ": " + name() + "/ Read:" + QString().number(_read);
+    } else {
+        return id() + ": " + name() + " / Read:" + QString().number(_read);
+    }
 }
 
 ForumThread* ForumMessage::thread() const { return _thread; }
