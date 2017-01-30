@@ -151,7 +151,6 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
 
             if(dbGroup->changeset() != serverGrp->changeset()) {
                 if(!dbGroup->subscription()->beingUpdated()) {
-                    qDebug() << Q_FUNC_INFO << "Adding group to download queue and setting changeset " << dbGroup->toString();
                     dbGroup->setChangeset(serverGrp->changeset());
                     groupsToDownload.append(dbGroup);
                     dbGroup->subscription()->setScheduledForSync(true);
@@ -170,7 +169,6 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
 // next in groupsToDownload
 void SyncMaster::processGroups() {
     fdb.checkSanity();
-    // qDebug() << Q_FUNC_INFO << "Groups to upload: " << groupsToUpload.size() << " download: " << groupsToDownload.size();
     if(canceled) return;
     if (groupsToUpload.isEmpty() && groupsToDownload.isEmpty()) {
         emit syncFinished(true, QString::null);
@@ -318,8 +316,8 @@ void SyncMaster::getThreadDataFinished(bool success, QString message){
 void SyncMaster::downsyncFinishedForForum(ForumSubscription *fs)
 {
     Q_ASSERT(fs && fs->id() > 0);
-    qDebug() << Q_FUNC_INFO << fs->id();
     ForumSubscription *dbSubscription = fdb.findById(fs->id());
+    Q_ASSERT(dbSubscription);
     Q_ASSERT(!dbSubscription->scheduledForSync());
     dbSubscription->setBeingSynced(false);
     emit syncFinishedFor(dbSubscription);

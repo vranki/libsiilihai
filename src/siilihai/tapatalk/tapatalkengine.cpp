@@ -362,8 +362,6 @@ void TapaTalkEngine::updateCurrentThreadPage() {
     int firstMessage = currentMessagePage * 50;
     int lastMessage = qMin(firstMessage + 49, threadBeingUpdated->getMessagesCount());
 
-    qDebug() << Q_FUNC_INFO << "Getting messages " << firstMessage <<  " to " << lastMessage << " in " << threadBeingUpdated->toString();
-
     Q_ASSERT(firstMessage < lastMessage);
 
     QNetworkRequest req(apiUrl);
@@ -412,7 +410,6 @@ void TapaTalkEngine::replyUpdateThread(QNetworkReply *reply) {
     QDomElement totalPostNumElement = findMemberValueElement(paramValueElement, "total_post_num");
     QString totalPostNumString = valueElementToString(totalPostNumElement);
     int totalPostNum = totalPostNumString.toInt();
-    qDebug() << Q_FUNC_INFO << "Got " << messages.size() << " messages now, total" << totalPostNum << ", limit " << threadBeingUpdated->getMessagesCount();
     if((messages.size() < threadBeingUpdated->getMessagesCount())
             && (messages.size() < totalPostNum)
             && ((currentMessagePage+1) * 50) < threadBeingUpdated->getMessagesCount()) {
@@ -431,7 +428,6 @@ ASSERT: "firstMessage < lastMessage" in file siilihai/tapatalk/tapatalkengine.cp
 
         */
 
-
         // Need to get next page of messages
         currentMessagePage++;
         updateCurrentThreadPage();
@@ -441,7 +437,7 @@ ASSERT: "firstMessage < lastMessage" in file siilihai/tapatalk/tapatalkengine.cp
         }
 
         ForumThread *updatedThread = threadBeingUpdated;
-        threadBeingUpdated=0;
+        threadBeingUpdated = nullptr;
         listMessagesFinished(messages, updatedThread, totalPostNum > messages.size());
         qDeleteAll(messages);
         messages.clear();

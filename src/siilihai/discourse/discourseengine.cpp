@@ -121,7 +121,6 @@ void DiscourseEngine::replyListMessages(QNetworkReply *reply)
     QJsonArray postsArray = docj.object().value("post_stream").toObject().value("posts").toArray();
     for(auto post : postsArray) {
         QJsonObject postObject = post.toObject();
-        qDebug() << Q_FUNC_INFO << postObject.keys();
         ForumMessage *newMessage = new ForumMessage(threadBeingUpdated);
         newMessage->setId(QString::number(postObject.value("id").toInt()));
         QString username = postObject.value("username").toString();
@@ -174,7 +173,6 @@ void DiscourseEngine::doUpdateGroup(ForumGroup *group)
 
 void DiscourseEngine::doUpdateThread(ForumThread *thread)
 {
-    qDebug( ) << Q_FUNC_INFO;
     Q_ASSERT(!threadBeingUpdated);
 
     threadBeingUpdated = thread;
@@ -186,12 +184,10 @@ void DiscourseEngine::doUpdateThread(ForumThread *thread)
 
     req.setAttribute(QNetworkRequest::User, DO_UpdateThread);
     nam.get(req);
-    qDebug() << Q_FUNC_INFO << req.url().toString();
 }
 
 void DiscourseEngine::networkReply(QNetworkReply *reply)
 {
-    qDebug( ) << Q_FUNC_INFO;
     int operationAttribute = reply->request().attribute(QNetworkRequest::User).toInt();
     if(!operationAttribute) {
         qDebug( ) << Q_FUNC_INFO << "Reply " << operationAttribute << " not for me";
