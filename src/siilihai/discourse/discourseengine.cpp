@@ -127,11 +127,18 @@ void DiscourseEngine::replyListMessages(QNetworkReply *reply)
         QString realname = postObject.value("name").toString();
         if(!realname.isEmpty()) username = realname + " (" + username + ")";
         newMessage->setAuthor(username);
-        newMessage->setBody(postObject.value("cooked").toString());
         QDateTime dateTime = QDateTime::fromString(postObject.value("updated_at").toString(), Qt::ISODate);
         newMessage->setLastchange(dateTime.toString());
         newMessage->setRead(false);
         newMessage->setOrdernum(tempMessages.size());
+
+        QString body = postObject.value("cooked").toString();
+        // Bodies with image urls don't have http in start and cause
+        // files being looked up from file:// ..
+        // Quick hack to add http:// to images:
+        body.replace("<img src=\"//", "<img src=\"http://");
+        newMessage->setBody(body);
+
         tempMessages.append(newMessage);
     }
 

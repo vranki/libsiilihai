@@ -458,9 +458,9 @@ void UpdateEngine::requestCredentials() {
 void UpdateEngine::credentialsEntered(CredentialsRequest* cr) {
     requestingCredentials = false;
     if(cr->credentialType == CredentialsRequest::SH_CREDENTIAL_FORUM) {
-        if(cr->authenticator.user().length() > 0) {
-            subscription()->setUsername(cr->authenticator.user());
-            subscription()->setPassword(cr->authenticator.password());
+        if(cr->username().length() > 0) {
+            subscription()->setUsername(cr->username());
+            subscription()->setPassword(cr->password());
             subscription()->setAuthenticated(true);
             authenticationRetries++;
             if(authenticationRetries > 3) {

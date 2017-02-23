@@ -20,7 +20,7 @@
 
 ClientLogic::ClientLogic(QObject *parent) : QObject(parent), m_settings(0),
     m_forumDatabase(this),  m_syncmaster(this, m_forumDatabase, m_protocol),
-    m_parserManager(0), currentCredentialsRequest(0), currentState(SH_OFFLINE),
+    m_parserManager(0), m_currentCredentialsRequest(0), currentState(SH_OFFLINE),
     m_subscriptionManagement(0) {
     endSyncDone = false;
     firstRun = true;
@@ -37,7 +37,8 @@ ClientLogic::ClientLogic(QObject *parent) : QObject(parent), m_settings(0),
     // Make sure Siilihai::subscriptionFound is called first to get ParserEngine
     connect(&m_forumDatabase, SIGNAL(subscriptionFound(ForumSubscription*)), this, SLOT(subscriptionFound(ForumSubscription*)));
     connect(&m_forumDatabase, SIGNAL(databaseStored()), this, SLOT(databaseStored()), Qt::QueuedConnection);
-    connect(&m_protocol, SIGNAL(userSettingsReceived(bool,UserSettings*)), this, SLOT(userSettingsReceived(bool,UserSettings*)));
+    connect(&m_protocol, &SiilihaiProtocol::userSettingsReceived, this, &ClientLogic::userSettingsReceived);
+    connect(&m_protocol, &SiilihaiProtocol::loginFinished, this, &ClientLogic::loginFinishedSlot);
     connect(&m_syncmaster, SIGNAL(syncProgress(float, QString)), this, SLOT(syncProgress(float, QString)));
 }
 
@@ -126,7 +127,7 @@ void ClientLogic::launchSiilihai(bool offline) {
     m_settings->sync();
 
     if (m_settings->username().isEmpty() && !noAccount()) {
-        showLoginWizard();
+        emit showLoginWizard();
     } else {
         showMainWindow();
         if(!offline) {
@@ -184,6 +185,11 @@ SubscriptionManagement *ClientLogic::subscriptionManagement()
     return m_subscriptionManagement;
 }
 
+CredentialsRequest *ClientLogic::currentCredentialsRequest() const
+{
+    return m_currentCredentialsRequest;
+}
+
 void ClientLogic::settingsChanged(bool byUser) {
     usettings.setSyncEnabled(m_settings->syncEnabled());
     if(byUser && !noAccount()) {
@@ -207,7 +213,6 @@ void ClientLogic::tryLogin() {
         return;
     }
     if(networkSession->isOpen()) {
-        connect(&m_protocol, SIGNAL(loginFinished(bool, QString,bool)), this, SLOT(loginFinished(bool, QString,bool)));
         m_protocol.login(m_settings->username(), m_settings->password());
     } else {
         loginFinished(false, "Offline mode", usettings.syncEnabled());
@@ -216,7 +221,7 @@ void ClientLogic::tryLogin() {
 }
 
 void ClientLogic::accountlessLoginFinished() {
-    loginFinished(true, "", false);
+    loginFinishedSlot(true, "", false);
 }
 
 void ClientLogic::clearStatusMessage() {
@@ -276,8 +281,7 @@ void ClientLogic::updateForum(ForumSubscription *sub) {
 
     subscriptionsNotUpdated.remove(sub);
 
-    if(sub->beingUpdated())
-        return;
+    if(sub->beingUpdated()) return;
 
     if(sub->scheduledForSync() || sub->beingSynced()) {
         qDebug() << Q_FUNC_INFO << sub->toString() << "syncing, not updating";
@@ -394,20 +398,12 @@ void ClientLogic::listSubscriptionsFinished(QList<int> serversSubscriptions) {
     }
 }
 
-
-void ClientLogic::loginFinished(bool success, QString motd, bool sync) {
-    disconnect(&m_protocol, SIGNAL(loginFinished(bool, QString,bool)), this, SLOT(loginFinished(bool, QString,bool)));
-
+void ClientLogic::loginFinishedSlot(bool success, QString motd, bool sync) {
     if (success) {
-        connect(&m_protocol, SIGNAL(sendParserReportFinished(bool)), this, SLOT(sendParserReportFinished(bool)));
         usettings.setSyncEnabled(sync);
         m_settings->setSyncEnabled(usettings.syncEnabled());
         m_settings->sync();
-        if(usettings.syncEnabled()) {
-            changeState(SH_STARTSYNCING);
-        } else {
-            changeState(SH_READY);
-        }
+        changeState(usettings.syncEnabled() ? SH_STARTSYNCING : SH_READY);
     } else {
         errorDialog("Login failed. \n" + motd);
         // @todo this happens also on first run if logging in with wrong u/p.
@@ -415,6 +411,7 @@ void ClientLogic::loginFinished(bool success, QString motd, bool sync) {
 
         // changeState(SH_OFFLINE);
     }
+    emit loginFinished(success, motd, sync);
 }
 
 // Note: fs *MUST* be a real ForumSubscription derived class, NOT just ForumSubscription with provider set!
@@ -432,12 +429,12 @@ void ClientLogic::forumAdded(ForumSubscription *fs) {
             errorDialog("Error: Unable to subscribe to forum. Check the log.");
             return;
         }
-        fs = 0;
+        fs = nullptr;
         createEngineForSubscription(newFs);
         Q_ASSERT(engines.value(newFs));
         engines.value(newFs)->updateGroupList();
-        if(!noAccount())
-            m_protocol.subscribeForum(newFs);
+        if(!noAccount()) m_protocol.subscribeForum(newFs);
+        emit forumSubscribed(newFs);
     }
 }
 
@@ -449,7 +446,7 @@ void ClientLogic::createEngineForSubscription(ForumSubscription *newFs) {
     Q_ASSERT(!engines.contains(newFs));
     engines.insert(newFs, ue);
     ue->setSubscription(newFs);
-    connect(ue, SIGNAL(groupListChanged(ForumSubscription*)), this, SLOT(groupListChanged(ForumSubscription*)));
+    connect(ue, &UpdateEngine::groupListChanged, this, &ClientLogic::groupListChanged);
     connect(ue, SIGNAL(forumUpdated(ForumSubscription*)), this, SLOT(forumUpdated(ForumSubscription*)));
     connect(ue, SIGNAL(getHttpAuthentication(ForumSubscription*, QAuthenticator*)), this, SLOT(getHttpAuthentication(ForumSubscription*,QAuthenticator*)));
     connect(ue, SIGNAL(getForumAuthentication(ForumSubscription*)), this, SLOT(getForumAuthentication(ForumSubscription*)));
@@ -583,7 +580,7 @@ void ClientLogic::loginWizardFinished() {
     } else {
         showMainWindow();
         settingsChanged(false);
-        loginFinished(true, QString(), usettings.syncEnabled());
+        loginFinishedSlot(true, QString(), usettings.syncEnabled());
     }
 }
 
@@ -598,8 +595,8 @@ void ClientLogic::subscriptionFound(ForumSubscription *sub) {
 }
 
 void ClientLogic::updateGroupSubscriptions(ForumSubscription *sub) {
-    if(!noAccount())
-        m_protocol.subscribeGroups(sub);
+    emit sub->groupsChanged();
+    if(!noAccount()) m_protocol.subscribeGroups(sub);
     updateForum(sub);
 }
 
@@ -664,79 +661,76 @@ void ClientLogic::getHttpAuthentication(ForumSubscription *fsub, QAuthenticator 
             authenticator->setUser(QString::null);
             authenticator->setPassword(QString::null);
         }
-        CredentialsRequest *cr = new CredentialsRequest(this);
-        cr->subscription = fsub;
+        CredentialsRequest *cr = new CredentialsRequest(fsub, this);
         cr->credentialType = CredentialsRequest::SH_CREDENTIAL_HTTP;
         credentialsRequests.append(cr);
         m_settings->setUpdateFailed(fsub->id(), false); // Reset failed status
-        if(!currentCredentialsRequest)
-            showNextCredentialsDialog();
+        if(!m_currentCredentialsRequest) showNextCredentialsDialog();
     }
 }
 
 void ClientLogic::getForumAuthentication(ForumSubscription *fsub) {
     qDebug() << Q_FUNC_INFO << fsub->alias();
-    CredentialsRequest *cr = new CredentialsRequest(this);
-    cr->subscription = fsub;
+    CredentialsRequest *cr = new CredentialsRequest(fsub, this);
     cr->credentialType = CredentialsRequest::SH_CREDENTIAL_FORUM;
     credentialsRequests.append(cr);
-    if(!currentCredentialsRequest)
-        showNextCredentialsDialog();
+    if(!m_currentCredentialsRequest) showNextCredentialsDialog();
 }
 
 void ClientLogic::showNextCredentialsDialog() {
     qDebug() << Q_FUNC_INFO;
-    Q_ASSERT(!currentCredentialsRequest);
+    Q_ASSERT(!m_currentCredentialsRequest);
     if(credentialsRequests.isEmpty()) return;
-    currentCredentialsRequest = credentialsRequests.takeFirst();
-    connect(currentCredentialsRequest, SIGNAL(credentialsEntered(bool)), this, SLOT(credentialsEntered(bool)));
-    showCredentialsDialog();
+    m_currentCredentialsRequest = credentialsRequests.takeFirst();
+    connect(m_currentCredentialsRequest, &CredentialsRequest::credentialsEntered, this, &ClientLogic::credentialsEntered);
+    emit currentCredentialsRequestChanged(m_currentCredentialsRequest);
 }
 
 
 void ClientLogic::credentialsEntered(bool store) {
     CredentialsRequest *cr = qobject_cast<CredentialsRequest*>(sender());
-    Q_ASSERT(cr==currentCredentialsRequest);
-    Q_ASSERT(engines.value(currentCredentialsRequest->subscription));
-    qDebug() << Q_FUNC_INFO << store << currentCredentialsRequest->authenticator.user();
+    Q_ASSERT(cr==m_currentCredentialsRequest);
+    Q_ASSERT(engines.value(m_currentCredentialsRequest->subscription()));
+    qDebug() << Q_FUNC_INFO << store << m_currentCredentialsRequest->username();
 
-    currentCredentialsRequest->subscription->setAuthenticated(!currentCredentialsRequest->authenticator.user().isEmpty());
+    m_currentCredentialsRequest->subscription()->setAuthenticated(!m_currentCredentialsRequest->username().isEmpty());
 
     if(store) {
         if(cr->credentialType == CredentialsRequest::SH_CREDENTIAL_HTTP) {
             qDebug() << Q_FUNC_INFO << "storing into settings";
             m_settings->beginGroup("authentication");
-            m_settings->beginGroup(QString::number(currentCredentialsRequest->subscription->id()));
-            m_settings->setValue("username", currentCredentialsRequest->authenticator.user());
-            m_settings->setValue("password", currentCredentialsRequest->authenticator.password());
+            m_settings->beginGroup(QString::number(m_currentCredentialsRequest->subscription()->id()));
+            m_settings->setValue("username", m_currentCredentialsRequest->username());
+            m_settings->setValue("password", m_currentCredentialsRequest->password());
             m_settings->setValue("failed", "false");
             m_settings->endGroup();
             m_settings->endGroup();
             m_settings->sync();
         } else if(cr->credentialType == CredentialsRequest::SH_CREDENTIAL_FORUM) {
             qDebug() << Q_FUNC_INFO << "storing into subscription";
-            currentCredentialsRequest->subscription->setUsername(currentCredentialsRequest->authenticator.user());
-            currentCredentialsRequest->subscription->setPassword(currentCredentialsRequest->authenticator.password());
+            m_currentCredentialsRequest->subscription()->setUsername(m_currentCredentialsRequest->username());
+            m_currentCredentialsRequest->subscription()->setPassword(m_currentCredentialsRequest->password());
         }
     }
     // @todo move to SiilihaiSettings!!
-    if(!currentCredentialsRequest->subscription->isAuthenticated()) {
+    if(!m_currentCredentialsRequest->subscription()->isAuthenticated()) {
         // Remove authentication
         m_settings->beginGroup("authentication");
-        m_settings->remove(QString::number(currentCredentialsRequest->subscription->id()));
+        m_settings->remove(QString::number(m_currentCredentialsRequest->subscription()->id()));
         m_settings->endGroup();
 
-        currentCredentialsRequest->subscription->setUsername(QString::null);
-        currentCredentialsRequest->subscription->setPassword(QString::null);
+        m_currentCredentialsRequest->subscription()->setUsername(QString::null);
+        m_currentCredentialsRequest->subscription()->setPassword(QString::null);
     }
 
     if(!noAccount())
-        m_protocol.subscribeForum(currentCredentialsRequest->subscription); // Resend the forum infos
+        m_protocol.subscribeForum(m_currentCredentialsRequest->subscription()); // Resend the forum infos
 
-    UpdateEngine *engine = engines.value(currentCredentialsRequest->subscription);
-    engine->credentialsEntered(currentCredentialsRequest);
-    currentCredentialsRequest->deleteLater();
-    currentCredentialsRequest=0;
+    UpdateEngine *engine = engines.value(m_currentCredentialsRequest->subscription());
+    engine->credentialsEntered(m_currentCredentialsRequest);
+    m_currentCredentialsRequest->deleteLater();
+    m_currentCredentialsRequest = nullptr;
+    emit currentCredentialsRequestChanged(m_currentCredentialsRequest);
     showNextCredentialsDialog();
 }
 

@@ -42,9 +42,10 @@ class ClientLogic : public QObject
     Q_PROPERTY(QObject* forumDatabase READ forumDatabase NOTIFY forumDatabaseChanged)
     Q_PROPERTY(QObject* settings READ settings NOTIFY settingsChangedSignal)
     Q_PROPERTY(SubscriptionManagement* subscriptionManagement READ subscriptionManagement NOTIFY subscriptionManagementChanged)
+    // Display credentials dialog if this is shown
+    Q_PROPERTY(CredentialsRequest* currentCredentialsRequest READ currentCredentialsRequest NOTIFY currentCredentialsRequestChanged)
 
 public:
-
     enum siilihai_states {
         SH_STARTED=0,
         SH_LOGIN,
@@ -76,6 +77,7 @@ public:
     QObject* forumDatabase();
     QObject* settings();
     SubscriptionManagement *subscriptionManagement();
+    CredentialsRequest* currentCredentialsRequest() const;
 
 public slots:
     virtual void launchSiilihai(bool offline=false);
@@ -87,7 +89,6 @@ public slots:
     virtual void offlineModeSet(bool newOffline);
     virtual void subscriptionFound(ForumSubscription* sub);
     virtual void errorDialog(QString message)=0;
-    virtual void loginFinished(bool success, QString motd, bool sync);
     virtual void updateGroupSubscriptions(ForumSubscription *sub); // Call after subscriptions have changed (uploads to server)
     virtual void updateAllParsers();
     virtual void unregisterSiilihai();
@@ -101,10 +102,13 @@ signals:
     void forumDatabaseChanged(QObject* forumDatabase);
     void settingsChangedSignal(QObject* settings);
     void subscriptionManagementChanged(SubscriptionManagement *subscriptionManagement);
+    void forumSubscribed(ForumSubscription *sub);
+    void showLoginWizard();
+    void loginFinished(bool success, QString motd, bool sync);
+    void currentCredentialsRequestChanged(CredentialsRequest* currentCredentialsRequest);
+    void groupListChanged(ForumSubscription* sub); // Show group subscription dialog or whatever
 
 protected:
-    virtual void showLoginWizard()=0;
-    virtual void showCredentialsDialog()=0; // currentCredentialsRequest contains the request here
     virtual void changeState(siilihai_states newState);
     virtual void closeUi()=0;
     virtual void loginWizardFinished();
@@ -122,7 +126,6 @@ protected slots:
     virtual void getHttpAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator);
     virtual void getForumAuthentication(ForumSubscription *fsub);
     virtual void showStatusMessage(QString message=QString::null);
-    virtual void groupListChanged(ForumSubscription* sub) {Q_UNUSED(sub)} // Show group subscription dialog or whatever
     virtual void forumUpdateNeeded(ForumSubscription *sub); // Sends the updated forum info (authentication etc)
     virtual void unsubscribeForum(ForumSubscription* fs);
     void forumAdded(ForumSubscription *fs); // Ownership won't change
@@ -130,6 +133,7 @@ protected slots:
     void unsubscribeGroup(ForumGroup *group);
     void updateForum(ForumSubscription *sub);
     virtual void updateThread(ForumThread* thread, bool force=false);
+    void loginFinishedSlot(bool success, QString motd, bool sync);
 
 private slots:
     virtual void updateEngineStateChanged(UpdateEngine *engine, UpdateEngine::UpdateEngineState newState,
@@ -145,7 +149,7 @@ private slots:
     void clearStatusMessage();
 
 protected:
-    CredentialsRequest* currentCredentialsRequest; // If being asked
+    CredentialsRequest* m_currentCredentialsRequest; // If being asked
     virtual SiilihaiSettings *createSettings(); // Create the settings object to be used. Can be your own subclass.
     QNetworkSession *networkSession;
 

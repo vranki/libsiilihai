@@ -62,8 +62,7 @@ void ForumSubscription::addGroup(ForumGroup* grp, bool affectsSync, bool increme
     grp->setSubscription(this);
     if(incrementUnreads) incrementUnreadCount(grp->unreadCount());
     insert(grp->id(), grp);
-    if(affectsSync)
-        setGroupListChanged();
+    if(affectsSync) setGroupListChanged();
     emit groupAdded(grp);
 }
 
