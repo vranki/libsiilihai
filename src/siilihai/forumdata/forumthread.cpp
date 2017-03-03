@@ -28,7 +28,6 @@ ForumThread::ForumThread(QObject *parent, bool temp) : ForumDataItem(parent) {
     _getMessagesCount = 999;
     _temp = temp;
     _lastPage = 0;
-    // connect(this, SIGNAL(messageAdded(ForumMessage*)), this, SIGNAL(messagesChanged()));
     connect(this, SIGNAL(messageRemoved(ForumMessage*)), this, SIGNAL(messagesChanged()));
 }
 
@@ -151,6 +150,7 @@ void ForumThread::addMessage(ForumMessage* msg, bool affectsSync) {
     Q_ASSERT(unreadCount() >= 0);
     Q_ASSERT(unreadCount() <= size());
 #endif
+    _displayName = QString::null;
     emit messageAdded(msg);
 }
 
@@ -165,6 +165,7 @@ void ForumThread::removeMessage(ForumMessage* msg, bool affectsSync) {
     if(affectsSync && msg->isRead()) group()->setHasChanged(true);
     Q_ASSERT(contains(msg->id()));
     remove(msg->id());
+    _displayName = QString::null;
     emit messageRemoved(msg);
     msg->deleteLater();
 }

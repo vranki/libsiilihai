@@ -197,7 +197,8 @@ void DiscourseEngine::networkReply(QNetworkReply *reply)
 {
     int operationAttribute = reply->request().attribute(QNetworkRequest::User).toInt();
     if(!operationAttribute) {
-        qDebug( ) << Q_FUNC_INFO << "Reply " << operationAttribute << " not for me";
+        qDebug( ) << Q_FUNC_INFO << "Reply " << operationAttribute << " not for me. "
+                  << "request url: " << reply->request().url().toString();
         return;
     }
     if(operationAttribute==DO_None) {

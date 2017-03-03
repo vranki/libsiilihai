@@ -3,34 +3,37 @@
 
 ForumDataItem::ForumDataItem(QObject * parent) : QObject(parent), UpdateableItem()
 {
-    _name = _id = QString::null;
+    _name = _id = _displayName = QString::null;
     _unreadCount = 0;
     _propertiesChanged = false;
 }
 
-void ForumDataItem::setId(QString nid) {
+void ForumDataItem::setId(const QString &nid) {
   if(nid == _id) return;
-  _id = nid ;
+  _id = nid;
   _propertiesChanged = true;
 }
 
-QString ForumDataItem::id() const {
+const QString & ForumDataItem::id() const {
     return _id;
 }
 
-void ForumDataItem::setName(QString name) {
+void ForumDataItem::setName(QString const &name) {
   if(name == _name) return;
   _name = name;
   _propertiesChanged = true;
+  _displayName = QString::null;
 }
 
-QString ForumDataItem::name() const {
+const QString & ForumDataItem::name() const {
     return _name;
 }
 
-QString ForumDataItem::displayName() const {
-    QString dn = name();
-    return MessageFormatting::stripHtml(MessageFormatting::sanitize(dn));
+const QString &ForumDataItem::displayName() {
+    if(_displayName.isNull()) {
+        _displayName = MessageFormatting::stripHtml(MessageFormatting::sanitize(name()));
+    }
+    return _displayName;
 }
 
 QString ForumDataItem::lastchange() const {
@@ -52,7 +55,7 @@ int ForumDataItem::unreadCount() const {
     return _unreadCount;
 }
 
-void ForumDataItem::incrementUnreadCount(int urc) {
+void ForumDataItem::incrementUnreadCount(const int &urc) {
     if(!urc) return;
     _unreadCount += urc;
     Q_ASSERT(_unreadCount >= 0);

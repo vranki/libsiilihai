@@ -17,6 +17,7 @@
 #include <QNetworkProxy>
 #include <QNetworkReply>
 #include <QStringList>
+#include <QUrlQuery>
 #include "../forumdata/forumgroup.h"
 #include "../forumdata/forumthread.h"
 #include "../forumdata/forummessage.h"
@@ -354,7 +355,8 @@ void ParserEngine::loginToForum() {
         QNetworkRequest req;
         req.setUrl(loginUrl);
         setRequestAttributes(req, PEOLogin);
-        QHash<QString, QString> params;
+        QUrlQuery qu;
+        QUrl params;
         QStringList loginParamPairs = parser()->login_parameters.split(",", QString::SkipEmptyParts);
         for(QString paramPair : loginParamPairs) {
             paramPair = paramPair.replace("%u", subscription()->username());
@@ -363,15 +365,15 @@ void ParserEngine::loginToForum() {
             if (paramPair.contains('=')) {
                 QStringList singleParam = paramPair.split('=', QString::KeepEmptyParts);
                 if (singleParam.size() == 2) {
-                    params.insert(singleParam.at(0), singleParam.at(1));
+                    qu.addQueryItem(singleParam.at(0), singleParam.at(1));
                 } else {
                     qDebug() << Q_FUNC_INFO << "hm, invalid login parameter pair!";
                 }
             }
         }
-        loginData = HttpPost::setPostParameters(&req, params);
+        params.setQuery(qu);
         loggingIn = true;
-        nam->post(req, loginData);
+        nam->post(req, params.toEncoded());
     } else {
         qDebug() << Q_FUNC_INFO << "Sorry, http auth not yet implemented.";
     }
@@ -593,14 +595,11 @@ void ParserEngine::performListMessages(QString &html) {
         Q_ASSERT(!fm->isRead());
         fm->setId(match["%a"]);
         fm->setName(match["%b"]);
-        fm->setBody(match["%c"]);
+        QString body = match["%c"];
+        fm->setBody(body);
         fm->setAuthor(match["%d"]);
         fm->setLastchange(match["%e"]);
-        if (parser()->supportsMessageUrl()) {
-            fm->setUrl(getMessageUrl(fm));
-        } else {
-            fm->setUrl(currentMessagesUrl);
-        }
+        fm->setUrl(parser()->supportsMessageUrl() ? getMessageUrl(fm) : currentMessagesUrl);
         if (fm->isSane()) {
             newMessages.append(fm);
         } else {
@@ -622,7 +621,7 @@ void ParserEngine::performListMessages(QString &html) {
         if (messageFound) {
             // Message already in messages - discard it
             delete newMessage;
-            newMessage = 0;
+            newMessage = nullptr;
         } else {
             // Message not in messages - add it if possible
             newMessagesFound = true;
@@ -630,13 +629,13 @@ void ParserEngine::performListMessages(QString &html) {
             // Check if message limit has reached
             if (foundMessages.size() < threadBeingUpdated->getMessagesCount()) {
                 foundMessages.append(newMessage);
-                newMessage = 0;
+                newMessage = nullptr;
             } else {
                 //  qDebug() << "Number of messages exceeding maximum latest messages limit - not adding.";
                 newMessagesFound = false;
                 moreMessagesAvailable = true;
                 delete newMessage;
-                newMessage = 0;
+                newMessage = nullptr;
             }
         }
         Q_ASSERT(!newMessage);
@@ -741,18 +740,20 @@ void ParserEngine::authenticationRequired(QNetworkReply * reply, QAuthenticator 
     int forumId = reply->request().attribute(FORUMID_ATTRIBUTE).toInt();
     if(forumId != subscription()->id()) return;
 
-    qDebug() << Q_FUNC_INFO << reply << authenticator;
+    if(waitingForAuthentication) {
+        qDebug() << Q_FUNC_INFO << "Already waiting for authentication - ignoring this.";
+        return;
+    }
+
     authenticationRetries++;
+    qDebug() << Q_FUNC_INFO << "Auth retry" << authenticationRetries;
+
     if(authenticationRetries > 3) {
         qDebug() << Q_FUNC_INFO << "Too many credential retries - erroring";
         networkFailure("Authentication failed");
         return;
     }
 
-    if(waitingForAuthentication) {
-        qDebug() << Q_FUNC_INFO << "Already waiting for authentication - ignoring this.";
-        return;
-    }
     if(parser()->login_type == ForumParser::LoginTypeHttpAuth) {
         if (subscription()->username().length() <= 0 || subscription()->password().length() <= 0) {
             qDebug() << Q_FUNC_INFO << "FAIL: no credentials given for subscription " << subscription()->toString();

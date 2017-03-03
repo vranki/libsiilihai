@@ -95,6 +95,7 @@ public slots:
     virtual void aboutToQuit();
     virtual void setDeveloperMode(bool newDm);
     virtual void subscribeForum()=0; // Display the subscription dialog
+    void loginUser(QString user, QString password);
 
 signals:
     void statusMessageChanged(QString message);

@@ -25,6 +25,7 @@
 #include "parser/parserreport.h"
 #include "parser/forumsubscriptionparsed.h"
 #include "usersettings.h"
+#include <QUrlQuery>
 
 SiilihaiProtocol::SiilihaiProtocol(QObject *parent) : QObject(parent) {
     operationInProgress = SPONoOp;
@@ -93,7 +94,6 @@ void SiilihaiProtocol::setBaseURL(QString bu) {
     subscribeForumUrl = QUrl(baseUrl + "api/subscribeforum.xml");
     saveParserUrl = QUrl(baseUrl + "api/saveparser.xml");
     listRequestsUrl = QUrl(baseUrl + "api/requestlist.xml");
-    //listSubscriptionsUrl = QUrl(baseUrl + "api/subscriptionlist.xml");
     sendParserReportUrl = QUrl(baseUrl + "api/sendparserreport.xml");
     subscribeGroupsUrl = QUrl(baseUrl + "api/subscribegroups.xml");
     sendThreadDataUrl = QUrl(baseUrl + "api/threaddata.xml");
@@ -107,15 +107,14 @@ void SiilihaiProtocol::setBaseURL(QString bu) {
 
 void SiilihaiProtocol::login(QString user, QString pass) {
     QNetworkRequest req(loginUrl);
-    QHash<QString, QString> params;
-    params.insert("username", user);
-    params.insert("password", pass);
-    params.insert("action", "login");
-    params.insert("clientversion", CLIENT_VERSION);
-    loginData = HttpPost::setPostParameters(&req, params);
-    req.setAttribute(QNetworkRequest::User, SPOLogin);
-    req.setHeader(QNetworkRequest::ContentTypeHeader, QString("application/x-www-form-urlencoded"));
-    nam.post(req, loginData);
+    HttpPost post(req, SPOLogin);
+
+    post.addQueryItem("username", user);
+    post.addQueryItem("password", pass);
+    post.addQueryItem("action", "login");
+    post.addQueryItem("clientversion", CLIENT_VERSION);
+
+    nam.post(req, post.postData());
 }
 
 void SiilihaiProtocol::replyLogin(QNetworkReply *reply) {
@@ -134,8 +133,7 @@ void SiilihaiProtocol::replyLogin(QNetworkReply *reply) {
         qDebug() << Q_FUNC_INFO << "network error: " << reply->errorString();
         motd = reply->errorString();
     }
-    if (ck.length() > 0)
-        clientKey = ck;
+    if (ck.length() > 0) clientKey = ck;
     emit loginFinished(isLoggedIn(), motd, syncEnabled);
     reply->deleteLater();
 }
@@ -143,30 +141,20 @@ void SiilihaiProtocol::replyLogin(QNetworkReply *reply) {
 // Reply is handled in login
 void SiilihaiProtocol::registerUser(QString user, QString pass, QString email, bool sync) {
     QNetworkRequest req(registerUrl);
-    QHash<QString, QString> params;
-    params.insert("username", user);
-    params.insert("password", pass);
-    params.insert("email", email);
-    if(sync)
-        params.insert("sync_enabled", "true");
-    params.insert("captcha", "earth"); // @todo something smarter
-    params.insert("clientversion", CLIENT_VERSION);
-    registerData = HttpPost::setPostParameters(&req, params);
-    req.setAttribute(QNetworkRequest::User, SPORegisterUser);
-    req.setHeader(QNetworkRequest::ContentTypeHeader, QString("application/x-www-form-urlencoded"));
-    nam.post(req, registerData);
+    HttpPost post(req, SPORegisterUser, QString::null);
+    post.addQueryItem("username", user);
+    post.addQueryItem("password", pass);
+    post.addQueryItem("email", email);
+    post.addQueryItem("captcha", "earth"); // @todo something smarter
+    post.addQueryItem("clientversion", CLIENT_VERSION);
+    if(sync) post.addQueryItem("sync_enabled", "true");
+    nam.post(req, post.postData());
 }
 
 void SiilihaiProtocol::listForums() {
     QNetworkRequest req(listForumsUrl);
-    QHash<QString, QString> params;
-    if (!clientKey.isNull()) {
-        params.insert("client_key", clientKey);
-    }
-    listForumsData = HttpPost::setPostParameters(&req, params);
-    req.setAttribute(QNetworkRequest::User, SPOListForums);
-    req.setHeader(QNetworkRequest::ContentTypeHeader, QString("application/x-www-form-urlencoded"));
-    nam.post(req, listForumsData);
+    HttpPost post(req, SPOListForums, clientKey);
+    nam.post(req, post.postData());
 }
 
 void SiilihaiProtocol::replyListForums(QNetworkReply *reply) {
@@ -210,14 +198,8 @@ void SiilihaiProtocol::replyListForums(QNetworkReply *reply) {
 
 void SiilihaiProtocol::listRequests() {
     QNetworkRequest req(listRequestsUrl);
-    QHash<QString, QString> params;
-    if (!clientKey.isNull()) {
-        params.insert("client_key", clientKey);
-    }
-    listRequestsData = HttpPost::setPostParameters(&req, params);
-    req.setAttribute(QNetworkRequest::User, SPOListRequests);
-    req.setHeader(QNetworkRequest::ContentTypeHeader, QString("application/x-www-form-urlencoded"));
-    nam.post(req, listRequestsData);
+    HttpPost post(req, SPOListRequests, clientKey);
+    nam.post(req, post.postData());
 }
 
 void SiilihaiProtocol::replyListRequests(QNetworkReply *reply) {
@@ -241,16 +223,9 @@ void SiilihaiProtocol::replyListRequests(QNetworkReply *reply) {
 void SiilihaiProtocol::getParser(const int id) {
     Q_ASSERT(id > 0);
     QNetworkRequest req(getParserUrl);
-    QHash<QString, QString> params;
-    params.insert("id", QString().number(id));
-    if (!clientKey.isNull()) {
-        params.insert("client_key", clientKey);
-    }
-
-    getParserData = HttpPost::setPostParameters(&req, params);
-    req.setAttribute(QNetworkRequest::User, SPOGetParser);
-    req.setHeader(QNetworkRequest::ContentTypeHeader, QString("application/x-www-form-urlencoded"));
-    nam.post(req, getParserData);
+    HttpPost post(req, SPOGetParser, clientKey);
+    post.addQueryItem("id", QString().number(id));
+    nam.post(req, post.postData());
 }
 
 void SiilihaiProtocol::replyGetParser(QNetworkReply *reply) {
@@ -273,28 +248,22 @@ void SiilihaiProtocol::replyGetParser(QNetworkReply *reply) {
 void SiilihaiProtocol::subscribeForum(ForumSubscription *fs, bool unsubscribe) {
     qDebug() << Q_FUNC_INFO << "unsub: " << unsubscribe << " authenticated: " << fs->isAuthenticated();
     QNetworkRequest req(subscribeForumUrl);
-    QHash<QString, QString> params;
-    params.insert("forum_id", QString().number(fs->id()));
+    HttpPost post(req, SPOSubscribeForum, clientKey);
+    post.addQueryItem("forum_id", QString().number(fs->id()));
     if (unsubscribe) {
-        params.insert("unsubscribe", "yes");
+        post.addQueryItem("unsubscribe", "yes");
     } else {
-        params.insert("url", fs->forumUrl().toString());
-        params.insert("provider", QString().number(fs->provider()));
-        params.insert("alias", fs->alias());
-        params.insert("latest_threads", QString().number(fs->latestThreads()));
-        params.insert("latest_messages", QString().number(fs->latestMessages()));
+        post.addQueryItem("url", fs->forumUrl().toString());
+        post.addQueryItem("provider", QString().number(fs->provider()));
+        post.addQueryItem("alias", fs->alias());
+        post.addQueryItem("latest_threads", QString().number(fs->latestThreads()));
+        post.addQueryItem("latest_messages", QString().number(fs->latestMessages()));
         if(fs->isAuthenticated()) {
-            params.insert("authenticated", "yes");
+            post.addQueryItem("authenticated", "yes");
         }
     }
-    if (!clientKey.isNull()) {
-        params.insert("client_key", clientKey);
-    }
-    subscribeForumData = HttpPost::setPostParameters(&req, params);
     forumBeingSubscribed = fs;
-    req.setAttribute(QNetworkRequest::User, SPOSubscribeForum);
-    req.setHeader(QNetworkRequest::ContentTypeHeader, QString("application/x-www-form-urlencoded"));
-    nam.post(req, subscribeForumData);
+    nam.post(req, post.postData());
 }
 
 void SiilihaiProtocol::replySubscribeForum(QNetworkReply *reply) {
@@ -333,10 +302,9 @@ void SiilihaiProtocol::subscribeGroups(ForumSubscription *fs) {
         QDomText t = doc.createTextNode(g->id());
         subTag.appendChild(t);
     }
-    subscribeGroupsData = doc.toByteArray();
     req.setAttribute(QNetworkRequest::User, SPOSubscribeGroups);
     req.setHeader(QNetworkRequest::ContentTypeHeader, QString("application/x-www-form-urlencoded"));
-    nam.post(req, subscribeGroupsData);
+    nam.post(req, doc.toByteArray());
 }
 
 void SiilihaiProtocol::replySubscribeGroups(QNetworkReply *reply) {
@@ -354,43 +322,35 @@ void SiilihaiProtocol::saveParser(const ForumParser *parser) {
 
     // @todo save as XML
     QNetworkRequest req(saveParserUrl);
-    QHash<QString, QString> params;
-    params.insert("id", QString().number(parser->id()));
-    params.insert("parser_name", parser->name());
-    params.insert("forum_url", parser->forum_url);
-    params.insert("parser_status", QString().number(parser->parser_status));
-    params.insert("thread_list_path", parser->thread_list_path);
-    params.insert("view_thread_path", parser->view_thread_path);
-    params.insert("login_path", parser->login_path);
-    params.insert("date_format", QString().number(parser->date_format));
-    params.insert("group_list_pattern", parser->group_list_pattern);
-    params.insert("thread_list_pattern", parser->thread_list_pattern);
-    params.insert("message_list_pattern", parser->message_list_pattern);
-    params.insert("verify_login_pattern", parser->verify_login_pattern);
-    params.insert("login_parameters", parser->login_parameters);
-    params.insert("login_type", QString().number(parser->login_type));
-    params.insert("charset", parser->charset.toLower());
-    params.insert("thread_list_page_start", QString().number(parser->thread_list_page_start));
-    params.insert("thread_list_page_increment", QString().number(parser->thread_list_page_increment));
-    params.insert("view_thread_page_start", QString().number(parser->view_thread_page_start));
-    params.insert("view_thread_page_increment", QString().number(parser->view_thread_page_increment));
-    params.insert("forum_software", parser->forum_software);
-    params.insert("view_message_path", parser->view_message_path);
-    params.insert("parser_type", QString().number(parser->parser_type));
-    params.insert("posting_path", parser->posting_path);
-    params.insert("posting_subject", parser->posting_subject);
-    params.insert("posting_message", parser->posting_message);
-    params.insert("posting_parameters", parser->posting_parameters);
-    params.insert("posting_hints", parser->posting_hints);
-
-    if (!clientKey.isNull()) {
-        params.insert("client_key", clientKey);
-    }
-
-    saveParserData = HttpPost::setPostParameters(&req, params);
-    req.setAttribute(QNetworkRequest::User, SPOSaveParser);
-    req.setHeader(QNetworkRequest::ContentTypeHeader, QString("application/x-www-form-urlencoded"));
-    nam.post(req, saveParserData);
+    HttpPost post(req, SPOSaveParser, clientKey);
+    post.addQueryItem("id", QString().number(parser->id()));
+    post.addQueryItem("parser_name", parser->name());
+    post.addQueryItem("forum_url", parser->forum_url);
+    post.addQueryItem("parser_status", QString().number(parser->parser_status));
+    post.addQueryItem("thread_list_path", parser->thread_list_path);
+    post.addQueryItem("view_thread_path", parser->view_thread_path);
+    post.addQueryItem("login_path", parser->login_path);
+    post.addQueryItem("date_format", QString().number(parser->date_format));
+    post.addQueryItem("group_list_pattern", parser->group_list_pattern);
+    post.addQueryItem("thread_list_pattern", parser->thread_list_pattern);
+    post.addQueryItem("message_list_pattern", parser->message_list_pattern);
+    post.addQueryItem("verify_login_pattern", parser->verify_login_pattern);
+    post.addQueryItem("login_parameters", parser->login_parameters);
+    post.addQueryItem("login_type", QString().number(parser->login_type));
+    post.addQueryItem("charset", parser->charset.toLower());
+    post.addQueryItem("thread_list_page_start", QString().number(parser->thread_list_page_start));
+    post.addQueryItem("thread_list_page_increment", QString().number(parser->thread_list_page_increment));
+    post.addQueryItem("view_thread_page_start", QString().number(parser->view_thread_page_start));
+    post.addQueryItem("view_thread_page_increment", QString().number(parser->view_thread_page_increment));
+    post.addQueryItem("forum_software", parser->forum_software);
+    post.addQueryItem("view_message_path", parser->view_message_path);
+    post.addQueryItem("parser_type", QString().number(parser->parser_type));
+    post.addQueryItem("posting_path", parser->posting_path);
+    post.addQueryItem("posting_subject", parser->posting_subject);
+    post.addQueryItem("posting_message", parser->posting_message);
+    post.addQueryItem("posting_parameters", parser->posting_parameters);
+    post.addQueryItem("posting_hints", parser->posting_hints);
+    nam.post(req, post.postData());
 }
 
 void SiilihaiProtocol::replySaveParser(QNetworkReply *reply) {
@@ -417,44 +377,29 @@ void SiilihaiProtocol::addForum(ForumSubscription *sub)
     Q_ASSERT(sub->alias().length()>0);
     Q_ASSERT(sub->forumUrl().isValid());
     QNetworkRequest req(addForumUrl);
-    QHash<QString, QString> params;
-    params.insert("url", sub->forumUrl().toString());
-    params.insert("provider", QString::number(sub->provider()));
-    params.insert("name", sub->alias());
-    if (!clientKey.isNull()) {
-        params.insert("client_key", clientKey);
-    }
-    req.setAttribute(QNetworkRequest::User, SPOAddForum);
-    addForumData = HttpPost::setPostParameters(&req, params);
-    nam.post(req, addForumData);
+    HttpPost post(req, SPOAddForum, clientKey);
+    post.addQueryItem("url", sub->forumUrl().toString());
+    post.addQueryItem("provider", QString::number(sub->provider()));
+    post.addQueryItem("name", sub->alias());
+    nam.post(req, post.postData());
 }
 
 void SiilihaiProtocol::getForum(QUrl url)
 {
     Q_ASSERT(url.isValid());
     QNetworkRequest req(getForumUrl);
-    QHash<QString, QString> params;
-    params.insert("url", url.toString());
-    if (!clientKey.isNull()) {
-        params.insert("client_key", clientKey);
-    }
-    req.setAttribute(QNetworkRequest::User, SPOGetForum);
-    getForumData = HttpPost::setPostParameters(&req, params);
-    nam.post(req, getForumData);
+    HttpPost post(req, SPOGetForum, clientKey);
+    post.addQueryItem("url", url.toString());
+    nam.post(req, post.postData());
 }
 
 void SiilihaiProtocol::getForum(int forumid)
 {
     Q_ASSERT(forumid > 0);
     QNetworkRequest req(getForumUrl);
-    QHash<QString, QString> params;
-    params.insert("forumid", QString::number(forumid));
-    if (!clientKey.isNull()) {
-        params.insert("client_key", clientKey);
-    }
-    req.setAttribute(QNetworkRequest::User, SPOGetForum);
-    getForumData = HttpPost::setPostParameters(&req, params);
-    nam.post(req, getForumData);
+    HttpPost post(req, SPOGetForum, clientKey);
+    post.addQueryItem("forumid", QString::number(forumid));
+    nam.post(req, post.postData());
 }
 
 void SiilihaiProtocol::replyGetForum(QNetworkReply *reply) {
@@ -496,22 +441,14 @@ void SiilihaiProtocol::replyGetForum(QNetworkReply *reply) {
 // This sets the settings (if given) and always gets them
 void SiilihaiProtocol::setUserSettings(UserSettings *us) {
     QNetworkRequest req(userSettingsUrl);
-    QHash<QString, QString> params;
+    HttpPost post(req, QVariant(), clientKey);
     if(us) {
-        if(us->syncEnabled()) {
-            params.insert("sync_enabled", "true");
-        } else {
-            params.insert("sync_enabled", "false");
-        }
-        if (!clientKey.isNull()) {
-            params.insert("client_key", clientKey);
-        }
+        post.addQueryItem("sync_enabled", us->syncEnabled() ? "true" : "false");
         req.setAttribute(QNetworkRequest::User, SPOSetUserSettings);
     } else {
         req.setAttribute(QNetworkRequest::User, SPOGetUserSettings);
     }
-    userSettingsData = HttpPost::setPostParameters(&req, params);
-    nam.post(req, userSettingsData);
+    nam.post(req, post.postData());
 }
 
 void SiilihaiProtocol::replyGetUserSettings(QNetworkReply *reply) {
@@ -536,17 +473,11 @@ void SiilihaiProtocol::getUserSettings() {
 
 void SiilihaiProtocol::sendParserReport(ParserReport *pr) {
     QNetworkRequest req(sendParserReportUrl);
-    QHash<QString, QString> params;
-    params.insert("parser_id", QString().number(pr->parserid));
-    params.insert("type", QString().number(pr->type));
-    params.insert("comment", pr->comment);
-
-    if (!clientKey.isNull()) {
-        params.insert("client_key", clientKey);
-    }
-    sendParserReportData = HttpPost::setPostParameters(&req, params);
-    req.setAttribute(QNetworkRequest::User, SPOSendParserReport);
-    nam.post(req, sendParserReportData);
+    HttpPost post(req, SPOSendParserReport, clientKey);
+    post.addQueryItem("parser_id", QString().number(pr->parserid));
+    post.addQueryItem("type", QString().number(pr->type));
+    post.addQueryItem("comment", pr->comment);
+    nam.post(req, post.postData());
 }
 
 void SiilihaiProtocol::replySendParserReport(QNetworkReply *reply) {
@@ -613,11 +544,10 @@ void SiilihaiProtocol::sendThreadData(ForumGroup *grp, QList<ForumMessage*> &fms
         }
         root.appendChild(threadTag);
     }
-    sendThreadDataData = doc.toByteArray();
 
     req.setAttribute(QNetworkRequest::User, SPOSendThreadData);
     req.setHeader(QNetworkRequest::ContentTypeHeader, QString("application/x-www-form-urlencoded"));
-    nam.post(req, sendThreadDataData);
+    nam.post(req, doc.toByteArray());
 }
 
 void SiilihaiProtocol::replySendThreadData(QNetworkReply *reply) {
@@ -631,8 +561,6 @@ void SiilihaiProtocol::replySendThreadData(QNetworkReply *reply) {
 
 void SiilihaiProtocol::downsync(QList<ForumGroup*> &groups) {
     QNetworkRequest req(downsyncUrl);
-    QHash<QString, QString> params;
-
     QDomDocument doc("SiilihaiML");
     QDomElement root = doc.createElement("ThreadData");
     doc.appendChild(root);
@@ -652,13 +580,10 @@ void SiilihaiProtocol::downsync(QList<ForumGroup*> &groups) {
             groupTag.appendChild(doc.createTextNode(grp->id()));
         }
     }
-    if (!clientKey.isNull()) {
-        params.insert("client_key", clientKey);
-    }
-    getThreadDataData = doc.toByteArray();
+
     req.setAttribute(QNetworkRequest::User, SPOGetThreadData);
     req.setHeader(QNetworkRequest::ContentTypeHeader, QString("application/x-www-form-urlencoded"));
-    nam.post(req, getThreadDataData);
+    nam.post(req, doc.toByteArray());
 }
 
 void SiilihaiProtocol::replyDownsync(QNetworkReply *reply) {
@@ -729,14 +654,8 @@ void SiilihaiProtocol::replyDownsync(QNetworkReply *reply) {
 
 void SiilihaiProtocol::getSyncSummary() {
     QNetworkRequest req(syncSummaryUrl);
-    QHash<QString, QString> params;
-
-    if (!clientKey.isNull()) {
-        params.insert("client_key", clientKey);
-    }
-    syncSummaryData = HttpPost::setPostParameters(&req, params);
-    req.setAttribute(QNetworkRequest::User, SPOGetSyncSummary);
-    nam.post(req, syncSummaryData);
+    HttpPost post(req, SPOGetSyncSummary, clientKey);
+    nam.post(req, post.postData());
 }
 
 void SiilihaiProtocol::replyGetSyncSummary(QNetworkReply *reply) {

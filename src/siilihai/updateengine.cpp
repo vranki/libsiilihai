@@ -117,10 +117,11 @@ void UpdateEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups, ForumSubsc
     }
     // Diff the group list
     bool groupsChanged = false;
-    for(ForumGroup *tempGroup : tempGroups) {
+    for (ForumGroup *tempGroup : tempGroups) {
         bool foundInDb = false;
+        QString tempGroupId = tempGroup->id();
         for(ForumGroup *dbGroup : fsubscription->values()) {
-            if (dbGroup->id() == tempGroup->id()) {
+            if (dbGroup->id() == tempGroupId) {
                 foundInDb = true;
 
                 if(!dbGroup->isSubscribed()) { // If not subscribed, just update the group in db
@@ -463,6 +464,7 @@ void UpdateEngine::credentialsEntered(CredentialsRequest* cr) {
             subscription()->setPassword(cr->password());
             subscription()->setAuthenticated(true);
             authenticationRetries++;
+            qDebug() << Q_FUNC_INFO << "Auth retry" << authenticationRetries;
             if(authenticationRetries > 3) {
                 qDebug() << Q_FUNC_INFO << "Too many credential retries - erroring";
                 networkFailure("Authentication failed");
@@ -472,7 +474,6 @@ void UpdateEngine::credentialsEntered(CredentialsRequest* cr) {
             subscription()->setGroupListChanged();
         }
     } else { // HTTP creds
-
     }
     // Start updating when credentials entered
     if(currentState==UES_UPDATING) {

@@ -16,13 +16,13 @@ class ForumDataItem : public QObject, public UpdateableItem {
 public:
     ForumDataItem(QObject * parent);
     virtual QString toString() const=0;
-    void setName(QString name);
-    void setId(QString id);
-    QString name() const;
-    virtual QString displayName() const; // Get human-readable name in plain text
-    QString id() const;
+    void setName(const QString &name);
+    void setId(const QString &id);
+    const QString &name() const;
+    virtual const QString &displayName(); // Get human-readable name in plain text
+    const QString &id() const;
     int unreadCount() const;
-    virtual void incrementUnreadCount(int urc);
+    virtual void incrementUnreadCount(const int &urc);
     void setLastchange(QString nlc);
     QString lastchange() const;
     void commitChanges();
@@ -30,6 +30,7 @@ protected:
     virtual void emitChanged()=0;
     virtual void emitUnreadCountChanged()=0;
     bool _propertiesChanged;
+    QString _displayName; // Update if values changed
 private:
     Q_DISABLE_COPY(ForumDataItem)
     QString _name;

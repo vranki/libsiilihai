@@ -50,7 +50,7 @@ public:
     QString author() const;
     QString authorCleaned() const; // html stripped version
     QString body() const;
-    virtual QString displayName() const;
+    virtual const QString & displayName();
     bool isRead() const;
     void setOrdernum(int nod);
     void setUrl(QString nurl);
@@ -70,9 +70,8 @@ private:
     QString _url;
     QString _author;
     QString _body;
-    bool _read;
+    bool _read, _temp;
     ForumThread *_thread;
-    bool _temp;
 };
 
 #endif /* FORUMMESSAGE_H_ */

@@ -16,23 +16,17 @@
 #ifndef HTTPPOST_H_
 #define HTTPPOST_H_
 #include <QByteArray>
-#include <QHash>
 #include <QString>
 #include <QDebug>
 #include <QNetworkRequest>
+#include <QUrlQuery>
+#include <QVariant>
 
-/**
-  * Surprisingly Qt doesn't have functionality for making
-  * HTTP POST requests. This implements HTTP POST in a
-  * (hopefully) decent way.
-  */
-class HttpPost {
+class HttpPost : public QUrlQuery {
 public:
-    HttpPost();
+    HttpPost(QNetworkRequest &req, QVariant userVariant, QString clientKey = QString::null);
     virtual ~HttpPost();
-    static QByteArray setPostParameters(QNetworkRequest *req, const QHash<QString, QString> &params);
-private:
-    static void encodeParam(QString &p);
+    QByteArray postData();
 };
 
 #endif /* HTTPPOST_H_ */

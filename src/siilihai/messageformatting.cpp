@@ -1,10 +1,4 @@
 #include "messageformatting.h"
-/*
-MessageFormatting::MessageFormatting() {
-}
-
-MessageFormatting::~MessageFormatting() {
-}*/
 
 QString MessageFormatting::sanitize(const QString &txt) {
     QString s = stripHtml(txt);

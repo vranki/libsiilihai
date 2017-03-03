@@ -96,7 +96,7 @@ public:
     bool isAuthenticated() const; // True if username & password should be set
     int unreadCount() const;
     bool isTemp() const;
-    UpdateEngine *updateEngine() const;
+    UpdateEngine *updateEngine() const; // Can be null!
     void engineDestroyed(); // Sets engine to 0
     bool hasGroupListChanged() const;
     Q_INVOKABLE void markRead(bool read=true);

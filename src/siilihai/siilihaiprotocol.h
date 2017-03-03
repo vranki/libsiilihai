@@ -129,12 +129,15 @@ private:
     QString clientKey;
     QNetworkAccessManager nam;
     QString baseUrl;
-    QByteArray loginData, listForumsData, saveParserData, getParserData,
-    subscribeForumData, listRequestsData, registerData,/*listSubscriptionsData,*/
+    // QByteArray subscribeGroupsData, sendThreadDataData, getThreadDataData;
+    /*
+    loginData, listForumsData, saveParserData, getParserData,
+    subscribeForumData, listRequestsData, registerData,
     sendParserReportData, subscribeGroupsData, sendThreadDataData, getThreadDataData,
     syncSummaryData, userSettingsData, addForumData, getForumData;
+    */
     QUrl listForumsUrl, loginUrl, getParserUrl, saveParserUrl,
-    subscribeForumUrl, listRequestsUrl, registerUrl, /*listSubscriptionsUrl,*/
+    subscribeForumUrl, listRequestsUrl, registerUrl,
     sendParserReportUrl, subscribeGroupsUrl, sendThreadDataUrl, downsyncUrl, syncSummaryUrl,
     userSettingsUrl, addForumUrl, getForumUrl;
     ForumSubscription *forumBeingSubscribed;

@@ -63,7 +63,7 @@ QString ForumMessage::toString() const {
     }
     if(_thread) {
         return QString().number(_thread->group()->subscription()->id()) + "/" +
-            _thread->group()->id() + "/" + _thread->id() + "/" + id() + ": " + name() + "/ Read:" + QString().number(_read);
+                _thread->group()->id() + "/" + _thread->id() + "/" + id() + ": " + name() + "/ Read:" + QString().number(_read);
     } else {
         return id() + ": " + name() + " / Read:" + QString().number(_read);
     }
@@ -73,6 +73,7 @@ ForumThread* ForumMessage::thread() const { return _thread; }
 
 void ForumMessage::setThread(ForumThread *thr) {
     _thread = thr;
+    _displayName = QString::null;
 }
 
 int ForumMessage::ordernum() const { return _ordernum; }
@@ -86,19 +87,21 @@ QString ForumMessage::body() const { return _body; }
 
 bool ForumMessage::isRead() const { return _read; }
 
-QString ForumMessage::displayName() const {
-    QString subj;
-    if(thread()) {
-        if(name().length() > thread()->name().length()) {
-            subj = name();
+const QString &ForumMessage::displayName() {
+    if(_propertiesChanged || _displayName.isNull()) {
+        if(thread()) {
+            if(name().length() > thread()->name().length()) {
+                _displayName = name();
+            } else {
+                _displayName = thread()->name();
+            }
         } else {
-            subj = thread()->name();
+            _displayName = name();
         }
-    } else {
-        subj = name();
+        if(ordernum() > 0) _displayName = "Re: " + _displayName;
+        _displayName = MessageFormatting::sanitize(_displayName);
     }
-    if(ordernum() > 0) subj = "Re: " + subj;
-    return MessageFormatting::sanitize(subj);
+    return _displayName;
 }
 
 void ForumMessage::setOrdernum(int nod) {
@@ -152,9 +155,7 @@ void ForumMessage::emitChanged() {
     emit changed();
 }
 
-void ForumMessage::emitUnreadCountChanged() {
-}
-
+void ForumMessage::emitUnreadCountChanged() { }
 
 void ForumMessage::markToBeUpdated(bool toBe) {
     UpdateableItem::markToBeUpdated(toBe);

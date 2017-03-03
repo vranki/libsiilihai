@@ -70,7 +70,9 @@ QString ClientLogic::addQuotesToBody(QString body) {
 
 void ClientLogic::launchSiilihai(bool offline) {
     changeState(SH_STARTED);
+
     m_settings = createSettings();
+    qDebug() << Q_FUNC_INFO << "Loaded settings from " << m_settings->fileName();
     emit settingsChangedSignal(m_settings);
 
     // Create SM only after creating settings, as it needs it.
@@ -139,11 +141,12 @@ void ClientLogic::launchSiilihai(bool offline) {
 }
 
 void ClientLogic::haltSiilihai() {
+    showStatusMessage("Quitting Siilihai.. ");
     cancelClicked();
 
     for(auto engine : engines.values()) {
         engine->subscription()->engineDestroyed();
-        engine->setSubscription(0);
+        engine->setSubscription(nullptr);
         engine->deleteLater();
     }
 
@@ -205,23 +208,51 @@ void ClientLogic::settingsChanged(bool byUser) {
     }
 }
 
+void ClientLogic::loginUser(QString user, QString password) {
+    qDebug() << Q_FUNC_INFO << user;
+
+    m_settings->setUsername(user.trimmed());
+    m_settings->setPassword(password.trimmed());
+
+    tryLogin();
+}
+
+// U & P must be in settings.
 void ClientLogic::tryLogin() {
     Q_ASSERT(currentState==SH_STARTED || currentState==SH_OFFLINE);
     changeState(SH_LOGIN);
     if(noAccount()) {
-        QTimer::singleShot(50, this, SLOT(accountlessLoginFinished()));
+        QTimer::singleShot(1, this, SLOT(accountlessLoginFinished()));
         return;
     }
     if(networkSession->isOpen()) {
         m_protocol.login(m_settings->username(), m_settings->password());
     } else {
-        loginFinished(false, "Offline mode", usettings.syncEnabled());
+        emit loginFinished(false, "Offline mode", usettings.syncEnabled());
         changeState(SH_OFFLINE);
     }
 }
 
 void ClientLogic::accountlessLoginFinished() {
     loginFinishedSlot(true, "", false);
+}
+
+void ClientLogic::loginFinishedSlot(bool success, QString motd, bool sync) {
+    if (success) {
+        usettings.setSyncEnabled(sync);
+        m_settings->setSyncEnabled(usettings.syncEnabled());
+        m_settings->sync();
+        changeState(usettings.syncEnabled() ? SH_STARTSYNCING : SH_READY);
+    } else {
+        errorDialog("Login failed. \n" + motd);
+        // @todo this happens also on first run if logging in with wrong u/p.
+        // using login as network test sucks anyway.
+        changeState(SH_STARTED);
+    }
+
+    if(!success && !m_settings->username().isEmpty()) emit showLoginWizard();
+    // And then emit loginFinished to show the error..
+    emit loginFinished(success, motd, sync);
 }
 
 void ClientLogic::clearStatusMessage() {
@@ -398,21 +429,7 @@ void ClientLogic::listSubscriptionsFinished(QList<int> serversSubscriptions) {
     }
 }
 
-void ClientLogic::loginFinishedSlot(bool success, QString motd, bool sync) {
-    if (success) {
-        usettings.setSyncEnabled(sync);
-        m_settings->setSyncEnabled(usettings.syncEnabled());
-        m_settings->sync();
-        changeState(usettings.syncEnabled() ? SH_STARTSYNCING : SH_READY);
-    } else {
-        errorDialog("Login failed. \n" + motd);
-        // @todo this happens also on first run if logging in with wrong u/p.
-        // using login as network test sucks anyway.
 
-        // changeState(SH_OFFLINE);
-    }
-    emit loginFinished(success, motd, sync);
-}
 
 // Note: fs *MUST* be a real ForumSubscription derived class, NOT just ForumSubscription with provider set!
 void ClientLogic::forumAdded(ForumSubscription *fs) {
@@ -448,7 +465,8 @@ void ClientLogic::createEngineForSubscription(ForumSubscription *newFs) {
     ue->setSubscription(newFs);
     connect(ue, &UpdateEngine::groupListChanged, this, &ClientLogic::groupListChanged);
     connect(ue, SIGNAL(forumUpdated(ForumSubscription*)), this, SLOT(forumUpdated(ForumSubscription*)));
-    connect(ue, SIGNAL(getHttpAuthentication(ForumSubscription*, QAuthenticator*)), this, SLOT(getHttpAuthentication(ForumSubscription*,QAuthenticator*)));
+    // Overloaded signal, watch out when changing to new style connection
+    connect(ue, SIGNAL(getHttpAuthentication(ForumSubscription*,QAuthenticator*)), this, SLOT(getHttpAuthentication(ForumSubscription*,QAuthenticator*)));
     connect(ue, SIGNAL(getForumAuthentication(ForumSubscription*)), this, SLOT(getForumAuthentication(ForumSubscription*)));
     connect(ue, SIGNAL(loginFinished(ForumSubscription*,bool)), this, SLOT(forumLoginFinished(ForumSubscription*,bool)));
     connect(ue, SIGNAL(stateChanged(UpdateEngine*, UpdateEngine::UpdateEngineState, UpdateEngine::UpdateEngineState)),
@@ -642,6 +660,7 @@ void ClientLogic::forumLoginFinished(ForumSubscription *sub, bool success) {
 
 // Authenticator can be null!
 void ClientLogic::getHttpAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator) {
+    qDebug() << Q_FUNC_INFO;
     bool failed = m_settings->updateFailed(fsub->id());
     QString gname = QString().number(fsub->id());
     // Must exist and be longer than zero

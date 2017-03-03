@@ -102,8 +102,9 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
             // Check for unsubscribed groups
             for(ForumGroup *dbGrp : dbSub->values()) {
                 bool groupIsSubscribed = false;
+                QString dbGrpId = dbGrp->id();
                 for(ForumGroup *serverGrp : serverSub->values()) {
-                    if(dbGrp->id() == serverGrp->id())
+                    if(dbGrpId == serverGrp->id())
                         groupIsSubscribed = true;
                 }
                 dbGrp->setSubscribed(groupIsSubscribed);
@@ -117,7 +118,7 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
     for(ForumSubscription *dbSub : fdb) {
         bool found = false;
         for(ForumSubscription *serverSub : subs) {
-            if(serverSub->id()==dbSub->id())
+            if(serverSub->id() == dbSub->id())
                 found = true;
         }
         // Sub in db not found in sync message - delete it
