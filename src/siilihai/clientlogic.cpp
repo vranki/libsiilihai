@@ -30,6 +30,8 @@ ClientLogic::ClientLogic(QObject *parent) : QObject(parent), m_settings(0),
     QNetworkConfigurationManager ncm;
     QNetworkConfiguration config = ncm.defaultConfiguration();
     networkSession = new QNetworkSession(config, this);
+    qDebug() << Q_FUNC_INFO << "Network connected:" << (networkSession->state() == QNetworkSession::Connected);
+
     statusMsgTimer.setSingleShot(true);
 
     connect(&statusMsgTimer, SIGNAL(timeout()), this, SLOT(clearStatusMessage()));
@@ -39,6 +41,7 @@ ClientLogic::ClientLogic(QObject *parent) : QObject(parent), m_settings(0),
     connect(&m_forumDatabase, SIGNAL(databaseStored()), this, SLOT(databaseStored()), Qt::QueuedConnection);
     connect(&m_protocol, &SiilihaiProtocol::userSettingsReceived, this, &ClientLogic::userSettingsReceived);
     connect(&m_protocol, &SiilihaiProtocol::loginFinished, this, &ClientLogic::loginFinishedSlot);
+    connect(&m_protocol, &SiilihaiProtocol::networkError, this, &ClientLogic::errorDialog);
     connect(&m_syncmaster, SIGNAL(syncProgress(float, QString)), this, SLOT(syncProgress(float, QString)));
 }
 
@@ -127,6 +130,8 @@ void ClientLogic::launchSiilihai(bool offline) {
     }
     m_settings->setDatabaseSchema(m_forumDatabase.schemaVersion());
     m_settings->sync();
+
+    offlineModeSet(networkSession->state() != QNetworkSession::Connected);
 
     if (m_settings->username().isEmpty() && !noAccount()) {
         emit showLoginWizard();
@@ -220,12 +225,12 @@ void ClientLogic::loginUser(QString user, QString password) {
 // U & P must be in settings.
 void ClientLogic::tryLogin() {
     Q_ASSERT(currentState==SH_STARTED || currentState==SH_OFFLINE);
-    changeState(SH_LOGIN);
     if(noAccount()) {
         QTimer::singleShot(1, this, SLOT(accountlessLoginFinished()));
         return;
     }
-    if(networkSession->isOpen()) {
+    changeState(SH_LOGIN);
+    if(networkSession->state() == QNetworkSession::Connected) {
         m_protocol.login(m_settings->username(), m_settings->password());
     } else {
         emit loginFinished(false, "Offline mode", usettings.syncEnabled());

@@ -87,6 +87,8 @@ public slots:
     void registerUser(QString user, QString pass, QString email, bool sync);
     void subscribeForum(ForumSubscription *fs, bool unsubscribe = false);
     void sendParserReport(ParserReport *pr);
+signals:
+    void networkError(QString message);
 
 private slots:
     void networkReply(QNetworkReply *reply);
@@ -129,13 +131,6 @@ private:
     QString clientKey;
     QNetworkAccessManager nam;
     QString baseUrl;
-    // QByteArray subscribeGroupsData, sendThreadDataData, getThreadDataData;
-    /*
-    loginData, listForumsData, saveParserData, getParserData,
-    subscribeForumData, listRequestsData, registerData,
-    sendParserReportData, subscribeGroupsData, sendThreadDataData, getThreadDataData,
-    syncSummaryData, userSettingsData, addForumData, getForumData;
-    */
     QUrl listForumsUrl, loginUrl, getParserUrl, saveParserUrl,
     subscribeForumUrl, listRequestsUrl, registerUrl,
     sendParserReportUrl, subscribeGroupsUrl, sendThreadDataUrl, downsyncUrl, syncSummaryUrl,

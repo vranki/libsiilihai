@@ -191,6 +191,7 @@ void SiilihaiProtocol::replyListForums(QNetworkReply *reply) {
         }
     } else {
         qDebug() << Q_FUNC_INFO << "Network error: " << reply->errorString();
+        emit networkError(reply->errorString());
     }
     emit(listForumsFinished(forums));
     reply->deleteLater();

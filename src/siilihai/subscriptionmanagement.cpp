@@ -75,13 +75,11 @@ void SubscriptionManagement::unsubscribeForum(ForumSubscription *fs)
 
 void SubscriptionManagement::getForum(int id)
 {
-    emit showError(QString::null);
     m_probe.probeUrl(id);
 }
 
 void SubscriptionManagement::getForum(QUrl url)
 {
-    emit showError(QString::null);
     m_probe.probeUrl(url);
 }
 
@@ -102,7 +100,6 @@ void SubscriptionManagement::subscribeThisForum(QString user, QString pass)
 
 void SubscriptionManagement::resetNewForum()
 {
-    emit showError(QString::null);
     if(m_newForum) {
         m_newForum->deleteLater();
         m_newForum = 0;
