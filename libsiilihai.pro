@@ -1,5 +1,8 @@
 TEMPLATE = subdirs
 SUBDIRS = src src/test src/siilihai-tool
+
+CONFIG += ordered
+
 OTHER_FILES = debian/control debian/rules debian/changelog debian/copyright\
     debian/libsiilihai2.install debian/libsiilihai2-dev.install\
     rpm/* \
