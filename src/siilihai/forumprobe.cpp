@@ -1,9 +1,5 @@
 #include "forumprobe.h"
 #include <QTextCodec>
-#ifndef NO_WEBKITWIDGETS
-#include <QWebFrame>
-#include <QWebPage>
-#endif
 #include "tapatalk/tapatalkengine.h"
 #include "discourse/discourseengine.h"
 #include "messageformatting.h"
@@ -83,19 +79,21 @@ void ForumProbe::engineProbeResults(ForumSubscription *sub) {
 
 QString ForumProbe::getTitle(QString &html) {
     QString title;
-#ifndef NO_WEBKITWIDGETS
+    /*
+    // Webkit based title search
+    // @todo Update to Qt WebEngine http://doc.qt.io/qt-5/qtwebenginewidgets-qtwebkitportingguide.html
     QWebPage *page = new QWebPage();
     QWebFrame *frame = page->mainFrame();
     frame->setHtml(html);
     title = frame->title();
     page->deleteLater();
-#else
+    */
+
     int titleBegin = html.indexOf("<title>");
     if(titleBegin > 0) {
         int titleEnd = html.indexOf("</", titleBegin);
         title = html.mid(titleBegin + 7, titleEnd - titleBegin - 7);
     }
-#endif
     return title;
 }
 

@@ -13,10 +13,6 @@ unix {
 }
 
 QT += core xml network
-
-DEFINES += NO_WEBKITWIDGETS
-# QT += webkitwidgets
-
 QT -= gui
 CONFIG += c++11
 
