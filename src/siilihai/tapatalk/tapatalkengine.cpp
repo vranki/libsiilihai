@@ -69,10 +69,10 @@ void TapaTalkEngine::convertBodyToHtml(ForumMessage *msg)
     do {
         urlPosition = newBody.indexOf("[url=");
         if(urlPosition >= 0) {
-            newBody = newBody.replace(urlPosition, 5, "<a href=\"");
+            newBody = newBody.replace(urlPosition, 5, "<a href=");
             int closetag = newBody.indexOf("]", urlPosition);
             if(closetag >= 0) {
-                newBody = newBody.replace(closetag, 1, "\">");
+                newBody = newBody.replace(closetag, 1, ">");
             }
         }
     } while(urlPosition >= 0);
@@ -86,7 +86,7 @@ void TapaTalkEngine::convertBodyToHtml(ForumMessage *msg)
             if(urlEndPosition >= urlPosition) {
                 QString urlAddress = newBody.mid(urlPosition + 5, urlEndPosition - urlPosition - 5);
                 urlAddress.replace("[url]", ""); // URL address can't have URL's in them
-                urlAddress = "<a href=\"" + urlAddress + "\">";
+                urlAddress = "<a href=" + urlAddress + ">";
                 newBody = newBody.replace(urlPosition, 5, urlAddress);
             } else {
                 // Looks like there is no end tag for this [url]..

@@ -603,7 +603,7 @@ void ClientLogic::loginWizardFinished() {
     } else {
         showMainWindow();
         settingsChanged(false);
-        loginFinishedSlot(true, QString(), usettings.syncEnabled());
+        // Login finished should be already done here..
     }
 }
 

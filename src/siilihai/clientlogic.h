@@ -96,6 +96,7 @@ public slots:
     virtual void setDeveloperMode(bool newDm);
     virtual void subscribeForum()=0; // Display the subscription dialog
     void loginUser(QString user, QString password);
+    virtual void loginWizardFinished();
 
 signals:
     void statusMessageChanged(QString message);
@@ -112,7 +113,6 @@ signals:
 protected:
     virtual void changeState(siilihai_states newState);
     virtual void closeUi()=0;
-    virtual void loginWizardFinished();
     virtual void showMainWindow()=0;
     virtual bool noAccount(); // True if accountless usage
     SiilihaiSettings *m_settings;
