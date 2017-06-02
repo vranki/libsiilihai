@@ -566,8 +566,6 @@ void ClientLogic::unregisterSiilihai() {
 // Called when app about to quit - handle upsync & quitting
 void ClientLogic::aboutToQuit() {
     qDebug() << Q_FUNC_INFO;
-    //    QEventLoop eventLoop;
-    //    eventLoop.exec();
 }
 
 void ClientLogic::setDeveloperMode(bool newDm) {

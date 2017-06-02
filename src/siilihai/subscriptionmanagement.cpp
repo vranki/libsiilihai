@@ -25,8 +25,7 @@ QList<QObject *> SubscriptionManagement::forumList()
     for(ForumSubscription *sub : m_forumList) {
         QString aliasLc = sub->alias().toLower();
         QString urlLc = sub->forumUrl().toString().toLower();
-        if (aliasLc.contains(m_forumFilter)
-                || urlLc.contains(m_forumFilter)) {
+        if (aliasLc.contains(m_forumFilter) || urlLc.contains(m_forumFilter)) {
             forumListForums.append(qobject_cast<QObject*>(sub));
         }
     }
@@ -102,7 +101,7 @@ void SubscriptionManagement::resetNewForum()
 {
     if(m_newForum) {
         m_newForum->deleteLater();
-        m_newForum = 0;
+        m_newForum = nullptr;
     }
     emit newForumChanged(m_newForum);
 }

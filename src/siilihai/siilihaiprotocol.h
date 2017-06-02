@@ -109,8 +109,11 @@ private:
 
 signals:
     void loginFinished(bool success, QString motd, bool syncEnabled);
+    // @todo this may cause double free, if we have multiple users (parser maker & subscribe dialog)
+    // used. Re-design.
     void listForumsFinished(QList<ForumSubscription*> parsers); // Receiver MUST free the parsers!
     void listRequestsFinished(QList<ForumRequest*> requests); // Receiver MUST free requests!
+
     void subscribeForumFinished(ForumSubscription *fs, bool success);
     void getParserFinished(ForumParser *parser); // Parser is deleted after call!
     void saveParserFinished(int newId, QString message);
