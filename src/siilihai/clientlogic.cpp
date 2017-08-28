@@ -255,7 +255,13 @@ void ClientLogic::loginFinishedSlot(bool success, QString motd, bool sync) {
         changeState(SH_STARTED);
     }
 
-    if(!success && !m_settings->username().isEmpty()) emit showLoginWizard();
+    if(!success && !m_settings->username().isEmpty()) {
+        // This happens when network is down & can't login.
+        // DON'T show login wizard.
+        // emit showLoginWizard();
+        changeState(SH_OFFLINE);
+    }
+
     // And then emit loginFinished to show the error..
     emit loginFinished(success, motd, sync);
 }

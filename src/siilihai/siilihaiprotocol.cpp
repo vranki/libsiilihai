@@ -700,10 +700,10 @@ void SiilihaiProtocol::replyGetSyncSummary(QNetworkReply *reply) {
             subs.append(sub);
             forumElement = forumElement.nextSiblingElement("forum");
         }
-        emit serverGroupStatus(subs);
     } else {
-        qDebug() << Q_FUNC_INFO << "Network error: " << reply->errorString();
+        emit networkError(QString("Network error (this should not happen):\n%1").arg(reply->errorString()));
     }
+    emit serverGroupStatus(subs);
     reply->deleteLater();
     for(ForumSubscription *sub : subs) sub->deleteLater();
     subs.clear();
