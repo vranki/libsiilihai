@@ -257,10 +257,12 @@ void ClientLogic::loginFinishedSlot(bool success, QString motd, bool sync) {
 
     if(!success && !m_settings->username().isEmpty()) {
         // Not success & we have registered.. Network or server down
-        // probably.
+        // This happens when network is down & can't login.
+        // DON'T show login wizard.
         // emit showLoginWizard(); NO
         changeState(SH_OFFLINE);
     }
+
     // And then emit loginFinished to show the error..
     emit loginFinished(success, motd, sync);
 }
