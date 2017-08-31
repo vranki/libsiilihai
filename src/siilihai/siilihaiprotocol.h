@@ -50,6 +50,7 @@ class ForumMessage;
   */
 class SiilihaiProtocol: public QObject {
     Q_OBJECT
+    Q_PROPERTY(bool offline READ offline WRITE setOffline NOTIFY offlineChanged)
 public:
     enum SiilihaiProtocolOperation { SPONoOp=1, SPOLogin, SPORegisterUser, SPOListForums, SPOListRequests, SPOListSubscriptions,
                                    SPOGetParser, SPOSubscribeForum, SPOSubscribeGroups, SPOSaveParser, SPOSetUserSettings,
@@ -80,6 +81,8 @@ public:
     void downsync(QList<ForumGroup*> &groups);
 
     bool isLoggedIn();
+    bool offline() const;
+
 public slots:
     /**
       * replyLogin is emitted after registration.
@@ -87,6 +90,8 @@ public slots:
     void registerUser(QString user, QString pass, QString email, bool sync);
     void subscribeForum(ForumSubscription *fs, bool unsubscribe = false);
     void sendParserReport(ParserReport *pr);
+    void setOffline(bool offline);
+
 signals:
     void networkError(QString message);
 
@@ -109,6 +114,7 @@ private:
 
 signals:
     void loginFinished(bool success, QString motd, bool syncEnabled);
+    void offlineChanged(bool offline);
     // @todo this may cause double free, if we have multiple users (parser maker & subscribe dialog)
     // used. Re-design.
     void listForumsFinished(QList<ForumSubscription*> parsers); // Receiver MUST free the parsers!
@@ -130,6 +136,7 @@ signals:
     void serverMessageData(ForumMessage *message); // Temporary object, don't store!
     void getThreadDataFinished(bool success, QString message);
     void downsyncFinishedForForum(ForumSubscription *fs); // Temporary object, don't store!
+
 private:
     QString clientKey;
     QNetworkAccessManager nam;
@@ -138,8 +145,9 @@ private:
     subscribeForumUrl, listRequestsUrl, registerUrl,
     sendParserReportUrl, subscribeGroupsUrl, sendThreadDataUrl, downsyncUrl, syncSummaryUrl,
     userSettingsUrl, addForumUrl, getForumUrl;
-    ForumSubscription *forumBeingSubscribed;
     SiilihaiProtocolOperation operationInProgress;
+    ForumSubscription *forumBeingSubscribed;
+    bool m_offline;
 };
 
 #endif /* SIILIHAIPROTOCOL_H_ */

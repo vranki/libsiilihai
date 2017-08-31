@@ -27,16 +27,17 @@
 #include "usersettings.h"
 #include <QUrlQuery>
 
-SiilihaiProtocol::SiilihaiProtocol(QObject *parent) : QObject(parent) {
-    operationInProgress = SPONoOp;
+SiilihaiProtocol::SiilihaiProtocol(QObject *parent) : QObject(parent)
+  , operationInProgress(SPONoOp)
+  , forumBeingSubscribed(nullptr)
+  , m_offline(true)
+{
     nam.setCookieJar(new QNetworkCookieJar(this));
-    forumBeingSubscribed = 0;
     setBaseURL(BASEURL);
     connect(&nam, SIGNAL(finished(QNetworkReply*)), this, SLOT(networkReply(QNetworkReply*)), Qt::UniqueConnection);
 }
 
-SiilihaiProtocol::~SiilihaiProtocol() {
-}
+SiilihaiProtocol::~SiilihaiProtocol() { }
 
 void SiilihaiProtocol::networkReply(QNetworkReply *reply) {
     int operationAttribute = reply->request().attribute(QNetworkRequest::User).toInt();
@@ -130,7 +131,6 @@ void SiilihaiProtocol::replyLogin(QNetworkReply *reply) {
         motd = re.firstChildElement("motd").text();
         syncEnabled = re.firstChildElement("sync_enabled").text() == "true";
     } else {
-        qDebug() << Q_FUNC_INFO << "network error: " << reply->errorString();
         motd = reply->errorString();
     }
     if (ck.length() > 0) clientKey = ck;
@@ -237,9 +237,14 @@ void SiilihaiProtocol::replyGetParser(QNetworkReply *reply) {
         doc.setContent(docs);
         QDomElement re = doc.firstChildElement("parser");
         parser = XmlSerialization::readParser(re, this);
-        parser->update_date = QDate::currentDate();
+        if(parser) {
+            parser->update_date = QDate::currentDate();
+        } else {
+            qDebug() << Q_FUNC_INFO << docs;
+            emit networkError(QString("Received malformed parser.\n This should not happen"));
+        }
     } else {
-        qDebug() << Q_FUNC_INFO << "Network error: " << reply->errorString();
+        emit networkError(QString("Network error (this should not happen):\n%1").arg(reply->errorString()));
     }
     emit getParserFinished(parser);
     reply->deleteLater();
@@ -430,11 +435,13 @@ void SiilihaiProtocol::replyGetForum(QNetworkReply *reply) {
             emit forumGot(addedForum);
             addedForum->deleteLater();
         } else {
-            emit forumGot(0);
+            emit forumGot(nullptr);
         }
+    } else if(reply->error() == QNetworkReply::ContentNotFoundError) {
+        emit forumGot(nullptr); // Not found, this is valid
     } else {
-        qDebug() << Q_FUNC_INFO << "Network error: " << reply->errorString();
-        emit forumGot(0);
+        emit networkError(QString("Network error (this should not happen):\n%1").arg(reply->errorString()));
+        emit forumGot(nullptr);
     }
     reply->deleteLater();
 }
@@ -479,6 +486,14 @@ void SiilihaiProtocol::sendParserReport(ParserReport *pr) {
     post.addQueryItem("type", QString().number(pr->type));
     post.addQueryItem("comment", pr->comment);
     nam.post(req, post.postData());
+}
+
+void SiilihaiProtocol::setOffline(bool offline)
+{
+    if (m_offline == offline)
+        return;
+    m_offline = offline;
+    emit offlineChanged(m_offline);
 }
 
 void SiilihaiProtocol::replySendParserReport(QNetworkReply *reply) {
@@ -554,7 +569,7 @@ void SiilihaiProtocol::sendThreadData(ForumGroup *grp, QList<ForumMessage*> &fms
 void SiilihaiProtocol::replySendThreadData(QNetworkReply *reply) {
     bool success = reply->error() == QNetworkReply::NoError;
     if(!success) {
-        qDebug() << Q_FUNC_INFO << "Network error: " << reply->errorString();
+        emit networkError(QString("Network error (this should not happen):\n%1").arg(reply->errorString()));
     }
     reply->deleteLater();
     emit sendThreadDataFinished(success, reply->errorString());
@@ -647,7 +662,7 @@ void SiilihaiProtocol::replyDownsync(QNetworkReply *reply) {
             forumElement = forumElement.nextSiblingElement("forum");
         }
     } else {
-        qDebug() << Q_FUNC_INFO << "Network error: " << reply->error() << reply->errorString();
+        emit networkError(QString("Network error (this should not happen):\n%1").arg(reply->errorString()));
     }
     reply->deleteLater();
     emit getThreadDataFinished(reply->error() == QNetworkReply::NoError, reply->errorString());
@@ -711,4 +726,9 @@ void SiilihaiProtocol::replyGetSyncSummary(QNetworkReply *reply) {
 
 bool SiilihaiProtocol::isLoggedIn() {
     return !clientKey.isNull();
+}
+
+bool SiilihaiProtocol::offline() const
+{
+    return m_offline;
 }

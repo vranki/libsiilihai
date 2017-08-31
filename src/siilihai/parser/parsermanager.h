@@ -27,11 +27,15 @@ public:
 private slots:
     // Called from protocol
     void storeOrUpdateParser(ForumParser* parser); // Called by protocol. Owership does not change
+    void offlineChanged(bool newOffline);
 signals:
     void parserUpdated(ForumParser *parser); // Parser was d/l'd from server
 private:
+    void getNextParser();
+
     ParserDatabase *parserDatabase;
     SiilihaiProtocol *protocol;
+    QQueue<int> m_parserUpdateQueue;
 };
 
 #endif // PARSERMANAGER_H

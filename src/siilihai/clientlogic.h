@@ -44,13 +44,12 @@ class ClientLogic : public QObject
     Q_PROPERTY(SubscriptionManagement* subscriptionManagement READ subscriptionManagement NOTIFY subscriptionManagementChanged)
     // Display credentials dialog if this is shown
     Q_PROPERTY(CredentialsRequest* currentCredentialsRequest READ currentCredentialsRequest NOTIFY currentCredentialsRequestChanged)
-
+    Q_PROPERTY(bool offline READ offline WRITE setOffline NOTIFY offlineChanged)
 public:
     enum siilihai_states {
-        SH_STARTED=0,
+        SH_OFFLINE=0,
         SH_LOGIN,
         SH_STARTSYNCING,
-        SH_OFFLINE,
         SH_READY,
         SH_ENDSYNC,
         SH_STOREDB
@@ -79,14 +78,15 @@ public:
     SubscriptionManagement *subscriptionManagement();
     CredentialsRequest* currentCredentialsRequest() const;
 
+    bool offline() const;
+
 public slots:
-    virtual void launchSiilihai(bool offline=false);
+    virtual void launchSiilihai();
     // Call with 0 subscription to update all
     virtual void updateClicked(ForumSubscription* sub=0, bool force=false);
     virtual void haltSiilihai();
     virtual void cancelClicked();
     virtual void syncFinished(bool success, QString message);
-    virtual void offlineModeSet(bool newOffline);
     virtual void subscriptionFound(ForumSubscription* sub);
     virtual void errorDialog(QString message)=0;
     virtual void updateGroupSubscriptions(ForumSubscription *sub); // Call after subscriptions have changed (uploads to server)
@@ -97,6 +97,7 @@ public slots:
     virtual void subscribeForum()=0; // Display the subscription dialog
     void loginUser(QString user, QString password);
     virtual void loginWizardFinished();
+    void setOffline(bool newOffline);
 
 signals:
     void statusMessageChanged(QString message);
@@ -109,6 +110,7 @@ signals:
     void loginFinished(bool success, QString motd, bool sync);
     void currentCredentialsRequestChanged(CredentialsRequest* currentCredentialsRequest);
     void groupListChanged(ForumSubscription* sub); // Show group subscription dialog or whatever
+    void offlineChanged(bool offline);
 
 protected:
     virtual void changeState(siilihai_states newState);
@@ -148,6 +150,7 @@ private slots:
     void credentialsEntered(bool store); // from CredentialsRequest
     void accountlessLoginFinished(); // Delayed login success (useless?)
     void clearStatusMessage();
+    void protocolError(QString message);
 
 protected:
     CredentialsRequest* m_currentCredentialsRequest; // If being asked
@@ -174,7 +177,6 @@ private:
     QString statusMsg; // One-liner describing current status
     QTimer statusMsgTimer; // Hides the message after a short delay
     SubscriptionManagement *m_subscriptionManagement;
-
     bool devMode; // Enables some debugging features on UI etc..
 };
 

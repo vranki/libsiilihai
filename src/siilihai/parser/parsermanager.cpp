@@ -2,9 +2,13 @@
 #include "parserdatabase.h"
 #include "../siilihaiprotocol.h"
 
-ParserManager::ParserManager(QObject *parent, SiilihaiProtocol *pro) : QObject(parent), protocol(pro) {
-    parserDatabase = new ParserDatabase(this);
-    connect(protocol, SIGNAL(getParserFinished(ForumParser*)), this, SLOT(storeOrUpdateParser(ForumParser*)));
+ParserManager::ParserManager(QObject *parent, SiilihaiProtocol *pro) :
+    QObject(parent)
+  , parserDatabase(new ParserDatabase(this))
+  , protocol(pro)
+{
+    connect(protocol, &SiilihaiProtocol::getParserFinished, this, &ParserManager::storeOrUpdateParser);
+    connect(protocol, &SiilihaiProtocol::offlineChanged, this, &ParserManager::offlineChanged);
 }
 
 ParserManager::~ParserManager() {
@@ -38,6 +42,26 @@ void ParserManager::storeOrUpdateParser(ForumParser* parser) {
     emit parserUpdated(newParser);
 }
 
+void ParserManager::offlineChanged(bool newOffline)
+{
+    if(!newOffline) {
+        getNextParser();
+    }
+}
+
+void ParserManager::getNextParser()
+{
+    if(m_parserUpdateQueue.isEmpty()) return;
+    updateParser(m_parserUpdateQueue.takeFirst());
+}
+
 void ParserManager::updateParser(int parserId) {
-    protocol->getParser(parserId);
+    if(!protocol->offline()) {
+        qDebug() << Q_FUNC_INFO << "Getting parser " << parserId;
+        protocol->getParser(parserId);
+    } else {
+        qDebug() << Q_FUNC_INFO << "Offline. Queue update of parser " << parserId;
+        if(!m_parserUpdateQueue.contains(parserId))
+            m_parserUpdateQueue.append(parserId);
+    }
 }

@@ -55,7 +55,7 @@ void ForumProbe::engineProbeResults(ForumSubscription *sub) {
     Q_ASSERT(!probedSub);
     typesProbed++;
     currentEngine->deleteLater();
-    currentEngine = 0;
+    currentEngine = nullptr;
     if(sub) {
         probedSub = ForumSubscription::newForProvider(sub->provider(), 0, true);
         probedSub->copyFrom(sub);
@@ -101,14 +101,14 @@ void ForumProbe::probeNextType()
 {
     if(currentEngine) {
         currentEngine->deleteLater();
-        currentEngine = 0;
+        currentEngine = nullptr;
     }
     if(typesProbed == 0) {
         // Test for TapaTalk
-        TapaTalkEngine *tte = new TapaTalkEngine(this, 0); // Deleted in engineProbeResults
+        TapaTalkEngine *tte = new TapaTalkEngine(this, nullptr); // Deleted in engineProbeResults
         currentEngine = tte;
     } else if(typesProbed == 1) {
-        DiscourseEngine *de = new DiscourseEngine(this, 0);
+        DiscourseEngine *de = new DiscourseEngine(this, nullptr);
         currentEngine = de;
     } else {
         Q_ASSERT(false); // You shouldn't call this anymore!!

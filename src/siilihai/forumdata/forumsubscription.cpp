@@ -198,6 +198,7 @@ void ForumSubscription::setBeingUpdated(bool bu) {
     Q_ASSERT(!(_beingSynced && bu));
     Q_ASSERT(!(_scheduledForUpdate && bu));
     _beingUpdated = bu;
+    qDebug() << Q_FUNC_INFO << bu << toString();
     emit changed();
 }
 
@@ -211,6 +212,7 @@ void ForumSubscription::setScheduledForUpdate(bool su) {
     Q_ASSERT(!(_beingUpdated && su));
     Q_ASSERT(!(_scheduledForSync && su));
     _scheduledForUpdate = su;
+    qDebug() << Q_FUNC_INFO << su << toString();
     emit changed();
 }
 

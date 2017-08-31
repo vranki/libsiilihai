@@ -102,8 +102,8 @@ void SubscriptionManagement::resetNewForum()
     if(m_newForum) {
         m_newForum->deleteLater();
         m_newForum = nullptr;
+        emit newForumChanged(m_newForum);
     }
-    emit newForumChanged(m_newForum);
 }
 
 void SubscriptionManagement::resetForumList()

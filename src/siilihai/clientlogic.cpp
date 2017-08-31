@@ -18,10 +18,14 @@
 #include "messageformatting.h"
 #include "subscriptionmanagement.h"
 
-ClientLogic::ClientLogic(QObject *parent) : QObject(parent), m_settings(0),
-    m_forumDatabase(this),  m_syncmaster(this, m_forumDatabase, m_protocol),
-    m_parserManager(0), m_currentCredentialsRequest(0), currentState(SH_OFFLINE),
-    m_subscriptionManagement(0) {
+ClientLogic::ClientLogic(QObject *parent) : QObject(parent)
+  , m_settings(0)
+  , m_forumDatabase(this)
+  , m_syncmaster(this, m_forumDatabase, m_protocol)
+  , m_parserManager(0)
+  , m_currentCredentialsRequest(0)
+  , currentState(SH_OFFLINE)
+  , m_subscriptionManagement(0) {
     endSyncDone = false;
     firstRun = true;
     dbStored = false;
@@ -41,7 +45,8 @@ ClientLogic::ClientLogic(QObject *parent) : QObject(parent), m_settings(0),
     connect(&m_forumDatabase, SIGNAL(databaseStored()), this, SLOT(databaseStored()), Qt::QueuedConnection);
     connect(&m_protocol, &SiilihaiProtocol::userSettingsReceived, this, &ClientLogic::userSettingsReceived);
     connect(&m_protocol, &SiilihaiProtocol::loginFinished, this, &ClientLogic::loginFinishedSlot);
-    connect(&m_protocol, &SiilihaiProtocol::networkError, this, &ClientLogic::errorDialog);
+    connect(&m_protocol, &SiilihaiProtocol::networkError, this, &ClientLogic::protocolError);
+    connect(this, &ClientLogic::offlineChanged, &m_protocol, &SiilihaiProtocol::setOffline);
     connect(&m_syncmaster, SIGNAL(syncProgress(float, QString)), this, SLOT(syncProgress(float, QString)));
 }
 
@@ -71,9 +76,7 @@ QString ClientLogic::addQuotesToBody(QString body) {
     return body;
 }
 
-void ClientLogic::launchSiilihai(bool offline) {
-    changeState(SH_STARTED);
-
+void ClientLogic::launchSiilihai() {
     m_settings = createSettings();
     qDebug() << Q_FUNC_INFO << "Loaded settings from " << m_settings->fileName();
     emit settingsChangedSignal(m_settings);
@@ -131,17 +134,14 @@ void ClientLogic::launchSiilihai(bool offline) {
     m_settings->setDatabaseSchema(m_forumDatabase.schemaVersion());
     m_settings->sync();
 
-    offlineModeSet(networkSession->state() != QNetworkSession::Connected);
+    if(networkSession->state() != QNetworkSession::Connected)
+        setOffline(true);
 
     if (m_settings->username().isEmpty() && !noAccount()) {
         emit showLoginWizard();
     } else {
         showMainWindow();
-        if(!offline) {
-            tryLogin();
-        } else {
-            offlineModeSet(true);
-        }
+        tryLogin();
     }
 }
 
@@ -198,6 +198,11 @@ CredentialsRequest *ClientLogic::currentCredentialsRequest() const
     return m_currentCredentialsRequest;
 }
 
+bool ClientLogic::offline() const
+{
+    return state() == SH_OFFLINE;
+}
+
 void ClientLogic::settingsChanged(bool byUser) {
     usettings.setSyncEnabled(m_settings->syncEnabled());
     if(byUser && !noAccount()) {
@@ -224,7 +229,7 @@ void ClientLogic::loginUser(QString user, QString password) {
 
 // U & P must be in settings.
 void ClientLogic::tryLogin() {
-    Q_ASSERT(currentState==SH_STARTED || currentState==SH_OFFLINE);
+    Q_ASSERT(currentState==SH_OFFLINE);
     if(noAccount()) {
         QTimer::singleShot(1, this, SLOT(accountlessLoginFinished()));
         return;
@@ -252,7 +257,7 @@ void ClientLogic::loginFinishedSlot(bool success, QString motd, bool sync) {
         errorDialog("Login failed. \n" + motd);
         // @todo this happens also on first run if logging in with wrong u/p.
         // using login as network test sucks anyway.
-        changeState(SH_STARTED);
+        changeState(SH_OFFLINE);
     }
 
     if(!success && !m_settings->username().isEmpty()) {
@@ -271,18 +276,34 @@ void ClientLogic::clearStatusMessage() {
     showStatusMessage();
 }
 
+void ClientLogic::protocolError(QString message)
+{
+    errorDialog(message);
+    changeState(SH_OFFLINE);
+}
+
 SiilihaiSettings *ClientLogic::createSettings() {
     return new SiilihaiSettings(getDataFilePath() + "/siilihai_settings.ini", QSettings::IniFormat, this);
 }
 
 void ClientLogic::changeState(siilihai_states newState) {
+    if(newState == currentState) {
+        qDebug() << Q_FUNC_INFO << "Already in state " << newState;
+        return;
+    }
+
     siilihai_states previousState = currentState;
     currentState = newState;
+
+    if(previousState==SH_OFFLINE || newState==SH_OFFLINE) {
+        qDebug() << Q_FUNC_INFO << "Offline changed: " << (newState==SH_OFFLINE);
+        emit offlineChanged(newState==SH_OFFLINE);
+    }
 
     if(newState==SH_OFFLINE) {
         qDebug() << Q_FUNC_INFO << "Offline";
         networkSession->close();
-        Q_ASSERT(previousState==SH_LOGIN || previousState==SH_STARTSYNCING || previousState==SH_READY || previousState==SH_STARTED);
+        Q_ASSERT(previousState==SH_LOGIN || previousState==SH_STARTSYNCING || previousState==SH_READY);
         if(previousState==SH_STARTSYNCING) m_syncmaster.cancel();
     } else if(newState==SH_LOGIN) {
         qDebug() << Q_FUNC_INFO << "Login";
@@ -339,9 +360,11 @@ void ClientLogic::updateForum(ForumSubscription *sub) {
         sub->setScheduledForUpdate(false);
         subscriptionsToUpdateLeft.removeAll(sub);
         Q_ASSERT(!sub->beingSynced());
+        qDebug() << Q_FUNC_INFO << "updating now " << sub->toString() << subscriptionsToUpdateLeft;
         engines.value(sub)->updateForum();
     } else {
         Q_ASSERT(!sub->beingSynced());
+        qDebug() << Q_FUNC_INFO << "updating later " << sub->toString() << busyForums;
         if(!subscriptionsToUpdateLeft.contains(sub)) subscriptionsToUpdateLeft.append(sub);
     }
 }
@@ -357,7 +380,7 @@ void ClientLogic::updateClicked(ForumSubscription* sub , bool force) {
         }
         UpdateEngine *engine = engines.value(sub);
         if(engine && (engine->state()==UpdateEngine::UES_IDLE || engine->state()==UpdateEngine::UES_ERROR)
-                && currentState != SH_OFFLINE && currentState != SH_STARTED) {
+                && currentState != SH_OFFLINE) {
             sub->setScheduledForUpdate(false);
             subscriptionsToUpdateLeft.removeAll(sub);
             subscriptionsNotUpdated.remove(sub);
@@ -378,6 +401,9 @@ void ClientLogic::cancelClicked() {
     for(auto engine : engines.values()) {
         engine->cancelOperation();
     }
+    if(currentState==SH_STARTSYNCING || currentState==SH_ENDSYNC) {
+        m_syncmaster.cancel();
+    }
 }
 
 
@@ -394,7 +420,7 @@ int ClientLogic::busyForumCount() {
 void ClientLogic::syncFinished(bool success, QString message){
     qDebug() << Q_FUNC_INFO << success;
     if (!success) {
-        errorDialog(QString("Syncing status to server failed.\n\n%1").arg(message));
+        errorDialog(QString("Syncing status with server failed.\n\n%1").arg(message));
     }
     if(currentState == SH_STARTSYNCING) {
         while(!subscriptionsNotUpdated.isEmpty()) {
@@ -404,15 +430,6 @@ void ClientLogic::syncFinished(bool success, QString message){
     } else if(currentState == SH_ENDSYNC) {
         endSyncDone = true;
         haltSiilihai();
-    }
-}
-
-void ClientLogic::offlineModeSet(bool newOffline) {
-    qDebug() << Q_FUNC_INFO << newOffline;
-    if(newOffline && currentState == SH_READY) {
-        changeState(SH_OFFLINE);
-    } else if(!newOffline && currentState == SH_OFFLINE) {
-        tryLogin();
     }
 }
 
@@ -499,6 +516,7 @@ void ClientLogic::subscriptionDeleted(QObject* subobj) {
 }
 
 void ClientLogic::forumUpdated(ForumSubscription* forum) {
+    qDebug() << Q_FUNC_INFO << forum->alias();
     if(forum->errorList().size()) {
         m_settings->setUpdateFailed(forum->id(), true);
     }
@@ -506,8 +524,8 @@ void ClientLogic::forumUpdated(ForumSubscription* forum) {
 
     subscriptionsNotUpdated.remove(forum);
     subscriptionsToUpdateLeft.removeAll(forum);
-    ForumSubscription *nextSub = 0;
-    while(!nextSub && !subscriptionsToUpdateLeft.isEmpty()
+    ForumSubscription *nextSub = nullptr;
+    while(!subscriptionsToUpdateLeft.isEmpty()
           && busyForums <= MAX_CONCURRENT_UPDATES) {
         nextSub = subscriptionsToUpdateLeft.takeFirst();
         if(m_forumDatabase.contains(nextSub)) {
@@ -516,6 +534,7 @@ void ClientLogic::forumUpdated(ForumSubscription* forum) {
             Q_ASSERT(!nextSub->scheduledForSync());
             nextSub->updateEngine()->updateForum();
             busyForums++;
+            qDebug() << Q_FUNC_INFO << "Now updating " << nextSub->alias() << busyForums;
         }
     }
 }
@@ -612,6 +631,20 @@ void ClientLogic::loginWizardFinished() {
     }
 }
 
+void ClientLogic::setOffline(bool newOffline)
+{
+    if (offline() == newOffline)
+        return;
+
+    qDebug() << Q_FUNC_INFO << newOffline;
+    if(newOffline && currentState == SH_READY) {
+        changeState(SH_OFFLINE);
+    } else if(!newOffline && currentState == SH_OFFLINE) {
+        tryLogin();
+    }
+    emit offlineChanged(newOffline);
+}
+
 bool ClientLogic::noAccount() {
     return m_settings->noAccount();
 }
@@ -670,7 +703,6 @@ void ClientLogic::forumLoginFinished(ForumSubscription *sub, bool success) {
 
 // Authenticator can be null!
 void ClientLogic::getHttpAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator) {
-    qDebug() << Q_FUNC_INFO;
     bool failed = m_settings->updateFailed(fsub->id());
     QString gname = QString().number(fsub->id());
     // Must exist and be longer than zero
@@ -678,13 +710,11 @@ void ClientLogic::getHttpAuthentication(ForumSubscription *fsub, QAuthenticator 
             m_settings->contains(QString("authentication/%1/username").arg(gname)) &&
             m_settings->value(QString("authentication/%1/username").arg(gname)).toString().length() > 0) {
         if(authenticator && !failed) {
-            qDebug() << Q_FUNC_INFO << "reading u/p from settings";
             authenticator->setUser(m_settings->value(QString("authentication/%1/username").arg(gname)).toString());
             authenticator->setPassword(m_settings->value(QString("authentication/%1/password").arg(gname)).toString());
         }
     }
     if(!authenticator || authenticator->user().isNull() || failed) { // Ask user the credentials
-        qDebug() << Q_FUNC_INFO << "asking user for http credentials";
         // Return empty authenticator
         if(authenticator) {
             authenticator->setUser(QString::null);
@@ -699,7 +729,6 @@ void ClientLogic::getHttpAuthentication(ForumSubscription *fsub, QAuthenticator 
 }
 
 void ClientLogic::getForumAuthentication(ForumSubscription *fsub) {
-    qDebug() << Q_FUNC_INFO << fsub->alias();
     CredentialsRequest *cr = new CredentialsRequest(fsub, this);
     cr->credentialType = CredentialsRequest::SH_CREDENTIAL_FORUM;
     credentialsRequests.append(cr);
@@ -707,7 +736,6 @@ void ClientLogic::getForumAuthentication(ForumSubscription *fsub) {
 }
 
 void ClientLogic::showNextCredentialsDialog() {
-    qDebug() << Q_FUNC_INFO;
     Q_ASSERT(!m_currentCredentialsRequest);
     if(credentialsRequests.isEmpty()) return;
     m_currentCredentialsRequest = credentialsRequests.takeFirst();
@@ -720,13 +748,11 @@ void ClientLogic::credentialsEntered(bool store) {
     CredentialsRequest *cr = qobject_cast<CredentialsRequest*>(sender());
     Q_ASSERT(cr==m_currentCredentialsRequest);
     Q_ASSERT(engines.value(m_currentCredentialsRequest->subscription()));
-    qDebug() << Q_FUNC_INFO << store << m_currentCredentialsRequest->username();
 
     m_currentCredentialsRequest->subscription()->setAuthenticated(!m_currentCredentialsRequest->username().isEmpty());
 
     if(store) {
         if(cr->credentialType == CredentialsRequest::SH_CREDENTIAL_HTTP) {
-            qDebug() << Q_FUNC_INFO << "storing into settings";
             m_settings->beginGroup("authentication");
             m_settings->beginGroup(QString::number(m_currentCredentialsRequest->subscription()->id()));
             m_settings->setValue("username", m_currentCredentialsRequest->username());
@@ -736,7 +762,6 @@ void ClientLogic::credentialsEntered(bool store) {
             m_settings->endGroup();
             m_settings->sync();
         } else if(cr->credentialType == CredentialsRequest::SH_CREDENTIAL_FORUM) {
-            qDebug() << Q_FUNC_INFO << "storing into subscription";
             m_currentCredentialsRequest->subscription()->setUsername(m_currentCredentialsRequest->username());
             m_currentCredentialsRequest->subscription()->setPassword(m_currentCredentialsRequest->password());
         }

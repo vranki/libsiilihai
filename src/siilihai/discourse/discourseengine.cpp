@@ -36,7 +36,7 @@ void DiscourseEngine::probeUrl(QUrl url)
 void DiscourseEngine::replyProbe(QNetworkReply *reply)
 {
     if (reply->error() != QNetworkReply::NoError) {
-        emit urlProbeResults(0);
+        emit urlProbeResults(nullptr);
         return;
     }
     QString docs = QString().fromUtf8(reply->readAll());
@@ -50,7 +50,7 @@ void DiscourseEngine::replyProbe(QNetworkReply *reply)
         emit urlProbeResults(&sub);
     } else {
         qDebug() << Q_FUNC_INFO << "No discourse found, got reply: \n" << docs;
-        emit urlProbeResults(0);
+        emit urlProbeResults(nullptr);
     }
 }
 

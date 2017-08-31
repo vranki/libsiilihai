@@ -310,11 +310,11 @@ void UpdateEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages, Foru
     dbThread->setHasMoreMessages(moreAvailable);
     dbThread->commitChanges();
     dbThread->messagesChanged();
-    threadBeingUpdated = 0;
+    threadBeingUpdated = nullptr;
     if(updateAll) {
         updateNextChangedThread();
     } else {
-        groupBeingUpdated = 0;
+        groupBeingUpdated = nullptr;
         setState(UES_IDLE);
         emit forumUpdated(subscription());
     }
@@ -410,8 +410,8 @@ void UpdateEngine::setState(UpdateEngineState newState) {
     currentState = newState;
 
     // Caution: subscription may be null!
-    // if(subscription())
-    //     qDebug() << Q_FUNC_INFO << subscription()->alias() << stateNames[oldState] << " -> " << stateNames[newState];
+    if(subscription())
+        qDebug() << Q_FUNC_INFO << subscription()->alias() << stateNames[oldState] << " -> " << stateNames[newState];
     //
     if(newState==UES_UPDATING) {
         Q_ASSERT(oldState==UES_IDLE || oldState==UES_ERROR);

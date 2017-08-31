@@ -20,7 +20,11 @@
 #include "forumdata/forumsubscription.h"
 
 SyncMaster::SyncMaster(QObject *parent, ForumDatabase &fd, SiilihaiProtocol &prot) :
-    QObject(parent), fdb(fd), protocol(prot) {
+    QObject(parent)
+  , fdb(fd)
+  , protocol(prot)
+  , canceled(true)
+  , errorCount(0) {
     connect(&protocol, SIGNAL(serverGroupStatus(QList<ForumSubscription*> &)), this,
             SLOT(serverGroupStatus(QList<ForumSubscription*> &)));
     connect(&protocol, SIGNAL(serverThreadData(ForumThread*)), this,
@@ -31,8 +35,6 @@ SyncMaster::SyncMaster(QObject *parent, ForumDatabase &fd, SiilihaiProtocol &pro
             SLOT(getThreadDataFinished(bool, QString)));
     connect(&protocol, SIGNAL(subscribeGroupsFinished(bool)), this, SLOT(subscribeGroupsFinished(bool)));
     connect(&protocol, SIGNAL(downsyncFinishedForForum(ForumSubscription*)), this, SLOT(downsyncFinishedForForum(ForumSubscription*)));
-    canceled = true;
-    errorCount = 0;
 }
 
 SyncMaster::~SyncMaster() {
@@ -74,6 +76,7 @@ void SyncMaster::endSync() {
 }
 
 void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp objects!
+    if(canceled) return;
     fdb.checkSanity();
     // Update local subs
     for(ForumSubscription *serverSub : subs) {
@@ -329,6 +332,7 @@ void SyncMaster::threadChanged(ForumThread *) {
 }
 
 void SyncMaster::cancel() {
+    // Just to make sure
     serversGroups.clear();
     serversThreads.clear();
     groupsToUpload.clear();
@@ -336,7 +340,15 @@ void SyncMaster::cancel() {
     changedThreads.clear();
     forumsToUpload.clear();
     messagesToUpload.clear();
-    emit syncFinished(false, "Canceled");
+
+    for(ForumSubscription *fsub : fdb)
+        fsub->setBeingSynced(false);
+
+    if(!canceled) {
+        canceled = true;
+        // I suppose this is success..
+        emit syncFinished(true, "Canceled");
+    }
 }
 
 void SyncMaster::processSubscriptions() {

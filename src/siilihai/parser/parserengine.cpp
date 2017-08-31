@@ -163,8 +163,8 @@ void ParserEngine::cancelOperation() {
     foundMessages.clear();
     qDeleteAll(foundThreads);
     foundThreads.clear();
-    groupBeingUpdated = 0;
-    threadBeingUpdated = 0;
+    groupBeingUpdated = nullptr;
+    threadBeingUpdated = nullptr;
     waitingForAuthentication = false;
 
     UpdateEngine::cancelOperation();
@@ -250,7 +250,7 @@ void ParserEngine::doUpdateThread(ForumThread *thread)
     updateCanceled = false;
     operationInProgress = PEOUpdateThread;
     threadBeingUpdated = thread;
-    Q_ASSERT(groupBeingUpdated == 0 || groupBeingUpdated == thread->group());
+    Q_ASSERT(!groupBeingUpdated || groupBeingUpdated == thread->group());
     groupBeingUpdated = thread->group();
     foundMessages.clear();
     moreMessagesAvailable = false;
@@ -335,7 +335,6 @@ void ParserEngine::fetchCookieReply(QNetworkReply *reply) {
 }
 
 void ParserEngine::loginToForum() {
-    qDebug() << Q_FUNC_INFO << subscription()->toString();
     Q_ASSERT(!threadBeingUpdated);
     Q_ASSERT(!groupBeingUpdated);
     Q_ASSERT(!loggedIn);
@@ -380,7 +379,6 @@ void ParserEngine::loginToForum() {
 }
 
 void ParserEngine::loginReply(QNetworkReply *reply) {
-    qDebug() << Q_FUNC_INFO << subscription()->toString();
     Q_ASSERT(!loggedIn);
     Q_ASSERT(loggingIn);
     loggingIn = false;
@@ -746,7 +744,6 @@ void ParserEngine::authenticationRequired(QNetworkReply * reply, QAuthenticator 
     }
 
     authenticationRetries++;
-    qDebug() << Q_FUNC_INFO << "Auth retry" << authenticationRetries;
 
     if(authenticationRetries > 3) {
         qDebug() << Q_FUNC_INFO << "Too many credential retries - erroring";
@@ -760,19 +757,14 @@ void ParserEngine::authenticationRequired(QNetworkReply * reply, QAuthenticator 
             networkFailure("Server requested for username and password for forum "
                            + subscription()->alias() + " but you haven't provided them.");
         } else {
-            qDebug() << Q_FUNC_INFO << "Gave credentials to server";
             authenticator->setUser(subscription()->username());
             authenticator->setPassword(subscription()->password());
         }
     } else {
         waitingForAuthentication = true;
-        // qDebug() << Q_FUNC_INFO << subscription()->alias() << "Requesting for authentication now..";
         emit getHttpAuthentication(subscription(), authenticator);
         if(!authenticator->user().isEmpty()) { // Got authentication directly (from settings)
-            qDebug() << Q_FUNC_INFO << subscription()->alias() << " got authentication from settings";
             waitingForAuthentication = false;
-        } else {
-            qDebug() << Q_FUNC_INFO << subscription()->alias() << " no authentication - requesting with dialog.";
         }
     }
 }
