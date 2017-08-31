@@ -628,6 +628,7 @@ void ClientLogic::loginWizardFinished() {
         showMainWindow();
         settingsChanged(false);
         // Login finished should be already done here..
+        if(noAccount()) changeState(SH_READY);
     }
 }
 

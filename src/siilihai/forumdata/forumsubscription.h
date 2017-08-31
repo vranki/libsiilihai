@@ -68,7 +68,8 @@ public:
         FP_NONE=0, // Error in practice..
         FP_PARSER,
         FP_TAPATALK,
-        FP_DISCOURSE
+        FP_DISCOURSE,
+        FP_MAX
     };
 
     ForumSubscription(QObject *parent, bool temp, ForumProvider p);

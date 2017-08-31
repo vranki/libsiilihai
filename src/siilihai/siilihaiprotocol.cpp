@@ -158,36 +158,24 @@ void SiilihaiProtocol::listForums() {
 }
 
 void SiilihaiProtocol::replyListForums(QNetworkReply *reply) {
-
-    // @todo This lists parsers due to legacy.
-
     QString docs = QString().fromUtf8(reply->readAll());
+    qDebug() << docs;
     QList<ForumSubscription*> forums;
     if (reply->error() == QNetworkReply::NoError) {
         QDomDocument doc;
         doc.setContent(docs);
-        QDomElement n = doc.firstChildElement("parserlist").firstChildElement("parser");
+        QDomElement n = doc.firstChildElement("forumlist").firstChildElement("forum");
         while (!n.isNull()) {
-            // @todo This still uses parsers as backward-compatibility
-            ForumParser *parser = XmlSerialization::readParser(n, this);
-             if(parser) {
-
-                 // @todo current way of distinguishing between parser & tapatalk providers. Not good way.
-                 ForumSubscription::ForumProvider provider = ForumSubscription::FP_PARSER;
-                 if(parser->login_path == "TAPATALK") {
-                     provider = ForumSubscription::FP_TAPATALK;
-                 } else if(parser->login_path == "DISCOURSE") {
-                     provider = ForumSubscription::FP_DISCOURSE;
-                 }
-
-                 ForumSubscription *sub = new ForumSubscription(0, true, provider);
-                 sub->setId(parser->id());
-                 sub->setAlias(parser->name());
-                 sub->setForumUrl(parser->forum_url);
-                 sub->setSupportsLogin(parser->supportsLogin());
-                 forums.append(sub);
-             }
-            n = n.nextSiblingElement("parser");
+            ForumSubscription::ForumProvider provider = static_cast<ForumSubscription::ForumProvider>(n.firstChildElement("provider").text().toInt());
+            if(provider > 0 && provider < ForumSubscription::FP_MAX) {
+                ForumSubscription *sub = new ForumSubscription(nullptr, true, provider);
+                sub->setId(n.firstChildElement("id").text().toInt());
+                sub->setAlias(n.firstChildElement("name").text());
+                sub->setForumUrl(n.firstChildElement("forum_url").text());
+                sub->setSupportsLogin(n.firstChildElement("supports_login").text()=="True");
+                forums.append(sub);
+            }
+            n = n.nextSiblingElement("forum");
         }
     } else {
         qDebug() << Q_FUNC_INFO << "Network error: " << reply->errorString();
