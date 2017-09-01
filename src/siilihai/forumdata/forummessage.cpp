@@ -19,16 +19,15 @@
 #include "forumsubscription.h"
 #include "../messageformatting.h"
 
-ForumMessage::ForumMessage(QObject *parent, bool temp) : ForumDataItem(parent) {
-    _thread = 0;
-    _author = _body = "";
-    _ordernum = -1;
-    _read = true;
-    _temp = temp;
-}
+ForumMessage::ForumMessage(QObject *parent, bool temp) : ForumDataItem(parent)
+, _thread(nullptr)
+, _author("")
+, _body("")
+, _ordernum(-1)
+, _read(true)
+, _temp(temp) { }
 
-ForumMessage::~ForumMessage() {
-}
+ForumMessage::~ForumMessage() { }
 
 void ForumMessage::copyFrom(ForumMessage * o) {
     setId(o->id());
@@ -46,7 +45,7 @@ bool ForumMessage::operator<(const ForumMessage &o) {
 }
 
 bool ForumMessage::isSane() const {
-    return (id().length()>0);
+    return (id().length() > 0);
 }
 
 QString ForumMessage::toString() const {

@@ -227,12 +227,21 @@ void UpdateEngine::listThreadsFinished(QList<ForumThread*> &tempThreads, ForumGr
                 threadsToUpdateQueue.enqueue(dbThread);
             }
         } else {
-            ForumThread *newThread = new ForumThread(group, false);
-            newThread->copyFrom(serverThread);
-            newThread->setChangeset(-1);
-            group->addThread(newThread, false);
-            newThread->markToBeUpdated();
-            threadsToUpdateQueue.enqueue(newThread);
+            if(group->contains(serverThread->id())) {
+                qDebug() << Q_FUNC_INFO
+                         << "Warning: group "
+                         << group->toString()
+                         << "already contains thread with id"
+                         << serverThread->id()
+                         << "not adding it. Broken parser?";
+            } else {
+                ForumThread *newThread = new ForumThread(group, false);
+                newThread->copyFrom(serverThread);
+                newThread->setChangeset(-1);
+                group->addThread(newThread, false);
+                newThread->markToBeUpdated();
+                threadsToUpdateQueue.enqueue(newThread);
+            }
         }
     }
     QSet<ForumThread*> deletedThreads;

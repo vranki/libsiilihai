@@ -17,17 +17,16 @@
 #include "forummessage.h"
 #include "forumsubscription.h"
 
-ForumThread::~ForumThread() {
-}
+ForumThread::~ForumThread() { }
 
-ForumThread::ForumThread(QObject *parent, bool temp) : ForumDataItem(parent) {
-    _group = 0;
-    _changeset = -1;
-    _ordernum = -1;
-    _hasMoreMessages = false;
-    _getMessagesCount = 999;
-    _temp = temp;
-    _lastPage = 0;
+ForumThread::ForumThread(QObject *parent, bool temp) : ForumDataItem(parent)
+, _group(nullptr)
+, _changeset(-1)
+, _ordernum(-1)
+, _hasMoreMessages(false)
+, _getMessagesCount(999)
+, _temp(temp)
+, _lastPage(0) {
     connect(this, SIGNAL(messageRemoved(ForumMessage*)), this, SIGNAL(messagesChanged()));
 }
 

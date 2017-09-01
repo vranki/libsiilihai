@@ -626,7 +626,16 @@ void SiilihaiProtocol::replyDownsync(QNetworkReply *reply) {
                     thread.setGetMessagesCount(threadGetMessagesCount);
                     thread.setName(UNKNOWN_SUBJECT);
                     thread.setOrdernum(999);
-                    group.addThread(&thread);
+                    if(group.contains(thread.id())) {
+                        qDebug() << Q_FUNC_INFO
+                                 << "Warning: group "
+                                 << group.toString()
+                                 << "already contains thread with id"
+                                 << thread.id()
+                                 << "not adding it. Broken parser?";
+                    } else {
+                        group.addThread(&thread);
+                    }
                     emit serverThreadData(&thread);
                     QDomElement messageElement = threadElement.firstChildElement("message");
                     while(!messageElement.isNull()) {

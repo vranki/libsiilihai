@@ -684,8 +684,9 @@ QString ParserEngine::statusReport() {
 }
 
 QString ParserEngine::getMessageUrl(const ForumMessage *msg) {
-    QUrl url = QUrl();
-
+    // These can be null in parser manager
+    if(!msg || !groupBeingUpdated || !threadBeingUpdated) return QString::null;
+    Q_ASSERT(parser());
     QString urlString = parser()->view_message_path;
     urlString = urlString.replace("%g", groupBeingUpdated->id());
     urlString = urlString.replace("%t", threadBeingUpdated->id());
@@ -695,6 +696,7 @@ QString ParserEngine::getMessageUrl(const ForumMessage *msg) {
 }
 
 QString ParserEngine::getLoginUrl() {
+    Q_ASSERT(parser());
     return parser()->forumUrlWithoutEnd() + parser()->login_path;
 }
 

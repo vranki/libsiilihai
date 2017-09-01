@@ -7,7 +7,6 @@ SubscriptionManagement::SubscriptionManagement(QObject *parent, SiilihaiProtocol
 {
     Q_ASSERT(m_settings);
     Q_ASSERT(m_protocol);
-    connect(m_protocol, SIGNAL(listForumsFinished(QList <ForumSubscription*>)), this, SLOT(listForumsFinished(QList <ForumSubscription*>)));
     connect(m_protocol, SIGNAL(subscribeForumFinished(ForumSubscription*, bool)), this, SLOT(subscribeForumFinished(ForumSubscription*,bool)));
     connect(&m_probe, SIGNAL(probeResults(ForumSubscription*)), this, SLOT(probeResults(ForumSubscription*)));
 }
@@ -55,6 +54,7 @@ void SubscriptionManagement::setForumFilter(QString forumFilter)
 
 // Receiver owns the forums!
 void SubscriptionManagement::listForumsFinished(QList <ForumSubscription*> forums) {
+    disconnect(m_protocol, &SiilihaiProtocol::listForumsFinished, this, &SubscriptionManagement::listForumsFinished);
     qDeleteAll(m_forumList);
     m_forumList.clear();
     m_forumList.append(forums);
@@ -64,6 +64,9 @@ void SubscriptionManagement::listForumsFinished(QList <ForumSubscription*> forum
 void SubscriptionManagement::listForums()
 {
     resetNewForum();
+    // This signal can be emitted by other places, so listen to it only
+    // when we're listing really.
+    connect(m_protocol, &SiilihaiProtocol::listForumsFinished, this, &SubscriptionManagement::listForumsFinished);
     m_protocol->listForums();
 }
 
