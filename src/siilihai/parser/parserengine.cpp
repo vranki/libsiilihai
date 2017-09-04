@@ -78,7 +78,7 @@ void ParserEngine::setParser(ForumParser *fp) {
             setState(UES_IDLE); // We have both parser & sub
         }
     } else { // No parser
-        codec = 0;
+        codec = nullptr;
         if(!updatingParser)
             setState(UES_ENGINE_NOT_READY);
     }

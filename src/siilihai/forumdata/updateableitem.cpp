@@ -1,9 +1,8 @@
 #include "updateableitem.h"
 
-UpdateableItem::UpdateableItem()
-{
-    _needsToBeUpdated = false;
-}
+UpdateableItem::UpdateableItem() :
+_needsToBeUpdated(false)
+{ }
 
 void UpdateableItem::markToBeUpdated(bool toBe) {
     _needsToBeUpdated = toBe;

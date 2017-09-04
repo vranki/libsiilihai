@@ -40,10 +40,12 @@ void ParserManager::storeOrUpdateParser(ForumParser* parser) {
     Q_ASSERT(newParser->id() == parser->id());
     parserDatabase->insert(newParser->id(), newParser);
     emit parserUpdated(newParser);
+    getNextParser();
 }
 
 void ParserManager::offlineChanged(bool newOffline)
 {
+    qDebug() << Q_FUNC_INFO << newOffline;
     if(!newOffline) {
         getNextParser();
     }

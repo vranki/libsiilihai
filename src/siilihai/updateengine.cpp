@@ -29,20 +29,20 @@
 static const QString stateNames[] = {"Unknown", "Missing Parser", "Idle", "Updating", "Error", "Updating parser" };
 
 UpdateEngine::UpdateEngine(QObject *parent, ForumDatabase *fd) :
-    QObject(parent), fdb(fd)
-{
-    updateAll = false;
-    forceUpdate = false;
-    fsubscription = 0;
-    currentState = UES_ENGINE_NOT_READY;
-    requestingCredentials = false;
-    updateWhenEngineReady = false;
-    updateOnlyThread = false;
-    updateCanceled = true;
-    threadBeingUpdated = 0;
-    groupBeingUpdated = 0;
-    authenticationRetries = 0;
-}
+    QObject(parent)
+  , fdb(fd)
+  , updateAll(false)
+  , forceUpdate(false)
+  , fsubscription(nullptr)
+  , currentState(UES_ENGINE_NOT_READY)
+  , requestingCredentials(false)
+  , updateWhenEngineReady(false)
+  , updateOnlyThread(false)
+  , updateCanceled(true)
+  , threadBeingUpdated(nullptr)
+  , groupBeingUpdated(nullptr)
+  , authenticationRetries(0)
+{ }
 
 UpdateEngine::~UpdateEngine() {
     if(subscription())
@@ -51,12 +51,13 @@ UpdateEngine::~UpdateEngine() {
 
 UpdateEngine *UpdateEngine::newForSubscription(ForumSubscription *fs, ForumDatabase *fdb, ParserManager *pm)
 {
-    UpdateEngine *ue = 0;
+    UpdateEngine *ue = nullptr;
 
     if(fs->provider() == ForumSubscription::FP_PARSER) {
         ForumSubscriptionParsed *newFsParsed = qobject_cast<ForumSubscriptionParsed*>(fs);
         ParserEngine *pe = new ParserEngine(fdb, fdb, pm);
         ue = pe;
+        ue->setSubscription(newFsParsed);
         pe->setParser(pm->getParser(newFsParsed->parserId()));
         if(!pe->parser()) pe->setParser(pm->getParser(newFsParsed->parserId())); // Load the (possibly old) parser
     } else if(fs->provider() == ForumSubscription::FP_TAPATALK) {
@@ -514,7 +515,9 @@ void UpdateEngine::updateForum(bool force) {
     subscription()->clearErrors();
     if(state()==UES_ENGINE_NOT_READY) {
         updateWhenEngineReady = true;
+        qDebug() << Q_FUNC_INFO << "Engine not ready for" << fsubscription->alias();
     } else {
+        qDebug() << Q_FUNC_INFO << "Updating" << fsubscription->alias();
         setState(UES_UPDATING);
     }
 }

@@ -488,7 +488,6 @@ void ClientLogic::createEngineForSubscription(ForumSubscription *newFs) {
     Q_ASSERT(!newFs->isTemp());
     if(engines.contains(newFs)) return;
     UpdateEngine *ue = UpdateEngine::newForSubscription(newFs, &m_forumDatabase, m_parserManager);
-    Q_ASSERT(ue);
     Q_ASSERT(!engines.contains(newFs));
     engines.insert(newFs, ue);
     ue->setSubscription(newFs);
@@ -532,9 +531,9 @@ void ClientLogic::forumUpdated(ForumSubscription* forum) {
             nextSub->setScheduledForUpdate(false);
             Q_ASSERT(!nextSub->beingSynced());
             Q_ASSERT(!nextSub->scheduledForSync());
+            qDebug() << Q_FUNC_INFO << "Now updating " << nextSub->alias() << busyForums;
             nextSub->updateEngine()->updateForum();
             busyForums++;
-            qDebug() << Q_FUNC_INFO << "Now updating " << nextSub->alias() << busyForums;
         }
     }
 }
