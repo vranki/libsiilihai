@@ -115,7 +115,7 @@ signals:
 protected:
     virtual void changeState(siilihai_states newState);
     virtual void closeUi()=0;
-    virtual void showMainWindow()=0;
+    virtual void showMainWindow() {}
     virtual bool noAccount(); // True if accountless usage
     SiilihaiSettings *m_settings;
     ForumDatabaseXml m_forumDatabase;

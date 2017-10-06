@@ -159,7 +159,6 @@ void SiilihaiProtocol::listForums() {
 
 void SiilihaiProtocol::replyListForums(QNetworkReply *reply) {
     QString docs = QString().fromUtf8(reply->readAll());
-    qDebug() << docs;
     QList<ForumSubscription*> forums;
     if (reply->error() == QNetworkReply::NoError) {
         QDomDocument doc;

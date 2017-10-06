@@ -4,6 +4,7 @@
 #include <QNetworkProxy>
 #include <QTimer>
 #include <QNetworkConfigurationManager>
+#include <QProcessEnvironment>
 #include "parser/parsermanager.h"
 #include "forumdata/forumsubscription.h"
 #include "forumdata/forumgroup.h"
@@ -82,7 +83,7 @@ void ClientLogic::launchSiilihai() {
     emit settingsChangedSignal(m_settings);
 
     // Create SM only after creating settings, as it needs it.
-    m_subscriptionManagement = new SubscriptionManagement(0, &m_protocol, m_settings);
+    m_subscriptionManagement = new SubscriptionManagement(nullptr, &m_protocol, m_settings);
     connect(m_subscriptionManagement, SIGNAL(forumUnsubscribed(ForumSubscription*)), this, SLOT(unsubscribeForum(ForumSubscription*)));
     connect(m_subscriptionManagement, SIGNAL(showError(QString)), this, SLOT(errorDialog(QString)));
     connect(m_subscriptionManagement, SIGNAL(forumAdded(ForumSubscription*)), this, SLOT(forumAdded(ForumSubscription*)));
@@ -111,7 +112,9 @@ void ClientLogic::launchSiilihai() {
     settingsChanged(false);
     connect(&m_syncmaster, SIGNAL(syncFinished(bool, QString)), this, SLOT(syncFinished(bool, QString)));
 
-    m_protocol.setBaseURL(m_settings->baseUrl());
+    // Set SIILIHAI_SERVER env variable to override base url
+    QString envBaseUrl = QProcessEnvironment::systemEnvironment().value("SIILIHAI_SERVER");
+    m_protocol.setBaseURL(envBaseUrl.isEmpty() ? m_settings->baseUrl() : envBaseUrl);
 
     QString databaseFileName = getDataFilePath() + "/siilihai_forums.xml";
 
@@ -303,7 +306,10 @@ void ClientLogic::changeState(siilihai_states newState) {
     if(newState==SH_OFFLINE) {
         qDebug() << Q_FUNC_INFO << "Offline";
         networkSession->close();
-        Q_ASSERT(previousState==SH_LOGIN || previousState==SH_STARTSYNCING || previousState==SH_READY);
+        Q_ASSERT(previousState==SH_LOGIN
+                 || previousState==SH_STARTSYNCING
+                 || previousState==SH_READY
+                 || previousState==SH_ENDSYNC);
         if(previousState==SH_STARTSYNCING) m_syncmaster.cancel();
     } else if(newState==SH_LOGIN) {
         qDebug() << Q_FUNC_INFO << "Login";
