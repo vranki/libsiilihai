@@ -420,8 +420,8 @@ void UpdateEngine::setState(UpdateEngineState newState) {
     currentState = newState;
 
     // Caution: subscription may be null!
-    if(subscription())
-        qDebug() << Q_FUNC_INFO << subscription()->alias() << stateNames[oldState] << " -> " << stateNames[newState];
+    //if(subscription())
+    //    qDebug() << Q_FUNC_INFO << subscription()->alias() << stateNames[oldState] << " -> " << stateNames[newState];
     //
     if(newState==UES_UPDATING) {
         Q_ASSERT(oldState==UES_IDLE || oldState==UES_ERROR);

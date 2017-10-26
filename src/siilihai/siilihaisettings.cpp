@@ -129,6 +129,18 @@ void SiilihaiSettings::setUpdateFailed(int fid, bool failed)
     setValue(key, failed ? "true" : "false");
 }
 
+bool SiilihaiSettings::cleanShutdown() const
+{
+    return value("clean_shutdown", false).toBool();
+}
+
+void SiilihaiSettings::setCleanShutdown(bool cleanShutdown)
+{
+    setValue("clean_shutdown", cleanShutdown);
+    sync();
+    emit changed();
+}
+
 void SiilihaiSettings::setThreadsPerGroup(int tpg)
 {
     setValue("preferences/threads_per_group", tpg);

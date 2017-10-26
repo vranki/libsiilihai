@@ -37,6 +37,7 @@ class SiilihaiSettings;
 class ClientLogic : public QObject
 {
     Q_OBJECT
+
     Q_PROPERTY(QString statusMessage READ statusMessage WRITE showStatusMessage NOTIFY statusMessageChanged)
     Q_PROPERTY(bool developerMode READ developerMode WRITE setDeveloperMode NOTIFY developerModeChanged)
     Q_PROPERTY(QObject* forumDatabase READ forumDatabase NOTIFY forumDatabaseChanged)
@@ -45,8 +46,11 @@ class ClientLogic : public QObject
     // Display credentials dialog if this is shown
     Q_PROPERTY(CredentialsRequest* currentCredentialsRequest READ currentCredentialsRequest NOTIFY currentCredentialsRequestChanged)
     Q_PROPERTY(bool offline READ offline WRITE setOffline NOTIFY offlineChanged)
+    Q_PROPERTY(SiilihaiState state READ state WRITE setState NOTIFY stateChanged)
+
+    Q_ENUMS(SiilihaiState)
 public:
-    enum siilihai_states {
+    enum SiilihaiState {
         SH_OFFLINE=0,
         SH_LOGIN,
         SH_STARTSYNCING,
@@ -57,7 +61,7 @@ public:
 
     explicit ClientLogic(QObject *parent = 0);
     QString statusMessage() const;
-    siilihai_states state() const;
+    SiilihaiState state() const;
     Q_INVOKABLE bool developerMode() const;
 
     // Helpers for message posting
@@ -83,7 +87,7 @@ public:
 public slots:
     virtual void launchSiilihai();
     // Call with 0 subscription to update all
-    virtual void updateClicked(ForumSubscription* sub=0, bool force=false);
+    virtual void updateClicked(ForumSubscription* sub=nullptr, bool force=false);
     virtual void haltSiilihai();
     virtual void cancelClicked();
     virtual void syncFinished(bool success, QString message);
@@ -98,6 +102,7 @@ public slots:
     void loginUser(QString user, QString password);
     virtual void loginWizardFinished();
     void setOffline(bool newOffline);
+    virtual void saveData(); // Save settings and forum db
 
 signals:
     void statusMessageChanged(QString message);
@@ -111,9 +116,10 @@ signals:
     void currentCredentialsRequestChanged(CredentialsRequest* currentCredentialsRequest);
     void groupListChanged(ForumSubscription* sub); // Show group subscription dialog or whatever
     void offlineChanged(bool offline);
+    void stateChanged(SiilihaiState state);
 
 protected:
-    virtual void changeState(siilihai_states newState);
+    virtual void setState(SiilihaiState newState);
     virtual void closeUi()=0;
     virtual void showMainWindow() {}
     virtual bool noAccount(); // True if accountless usage
@@ -163,7 +169,7 @@ private:
     int busyForumCount();
     void createEngineForSubscription(ForumSubscription *newFs);
 
-    siilihai_states currentState;
+    SiilihaiState currentState;
     QHash <ForumSubscription*, UpdateEngine*> engines;
     QList<ForumSubscription*> subscriptionsToUpdateLeft;
     QSet<UpdateEngine*> busyUpdateEngines;
@@ -178,6 +184,8 @@ private:
     QTimer statusMsgTimer; // Hides the message after a short delay
     SubscriptionManagement *m_subscriptionManagement;
     bool devMode; // Enables some debugging features on UI etc..
+    SiilihaiState m_state;
 };
+Q_DECLARE_METATYPE(ClientLogic::SiilihaiState)
 
 #endif // CLIENTLOGIC_H

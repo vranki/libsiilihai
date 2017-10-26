@@ -92,8 +92,8 @@ public:
     QString alias() const;
     QString username() const;
     QString password() const;
-    int latestThreads() const;
-    int latestMessages() const;
+    unsigned int latestThreads() const;
+    unsigned int latestMessages() const;
     bool isAuthenticated() const; // True if username & password should be set
     int unreadCount() const;
     bool isTemp() const;

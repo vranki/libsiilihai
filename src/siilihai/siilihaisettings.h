@@ -13,6 +13,7 @@ class SiilihaiSettings : public QSettings
     Q_PROPERTY(int showMoreCount READ showMoreCount WRITE setShowMoreCount NOTIFY changed)
     Q_PROPERTY(bool syncEnabled READ syncEnabled WRITE setSyncEnabled NOTIFY changed)
     Q_PROPERTY(bool noAccount READ noAccount WRITE setNoAccount NOTIFY changed)
+    Q_PROPERTY(bool cleanShutdown READ cleanShutdown WRITE setCleanShutdown NOTIFY changed)
     Q_PROPERTY(QString httpProxy READ httpProxy WRITE setHttpProxy NOTIFY changed)
     Q_PROPERTY(QString username READ username WRITE setUsername NOTIFY changed)
     Q_PROPERTY(QString password READ password WRITE setPassword NOTIFY changed)
@@ -50,6 +51,11 @@ public:
     // Did the last update fail?
     bool updateFailed(int fid);
     void setUpdateFailed(int fid, bool failed);
+    bool cleanShutdown() const;
+
+public slots:
+    void setCleanShutdown(bool cleanShutdown);
+
 signals:
     void changed();
 };

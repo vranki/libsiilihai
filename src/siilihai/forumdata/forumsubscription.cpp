@@ -22,20 +22,27 @@
 
 const QString providerNames[] = {"None", "Parser", "TapaTalk", "Discourse"};
 
-ForumSubscription::ForumSubscription(QObject *parent, bool temp, ForumProvider p) : QObject(parent) {
-    _provider = p;
-    _alias = QString::null;
-    _latestThreads = 0;
-    _latestMessages = 0;
-    _supportsLogin = _authenticated = false;
-    _unreadCount = 0;
-    _username = _password = QString::null;
-    _temp = temp;
-    _groupListChanged = false;
-    _beingUpdated = _beingSynced = _scheduledForUpdate = _scheduledForSync = false;
-    _forumId = 0;
-    _engine = 0;
-
+ForumSubscription::ForumSubscription(QObject *parent, bool temp, ForumProvider p)
+    : QObject(parent)
+    , _engine(nullptr)
+    , _forumId(0)
+    , _alias(QString::null)
+    , _username(QString::null)
+    , _password(QString::null)
+    , _latestThreads(0)
+    , _latestMessages(0)
+    , _authenticated(false)
+    , _supportsLogin(false)
+    , _supportsPosting(false)
+    , _unreadCount(0)
+    , _temp(temp)
+    , _groupListChanged(false)
+    , _scheduledForUpdate(false)
+    , _beingUpdated(false)
+    , _scheduledForSync(false)
+    , _beingSynced(false)
+    , _provider(p)
+{
     connect(this, SIGNAL(groupAdded(ForumGroup*)), this, SIGNAL(groupsChanged()));
     connect(this, SIGNAL(groupRemoved(ForumGroup*)), this, SIGNAL(groupsChanged()));
 }
@@ -98,11 +105,11 @@ QString ForumSubscription::password() const {
     return _password;
 }
 
-int ForumSubscription::latestThreads() const {
+unsigned int ForumSubscription::latestThreads() const {
     return _latestThreads;
 }
 
-int ForumSubscription::latestMessages() const {
+unsigned int ForumSubscription::latestMessages() const {
     return _latestMessages;
 }
 
@@ -189,16 +196,14 @@ void ForumSubscription::setId(int newId)
 }
 
 void ForumSubscription::markRead(bool read) {
-    for(auto group : values()) {
+    for(auto group : values())
         group->markRead(read);
-    }
 }
 
 void ForumSubscription::setBeingUpdated(bool bu) {
     Q_ASSERT(!(_beingSynced && bu));
     Q_ASSERT(!(_scheduledForUpdate && bu));
     _beingUpdated = bu;
-    qDebug() << Q_FUNC_INFO << bu << toString();
     emit changed();
 }
 
@@ -212,7 +217,6 @@ void ForumSubscription::setScheduledForUpdate(bool su) {
     Q_ASSERT(!(_beingUpdated && su));
     Q_ASSERT(!(_scheduledForSync && su));
     _scheduledForUpdate = su;
-    qDebug() << Q_FUNC_INFO << su << toString();
     emit changed();
 }
 
@@ -281,13 +285,13 @@ QDomElement ForumSubscription::serialize(QDomElement &parent, QDomDocument &doc)
 }
 
 ForumSubscription* ForumSubscription::readSubscription(QDomElement &element, QObject *parent) {
-    ForumSubscription *sub = 0;
-    if(element.tagName() != SUB_SUBSCRIPTION) return 0;
+    ForumSubscription *sub = nullptr;
+    if(element.tagName() != SUB_SUBSCRIPTION) return nullptr;
     bool ok = false;
     int provider = QString(element.firstChildElement(SUB_PROVIDER).text()).toInt(&ok);
-    if(!ok || provider <=0) return 0;
-    sub = ForumSubscription::newForProvider((ForumSubscription::ForumProvider) provider, parent, false);
-    if(!sub) return 0;
+    if(!ok || provider <=0) return nullptr;
+    sub = ForumSubscription::newForProvider(static_cast<ForumSubscription::ForumProvider> (provider), parent, false);
+    if(!sub) return nullptr;
     sub->readSubscriptionXml(element);
     return sub;
 }
@@ -303,7 +307,6 @@ void ForumSubscription::readSubscriptionXml(QDomElement &element)
     setAuthenticated(username().length() > 0);
     if(_provider != FP_PARSER) {
         QUrl forumUrl = QUrl(element.firstChildElement(SUB_FORUMURL).text());
-        // Q_ASSERT(forumUrl.isValid());
         setForumUrl(forumUrl);
     }
 }

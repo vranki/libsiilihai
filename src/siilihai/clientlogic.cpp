@@ -20,17 +20,18 @@
 #include "subscriptionmanagement.h"
 
 ClientLogic::ClientLogic(QObject *parent) : QObject(parent)
-  , m_settings(0)
+  , m_settings(nullptr)
   , m_forumDatabase(this)
   , m_syncmaster(this, m_forumDatabase, m_protocol)
-  , m_parserManager(0)
-  , m_currentCredentialsRequest(0)
+  , m_parserManager(nullptr)
+  , m_currentCredentialsRequest(nullptr)
   , currentState(SH_OFFLINE)
-  , m_subscriptionManagement(0) {
-    endSyncDone = false;
-    firstRun = true;
-    dbStored = false;
-    devMode = 0;
+  , m_subscriptionManagement(nullptr)
+  , endSyncDone(false)
+  , firstRun(true)
+  , dbStored(false)
+  , devMode(false)
+{
     srand ( time(NULL) );
     QNetworkConfigurationManager ncm;
     QNetworkConfiguration config = ncm.defaultConfiguration();
@@ -56,7 +57,7 @@ QString ClientLogic::statusMessage() const
     return statusMsg;
 }
 
-ClientLogic::siilihai_states ClientLogic::state() const {
+ClientLogic::SiilihaiState ClientLogic::state() const {
     return currentState;
 }
 
@@ -133,8 +134,13 @@ void ClientLogic::launchSiilihai() {
                             "See console for details.");
             }
         }
+        if(!m_settings->cleanShutdown()) {
+            errorDialog("Siilihai was not able to shut down cleanly last time.\n"
+                        "Sorry if it crashed.");
+        }
     }
     m_settings->setDatabaseSchema(m_forumDatabase.schemaVersion());
+    m_settings->setCleanShutdown(false);
     m_settings->sync();
 
     if(networkSession->state() != QNetworkSession::Connected)
@@ -161,13 +167,13 @@ void ClientLogic::haltSiilihai() {
     engines.clear();
     if(usettings.syncEnabled() && !endSyncDone && currentState == SH_READY) {
         qDebug() << "Sync enabled - running end sync";
-        changeState(SH_ENDSYNC);
+        setState(SH_ENDSYNC);
     } else {
         if(currentState != SH_STOREDB && !dbStored) {
-            changeState(SH_STOREDB);
+            setState(SH_STOREDB);
         } else {
             qDebug() << Q_FUNC_INFO << "All done - quitting";
-            m_settings->sync();
+            m_settings->setCleanShutdown(true);
             closeUi();
         }
     }
@@ -237,12 +243,12 @@ void ClientLogic::tryLogin() {
         QTimer::singleShot(1, this, SLOT(accountlessLoginFinished()));
         return;
     }
-    changeState(SH_LOGIN);
+    setState(SH_LOGIN);
     if(networkSession->state() == QNetworkSession::Connected) {
         m_protocol.login(m_settings->username(), m_settings->password());
     } else {
         emit loginFinished(false, "Offline mode", usettings.syncEnabled());
-        changeState(SH_OFFLINE);
+        setState(SH_OFFLINE);
     }
 }
 
@@ -255,12 +261,12 @@ void ClientLogic::loginFinishedSlot(bool success, QString motd, bool sync) {
         usettings.setSyncEnabled(sync);
         m_settings->setSyncEnabled(usettings.syncEnabled());
         m_settings->sync();
-        changeState(usettings.syncEnabled() ? SH_STARTSYNCING : SH_READY);
+        setState(usettings.syncEnabled() ? SH_STARTSYNCING : SH_READY);
     } else {
         errorDialog("Login failed. \n" + motd);
         // @todo this happens also on first run if logging in with wrong u/p.
         // using login as network test sucks anyway.
-        changeState(SH_OFFLINE);
+        setState(SH_OFFLINE);
     }
 
     if(!success && !m_settings->username().isEmpty()) {
@@ -268,7 +274,7 @@ void ClientLogic::loginFinishedSlot(bool success, QString motd, bool sync) {
         // This happens when network is down & can't login.
         // DON'T show login wizard.
         // emit showLoginWizard(); NO
-        changeState(SH_OFFLINE);
+        setState(SH_OFFLINE);
     }
 
     // And then emit loginFinished to show the error..
@@ -282,20 +288,20 @@ void ClientLogic::clearStatusMessage() {
 void ClientLogic::protocolError(QString message)
 {
     errorDialog(message);
-    changeState(SH_OFFLINE);
+    setState(SH_OFFLINE);
 }
 
 SiilihaiSettings *ClientLogic::createSettings() {
     return new SiilihaiSettings(getDataFilePath() + "/siilihai_settings.ini", QSettings::IniFormat, this);
 }
 
-void ClientLogic::changeState(siilihai_states newState) {
+void ClientLogic::setState(SiilihaiState newState) {
     if(newState == currentState) {
         qDebug() << Q_FUNC_INFO << "Already in state " << newState;
         return;
     }
 
-    siilihai_states previousState = currentState;
+    SiilihaiState previousState = currentState;
     currentState = newState;
 
     if(previousState==SH_OFFLINE || newState==SH_OFFLINE) {
@@ -331,9 +337,7 @@ void ClientLogic::changeState(siilihai_states newState) {
         m_syncmaster.endSync();
     } else if(newState==SH_STOREDB) {
         qDebug() << Q_FUNC_INFO << "Storedb";
-        if(!m_forumDatabase.storeDatabase()) {
-            errorDialog("Failed to save forum database file");
-        }
+        saveData();
         dbStored = true;
     } else if(newState==SH_READY) {
         qDebug() << Q_FUNC_INFO << "Ready";
@@ -344,6 +348,7 @@ void ClientLogic::changeState(siilihai_states newState) {
             subscribeForum();
         }
     }
+    emit stateChanged(currentState);
 }
 
 void ClientLogic::updateForum(ForumSubscription *sub) {
@@ -432,7 +437,7 @@ void ClientLogic::syncFinished(bool success, QString message){
         while(!subscriptionsNotUpdated.isEmpty()) {
             updateForum(*subscriptionsNotUpdated.begin());
         }
-        changeState(SH_READY);
+        setState(SH_READY);
     } else if(currentState == SH_ENDSYNC) {
         endSyncDone = true;
         haltSiilihai();
@@ -521,7 +526,6 @@ void ClientLogic::subscriptionDeleted(QObject* subobj) {
 }
 
 void ClientLogic::forumUpdated(ForumSubscription* forum) {
-    qDebug() << Q_FUNC_INFO << forum->alias();
     if(forum->errorList().size()) {
         m_settings->setUpdateFailed(forum->id(), true);
     }
@@ -633,7 +637,7 @@ void ClientLogic::loginWizardFinished() {
         showMainWindow();
         settingsChanged(false);
         // Login finished should be already done here..
-        if(noAccount()) changeState(SH_READY);
+        if(noAccount()) setState(SH_READY);
     }
 }
 
@@ -644,11 +648,20 @@ void ClientLogic::setOffline(bool newOffline)
 
     qDebug() << Q_FUNC_INFO << newOffline;
     if(newOffline && currentState == SH_READY) {
-        changeState(SH_OFFLINE);
+        setState(SH_OFFLINE);
     } else if(!newOffline && currentState == SH_OFFLINE) {
         tryLogin();
     }
     emit offlineChanged(newOffline);
+}
+
+void ClientLogic::saveData()
+{
+    qDebug() << Q_FUNC_INFO;
+    if (m_settings) m_settings->sync();
+    if(!m_forumDatabase.storeDatabase()) {
+        errorDialog("Failed to save forum database file");
+    }
 }
 
 bool ClientLogic::noAccount() {
