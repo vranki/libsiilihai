@@ -73,6 +73,8 @@ public:
 
     virtual void probeUrl(QUrl url);
     virtual QString engineTypeName();
+
+    qint64 parserAge() const; // Age in days (or 999 if invalid)
 public slots:
     virtual void cancelOperation();
     virtual void credentialsEntered(CredentialsRequest* cr);

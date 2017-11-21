@@ -146,7 +146,7 @@ void ForumGroup::emitUnreadCountChanged() {
     emit unreadCountChanged();
 }
 
-void ForumGroup::incrementUnreadCount(int urc) {
+void ForumGroup::incrementUnreadCount(const int &urc) {
     Q_ASSERT(isSubscribed() || urc==0);
     ForumDataItem::incrementUnreadCount(urc);
 }

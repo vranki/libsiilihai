@@ -71,16 +71,28 @@ ParserEngine::~ParserEngine() {
 
 void ParserEngine::setParser(ForumParser *fp) {
     currentParser = fp;
-    if(fp) {
+
+    bool updateParser = false;
+
+    if(!currentParser) {
+        updateParser = true;
+        codec = nullptr;
+    } else {
         codec = QTextCodec::codecForName(fp->charset.toUtf8());
         if(!codec) codec = QTextCodec::codecForName("utf-8"); // Just to avoid crash in some weird situation
-        if(subscription() && !updatingParser && state()==UES_ENGINE_NOT_READY)  {
-            setState(UES_IDLE); // We have both parser & sub
+
+        if(parserAge() > 2) {
+            qDebug() << Q_FUNC_INFO << "Parser is "
+                     << parserAge() << "days old, updating it!";
+            updateParser = true;
         }
-    } else { // No parser
-        codec = nullptr;
-        if(!updatingParser)
-            setState(UES_ENGINE_NOT_READY);
+    }
+    if(updateParser && parserManager) {
+        parserManager->updateParser(subscriptionParsed()->parserId());
+        updatingParser = true;
+        setState(UES_ENGINE_NOT_READY);
+    } else if (currentParser) {
+        setState(UES_IDLE);
     }
 }
 
@@ -89,24 +101,6 @@ void ParserEngine::setSubscription(ForumSubscription *fs) {
     UpdateEngine::setSubscription(fs);
     if(!fs) return;
     subscriptionParsed()->setParserEngine(this);
-
-    bool updateParser = false;
-
-    if(!currentParser) {
-        updateParser = true;
-    } else {
-        QDate updateDate = QDate::currentDate();
-        updateDate.addDays(-2); // Update if older than 2 days
-
-        if(currentParser->update_date < updateDate) updateParser = true;
-    }
-    if(updateParser && parserManager) {
-        parserManager->updateParser(subscriptionParsed()->parserId());
-        updatingParser = true;
-        setState(UES_ENGINE_NOT_READY);
-    } else {
-        setState(UES_IDLE);
-    }
 }
 
 void ParserEngine::setPatternMatcher(PatternMatcher *newPm) {
@@ -128,7 +122,7 @@ void ParserEngine::parserUpdated(ForumParser *p) {
 void ParserEngine::updateParserIfError(UpdateEngine *engine, UpdateEngine::UpdateEngineState newState, UpdateEngine::UpdateEngineState oldState) {
     Q_UNUSED(oldState);
     Q_UNUSED(engine);
-    if(newState == UES_ERROR && parserManager) {
+    if(newState == UES_ERROR && parserManager && parserAge() > 0) {
         parserManager->updateParser(subscriptionParsed()->parserId());
     }
 }
@@ -276,6 +270,12 @@ void ParserEngine::probeUrl(QUrl url)
 QString ParserEngine::engineTypeName()
 {
     return "Parser";
+}
+
+qint64 ParserEngine::parserAge() const
+{
+    if(!currentParser->update_date.isValid()) return 999;
+    return currentParser->update_date.daysTo(QDate::currentDate());
 }
 
 void ParserEngine::networkReply(QNetworkReply *reply) {

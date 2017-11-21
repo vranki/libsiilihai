@@ -49,7 +49,7 @@ public:
     bool hasChanged() const;
     bool isTemp();
     virtual void markToBeUpdated(bool toBe=true);
-    virtual void incrementUnreadCount(int urc);
+    virtual void incrementUnreadCount(const int &urc);
     QString hierarchy() const;
     QList<QObject*> threads() const;
 
@@ -74,7 +74,8 @@ protected:
     virtual void emitChanged();
     virtual void emitUnreadCountChanged();
 private:
-    Q_DISABLE_COPY(ForumGroup);
+    Q_DISABLE_COPY(ForumGroup)
+
     ForumSubscription *_subscription;
     QString _lastchange;
     QString _hierarchy;

@@ -38,6 +38,7 @@ class ForumThread : public ForumDataItem, public QMap<QString, ForumMessage*> {
     Q_PROPERTY(int unreadCount READ unreadCount() NOTIFY unreadCountChanged)
     Q_PROPERTY(bool hasMoreMessages READ hasMoreMessages() NOTIFY changed)
     Q_PROPERTY(QList<QObject*> messages READ messages NOTIFY messagesChanged)
+    Q_PROPERTY(int ordernum READ ordernum WRITE setOrdernum NOTIFY changed)
 
 public:
     ForumThread(QObject *parent, bool temp=true);
