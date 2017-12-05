@@ -324,6 +324,14 @@ void SyncMaster::downsyncFinishedForForum(ForumSubscription *fs)
     Q_ASSERT(dbSubscription);
     Q_ASSERT(!dbSubscription->scheduledForSync());
     dbSubscription->setBeingSynced(false);
+    // Fix any possible sync errors:
+    for(ForumGroup *grp : dbSubscription->values())
+        for(ForumThread *thr : grp->values())
+            if(thr->isEmpty()) {
+                qDebug() << Q_FUNC_INFO << "Thread " << thr->toString()
+                         << "contains no messages - marking to be updated";
+                thr->markToBeUpdated();
+            }
     emit syncFinishedFor(dbSubscription);
 }
 

@@ -5,8 +5,12 @@
 #include "messageformatting.h"
 
 ForumProbe::ForumProbe(QObject *parent, SiilihaiProtocol *proto) :
-    QObject(parent), m_protocol(proto), currentEngine(0), probedSub(0) {
-    QObject::connect(&nam, SIGNAL(finished(QNetworkReply*)), this, SLOT(finishedSlot(QNetworkReply*)));
+    QObject(parent)
+  , m_protocol(proto)
+  , currentEngine(nullptr)
+  , probedSub(nullptr) {
+    QObject::connect(&nam, SIGNAL(finished(QNetworkReply*)),
+                     this, SLOT(finishedSlot(QNetworkReply*)));
 }
 
 void ForumProbe::probeUrl(QUrl urlToProbe, bool noServer) {
@@ -16,10 +20,10 @@ void ForumProbe::probeUrl(QUrl urlToProbe, bool noServer) {
     url = urlToProbe;
     if(probedSub) {
         probedSub->deleteLater();
-        probedSub = 0;
+        probedSub = nullptr;
     }
     if(noServer) {
-        forumGot(0); // Skip server
+        forumGot(nullptr); // Skip server
     } else {
         connect(m_protocol, SIGNAL(forumGot(ForumSubscription*)), this, SLOT(forumGot(ForumSubscription*)));
         m_protocol->getForum(url);
@@ -32,10 +36,10 @@ void ForumProbe::probeUrl(int id, bool noServer) {
     Q_ASSERT(id > 0);
     if(probedSub) {
         probedSub->deleteLater();
-        probedSub = 0;
+        probedSub = nullptr;
     }
     if(noServer) {
-        forumGot(0); // Skip server
+        forumGot(nullptr); // Skip server
     } else {
         connect(m_protocol, SIGNAL(forumGot(ForumSubscription*)), this, SLOT(forumGot(ForumSubscription*)));
         m_protocol->getForum(id);
@@ -72,7 +76,7 @@ void ForumProbe::engineProbeResults(ForumSubscription *sub) {
         if(typesProbed < FORUM_TYPE_COUNT) {
             probeNextType();
         } else {
-            emit probeResults(0); // Nope, can't find anything valid
+            emit probeResults(nullptr); // Nope, can't find anything valid
         }
     }
 }
@@ -135,7 +139,7 @@ void ForumProbe::finishedSlot(QNetworkReply *reply) {
         Q_ASSERT(probedSub->provider() != ForumSubscription::FP_NONE);
         emit probeResults(probedSub);
     } else {
-        emit probeResults(0);
+        emit probeResults(nullptr);
     }
 
     reply->deleteLater();

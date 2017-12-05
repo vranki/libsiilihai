@@ -27,6 +27,7 @@ class SubscriptionManagement : public QObject
     Q_PROPERTY(QList<QObject*> forumList READ forumList NOTIFY forumListChanged)
     Q_PROPERTY(QString forumFilter READ forumFilter WRITE setForumFilter NOTIFY forumFilterChanged)
     Q_PROPERTY(ForumSubscription* newForum READ newForum NOTIFY newForumChanged)
+    Q_PROPERTY(bool probeInProgress READ probeInProgress NOTIFY probeInProgressChanged)
 
 public:
     explicit SubscriptionManagement(QObject *parent, SiilihaiProtocol *protocol, SiilihaiSettings *settings);
@@ -43,6 +44,7 @@ public:
     QList<QObject*> forumList();
     QString forumFilter() const;
     ForumSubscription* newForum() const;
+    bool probeInProgress() const;
 
 public slots:
     void setForumFilter(QString forumFilter);
@@ -54,6 +56,7 @@ signals:
     void forumFilterChanged(QString forumFilter);
     void forumAdded(ForumSubscription *fs); // To clientlogic
     void newForumChanged(ForumSubscription* newForum);
+    void probeInProgressChanged(bool probeInProgress);
 
 private slots:
     void listForumsFinished(QList <ForumSubscription*>);
@@ -62,13 +65,13 @@ private slots:
     void newForumAdded(ForumSubscription *sub);
 
 private:
-
     SiilihaiProtocol *m_protocol;
     QList<ForumSubscription*> m_forumList;
     ForumSubscription *m_newForum;
     ForumProbe m_probe;
     QString m_forumFilter;
     SiilihaiSettings *m_settings;
+    bool m_probeInProgress;
 };
 
 #endif // SUBSCRIPTIONMANAGEMENT_H

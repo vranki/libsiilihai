@@ -3,7 +3,12 @@
 #include "siilihaisettings.h"
 
 SubscriptionManagement::SubscriptionManagement(QObject *parent, SiilihaiProtocol *protocol, SiilihaiSettings *settings)
-    : QObject(parent), m_protocol(protocol), m_newForum(0), m_probe(0, m_protocol), m_settings(settings)
+    : QObject(parent)
+    , m_protocol(protocol)
+    , m_newForum(nullptr)
+    , m_probe(nullptr, m_protocol)
+    , m_settings(settings)
+    , m_probeInProgress(false)
 {
     Q_ASSERT(m_settings);
     Q_ASSERT(m_protocol);
@@ -42,6 +47,11 @@ ForumSubscription *SubscriptionManagement::newForum() const
     return m_newForum;
 }
 
+bool SubscriptionManagement::probeInProgress() const
+{
+    return m_probeInProgress;
+}
+
 void SubscriptionManagement::setForumFilter(QString forumFilter)
 {
     if (m_forumFilter == forumFilter)
@@ -77,11 +87,19 @@ void SubscriptionManagement::unsubscribeForum(ForumSubscription *fs)
 
 void SubscriptionManagement::getForum(int id)
 {
+    Q_ASSERT(!m_probeInProgress);
+    m_probeInProgress = true;
+    emit probeInProgressChanged(m_probeInProgress);
+
     m_probe.probeUrl(id);
 }
 
 void SubscriptionManagement::getForum(QUrl url)
 {
+    Q_ASSERT(!m_probeInProgress);
+    m_probeInProgress = true;
+    emit probeInProgressChanged(m_probeInProgress);
+
     m_probe.probeUrl(url);
 }
 
@@ -102,6 +120,10 @@ void SubscriptionManagement::subscribeThisForum(QString user, QString pass)
 
 void SubscriptionManagement::resetNewForum()
 {
+    if(m_probeInProgress) {
+        m_probeInProgress = false;
+        emit probeInProgressChanged(m_probeInProgress);
+    }
     if(m_newForum) {
         m_newForum->deleteLater();
         m_newForum = nullptr;
@@ -122,6 +144,8 @@ void SubscriptionManagement::subscribeForumFinished(ForumSubscription *sub, bool
 }
 
 void SubscriptionManagement::probeResults(ForumSubscription *probedSub) {
+    m_probeInProgress = false;
+    emit probeInProgressChanged(m_probeInProgress);
     if(!probedSub) {
         resetNewForum();
         emit showError("Sorry, no supported forum found at this URL");
@@ -143,8 +167,8 @@ void SubscriptionManagement::newForumAdded(ForumSubscription *sub) {
     if(sub) {
         Q_ASSERT(sub->id());
         m_newForum->copyFrom(sub);
-        emit newForumChanged(m_newForum);
     } else {
         emit showError("Can't subscibe this forum. Check url!");
     }
+    emit newForumChanged(m_newForum);
 }

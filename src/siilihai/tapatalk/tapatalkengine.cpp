@@ -16,11 +16,9 @@
 
 TapaTalkEngine::TapaTalkEngine(QObject *parent, ForumDatabase *fd) :
     UpdateEngine(parent, fd)
+  , loggedIn(false)
 {
     connect(&nam, SIGNAL(finished(QNetworkReply*)), this, SLOT(networkReply(QNetworkReply*)), Qt::UniqueConnection);
-    groupBeingUpdated = 0;
-    threadBeingUpdated = 0;
-    loggedIn = false;
 }
 
 void TapaTalkEngine::setSubscription(ForumSubscription *fs) {

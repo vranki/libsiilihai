@@ -83,6 +83,9 @@ void DiscourseEngine::replyListGroups(QNetworkReply *reply)
 
 void DiscourseEngine::replyListThreads(QNetworkReply *reply)
 {
+    if(!groupBeingUpdated) { // Old reply?
+        return;
+    }
     if (reply->error() != QNetworkReply::NoError) {
         emit networkFailure("Got error while updating forum");
         return;
@@ -103,7 +106,7 @@ void DiscourseEngine::replyListThreads(QNetworkReply *reply)
         tempThreads.append(newThread);
     }
     ForumGroup *groupJustUpdated = groupBeingUpdated;
-    groupBeingUpdated = 0;
+    groupBeingUpdated = nullptr;
     listThreadsFinished(tempThreads, groupJustUpdated);
 }
 
@@ -143,7 +146,7 @@ void DiscourseEngine::replyListMessages(QNetworkReply *reply)
     }
 
     ForumThread *threadJustUpdated = threadBeingUpdated;
-    threadBeingUpdated = 0;
+    threadBeingUpdated = nullptr;
     listMessagesFinished(tempMessages, threadJustUpdated, false);
 }
 

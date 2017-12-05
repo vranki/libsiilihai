@@ -82,7 +82,9 @@ void ParserEngine::setParser(ForumParser *fp) {
         if(!codec) codec = QTextCodec::codecForName("utf-8"); // Just to avoid crash in some weird situation
 
         if(parserAge() > 2) {
-            qDebug() << Q_FUNC_INFO << "Parser is "
+            qDebug() << Q_FUNC_INFO << "Parser for "
+                     << subscription()->toString()
+                     << "is "
                      << parserAge() << "days old, updating it!";
             updateParser = true;
         }
@@ -144,7 +146,7 @@ void ParserEngine::cancelOperation() {
     if(operationInProgress == PEOUpdateThread) {
         QList<ForumMessage*> emptyList;
         ForumThread *updatedThread = threadBeingUpdated;
-        threadBeingUpdated = 0;
+        threadBeingUpdated = nullptr;
         emit listMessagesFinished(emptyList, updatedThread, false);
     }
 
@@ -282,8 +284,16 @@ void ParserEngine::networkReply(QNetworkReply *reply) {
     int operationAttribute = reply->request().attribute(QNetworkRequest::User).toInt();
     int forumId = reply->request().attribute(FORUMID_ATTRIBUTE).toInt();
     if(forumId != subscription()->id()) return;
+    qDebug( ) << Q_FUNC_INFO << forumId << operationAttribute;
     if(!operationAttribute) {
         qDebug( ) << Q_FUNC_INFO << "Reply " << operationAttribute << " not for me";
+        return;
+    }
+    if(state() != UES_UPDATING && !parserMakerMode()) {
+        qDebug( ) << Q_FUNC_INFO
+                  << "Parser" << subscription()->toString()
+                  << "in state" << stateName(state())
+                  << " - ignoring reply!";
         return;
     }
     if(waitingForAuthentication) {
@@ -456,8 +466,11 @@ void ParserEngine::listThreadsOnNextPage() {
 
 void ParserEngine::listThreadsReply(QNetworkReply *reply) {
     if(operationInProgress == PEONoOp) return;
+    if(!groupBeingUpdated) {
+        qDebug() << Q_FUNC_INFO << "RX list threads reply, but not updating a group??";
+        return; // Old reply after cancel?
+    }
     Q_ASSERT(groupBeingUpdated);
-    Q_ASSERT(!threadBeingUpdated);
     Q_ASSERT(operationInProgress == PEOUpdateGroup);
     Q_ASSERT(reply->request().attribute(QNetworkRequest::User).toInt()==PEOUpdateGroup);
     if (reply->error() != QNetworkReply::NoError) {
@@ -657,7 +670,7 @@ void ParserEngine::performListMessages(QString &html) {
     if(finished) {
         operationInProgress = PEONoOp;
         ForumThread *threadUpdated = threadBeingUpdated;
-        threadBeingUpdated = 0;
+        threadBeingUpdated = nullptr;
         emit listMessagesFinished(foundMessages, threadUpdated, moreMessagesAvailable);
         qDeleteAll(foundMessages);
         foundMessages.clear();
@@ -729,8 +742,7 @@ void ParserEngine::setGroup(ForumGroup *g) {
     groupBeingUpdated = g;
 }
 
-void ParserEngine::setThread(ForumThread *t)
-{
+void ParserEngine::setThread(ForumThread *t) {
     threadBeingUpdated = t;
 }
 

@@ -70,6 +70,11 @@ bool ForumDatabaseXml::openDatabase(QIODevice *source, bool loadContent) {
                                     sub->incrementUnreadCount(1);
                                 }
                             }
+                            if(thr->isEmpty()) {
+                                qDebug() << Q_FUNC_INFO << "Thread " << thr->toString()
+                                         << "contains no messages - marking to be updated";
+                                thr->markToBeUpdated();
+                            }
                         }
                     }
                 }

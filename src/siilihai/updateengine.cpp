@@ -110,7 +110,6 @@ void UpdateEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups, ForumSubsc
     Q_ASSERT(!threadBeingUpdated);
 
     bool dbGroupsWasEmpty = fsubscription->isEmpty();
-    fsubscription->markToBeUpdated(false);
     if (tempGroups.size() == 0 && fsubscription->size() > 0) {
         networkFailure("Updating group list for " + subscription()->alias()
                        + " failed. \nCheck your network connection.");
@@ -178,6 +177,7 @@ void UpdateEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups, ForumSubsc
     if (updateAll) {
         updateNextChangedGroup();
     } else {
+        fsubscription->markToBeUpdated(false);
         setState(UES_IDLE);
     }
     if (groupsChanged && dbGroupsWasEmpty) {
@@ -262,7 +262,7 @@ void UpdateEngine::listThreadsFinished(QList<ForumThread*> &tempThreads, ForumGr
         thr->group()->removeThread(thr);
 
     group->markToBeUpdated(false);
-    threadBeingUpdated = 0;
+    threadBeingUpdated = nullptr;
 
     group->threadsChanged();
 
@@ -385,8 +385,8 @@ void UpdateEngine::updateNextChangedThread() {
             thread->setLastPage(0);
         doUpdateThread(thread);
     } else {
-        threadBeingUpdated = 0;
-        groupBeingUpdated = 0;
+        threadBeingUpdated = nullptr;
+        groupBeingUpdated = nullptr;
         updateNextChangedGroup();
     }
     updateCurrentProgress();
@@ -404,8 +404,8 @@ void UpdateEngine::cancelOperation() {
     if(currentState==UES_UPDATING) setState(UES_IDLE);
     if(requestingCredentials) emit loginFinished(subscription(), false);
     requestingCredentials = false;
-    threadBeingUpdated = 0;
-    groupBeingUpdated = 0;
+    threadBeingUpdated = nullptr;
+    groupBeingUpdated = nullptr;
     authenticationRetries = 0;
 }
 
@@ -420,8 +420,8 @@ void UpdateEngine::setState(UpdateEngineState newState) {
     currentState = newState;
 
     // Caution: subscription may be null!
-    //if(subscription())
-    //    qDebug() << Q_FUNC_INFO << subscription()->alias() << stateNames[oldState] << " -> " << stateNames[newState];
+    if(subscription())
+        qDebug() << Q_FUNC_INFO << subscription()->alias() << stateName(oldState) << " -> " << stateName(newState);
     //
     if(newState==UES_UPDATING) {
         Q_ASSERT(oldState==UES_IDLE || oldState==UES_ERROR);
