@@ -47,10 +47,6 @@ public:
     // Sets the forumsubsctiption to be used. Ownership does not change. Set to null for no subscription.
     virtual void setSubscription(ForumSubscription *fs);
 
-
-    void listGroups();
-    void listThreads(ForumGroup *group);
-    void listMessages(ForumThread *thread);
     void loginToForum();
     QString getMessageUrl(const ForumMessage *msg);
     QString getLoginUrl();

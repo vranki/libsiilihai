@@ -43,16 +43,11 @@ void ParserManager::storeOrUpdateParser(ForumParser* parser) {
     getNextParser();
 }
 
-void ParserManager::offlineChanged(bool newOffline)
-{
-    qDebug() << Q_FUNC_INFO << newOffline;
-    if(!newOffline) {
-        getNextParser();
-    }
+void ParserManager::offlineChanged(bool newOffline) {
+    if(!newOffline) getNextParser();
 }
 
-void ParserManager::getNextParser()
-{
+void ParserManager::getNextParser() {
     if(m_parserUpdateQueue.isEmpty()) return;
     updateParser(m_parserUpdateQueue.takeFirst());
 }

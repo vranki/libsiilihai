@@ -15,3 +15,5 @@ target.path = $$[QT_INSTALL_PREFIX]/bin
 INSTALLS += target
 
 CONFIG += c++11
+
+OTHER_FILES += run_tests.sh

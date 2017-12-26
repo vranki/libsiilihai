@@ -29,8 +29,8 @@ ForumSubscription::ForumSubscription(QObject *parent, bool temp, ForumProvider p
     , _alias(QString::null)
     , _username(QString::null)
     , _password(QString::null)
-    , _latestThreads(0)
-    , _latestMessages(0)
+    , _latestThreads(20)
+    , _latestMessages(20)
     , _authenticated(false)
     , _supportsLogin(false)
     , _supportsPosting(false)
@@ -47,7 +47,7 @@ ForumSubscription::ForumSubscription(QObject *parent, bool temp, ForumProvider p
     connect(this, SIGNAL(groupRemoved(ForumGroup*)), this, SIGNAL(groupsChanged()));
 }
 
-void ForumSubscription::copyFrom(ForumSubscription * other) {
+void ForumSubscription::copyFrom(const ForumSubscription * other) {
     setId(other->id());
     setAlias(other->alias());
     setUsername(other->username());

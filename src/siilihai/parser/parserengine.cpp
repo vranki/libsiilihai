@@ -130,8 +130,11 @@ void ParserEngine::updateParserIfError(UpdateEngine *engine, UpdateEngine::Updat
 }
 
 void ParserEngine::cancelOperation() {
-    updateAll = false;
     updateCanceled = true;
+    updateOnlyGroups = false;
+    updateOnlyGroup = false;
+    updateOnlyThread = false;
+
     if(operationInProgress == PEOUpdateForum) {
         QList<ForumGroup*> emptyList;
         emit listGroupsFinished(emptyList, subscription());
@@ -139,7 +142,7 @@ void ParserEngine::cancelOperation() {
     if(operationInProgress == PEOUpdateGroup) {
         QList<ForumThread*> emptyList;
         ForumGroup *updatedGroup = groupBeingUpdated;
-        groupBeingUpdated = 0;
+        groupBeingUpdated = nullptr;
         emit listThreadsFinished(emptyList, updatedGroup);
     }
 
@@ -222,8 +225,10 @@ void ParserEngine::doUpdateGroup(ForumGroup *group) {
     operationInProgress = PEOUpdateGroup;
     groupBeingUpdated = group;
     currentMessagesUrl = QString::null;
+    setState(UpdateEngine::UES_UPDATING);
     if(prepareForUse()) return;
     currentListPage = parser()->thread_list_page_start;
+    // listThreads(groupBeingUpdated);
     listThreadsOnNextPage();
 }
 
@@ -461,6 +466,7 @@ void ParserEngine::listThreadsOnNextPage() {
     QNetworkRequest req;
     req.setUrl(QUrl(urlString));
     setRequestAttributes(req, PEOUpdateGroup);
+    qDebug() << Q_FUNC_INFO << urlString;
     nam->post(req, emptyData);
 }
 
@@ -485,6 +491,8 @@ void ParserEngine::listThreadsReply(QNetworkReply *reply) {
 void ParserEngine::performListThreads(QString &html) {
     // Parser maker may need this
     if(operationInProgress == PEONoOp) operationInProgress = PEOUpdateGroup;
+//    if(groupBeingUpdated->subscription()->latestThreads()==0)
+//        qWarning() << Q_FUNC_INFO << "Warning: subscriptions latest threads is zero! Nothing can be found!";
     QList<ForumThread*> newThreads;
     emit receivedHtml(html);
     patternMatcher->setPattern(parser()->thread_list_pattern);
@@ -518,19 +526,19 @@ void ParserEngine::performListThreads(QString &html) {
         }
         if(threadFound) { // Delete if already known thread
             delete newThread;
-            newThread = 0;
+            newThread = nullptr;
         } else {
             newThreadsFound = true;
             newThread->setOrdernum(foundThreads.size());
             if (foundThreads.size() < subscription()->latestThreads()) {
                 foundThreads.append(newThread);
-                newThread = 0;
+                newThread = nullptr;
             } else {
                 //                qDebug() << "Number of threads exceeding maximum latest threads limit - not adding "
                 //                        << newThread->toString();
                 newThreadsFound = false;
                 delete newThread;
-                newThread = 0;
+                newThread = nullptr;
             }
         }
         Q_ASSERT(!newThread);
@@ -553,7 +561,7 @@ void ParserEngine::performListThreads(QString &html) {
     if (finished) {
         operationInProgress = PEONoOp;
         ForumGroup *updatedGroup = groupBeingUpdated;
-        groupBeingUpdated = 0;
+        groupBeingUpdated = nullptr;
         emit listThreadsFinished(foundThreads, updatedGroup);
         qDeleteAll(foundThreads);
         foundThreads.clear();

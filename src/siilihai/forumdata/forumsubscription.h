@@ -73,7 +73,7 @@ public:
     };
 
     ForumSubscription(QObject *parent, bool temp, ForumProvider p);
-    virtual void copyFrom(ForumSubscription * o);
+    virtual void copyFrom(const ForumSubscription *o);
     virtual ~ForumSubscription();
     virtual bool isSane() const;
     QString toString() const;

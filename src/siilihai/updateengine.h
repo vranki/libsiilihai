@@ -64,9 +64,9 @@ public:
 
     // These are the main update functions called by UI. Call only for IDLE engine.
     virtual void updateGroupList();
-    virtual void updateForum(bool force=false);
-    virtual void updateGroup(ForumGroup *group, bool force=false);
-    virtual void updateThread(ForumThread *thread, bool force=false);
+    virtual void updateForum(bool force=false, bool subscribeNewGroups=false);
+    virtual void updateGroup(ForumGroup *group, bool force=false, bool onlyGroup=false); // onlygroup = only update thread list, no threads
+    virtual void updateThread(ForumThread *thread, bool force=false, bool onlyThread=false); // onlythread = only update this thread, no more
 
     virtual bool supportsPosting(); // Returns true if this engine can post new threads & messages
     virtual QString convertDate(QString &date); // Convert date to human-readable format
@@ -86,7 +86,7 @@ signals:
     // Emitted if initially group list was empty but new groups were found.
     void groupListChanged(ForumSubscription *forum);
     void forumUpdated(ForumSubscription *forum);
-    void statusChanged(ForumSubscription *forum, float progress);
+    void progressReport(ForumSubscription *forum, float progress);
     // void updateFailure(ForumSubscription *forum, QString message); // Non-fatal, causes a error dialog
     void getHttpAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator); // Asynchronous
     void getForumAuthentication(ForumSubscription *fsub); // Asynchronous
@@ -120,9 +120,11 @@ protected:
     virtual QString engineTypeName()=0; // Engine type as human readable
 
 protected:
-    bool updateAll; // Set to false to just get single list
     bool forceUpdate; // Update even if no changes
-    bool updateOnlyThread;
+    bool updateOnlyThread; // Only update one thread
+    bool updateOnlyGroup; // Only list threads in group, don't list messages
+    bool updateOnlyGroups; // Only list groups, don't update them
+    bool m_subscribeNewGroups; // Subscribe to all new found groups (useful for testing)
     bool requestingCredentials;
     bool updateCanceled;
     int authenticationRetries; // How many times authentication has been tried

@@ -5,6 +5,8 @@
 #include "siilihai/siilihaiprotocol.h"
 #include "siilihai/forumprobe.h"
 #include "siilihai/updateengine.h"
+#include "siilihai/parser/parsermanager.h"
+#include "siilihai/parser/forumparser.h"
 
 class ForumSubscription;
 
@@ -15,15 +17,19 @@ public:
     explicit SiilihaiTool(QObject *parent = 0);
     ~SiilihaiTool();
     void setNoServer(bool ns);
+    void setForumId(const int id);
+    void setForumUrl(const QUrl url);
+    bool success();
 signals:
 
 public slots:
     void listForums();
-    void getForum(int id);
-    void probe(QUrl url);
-    void listGroups(QUrl url);
-    void listThreads(QUrl url, QString groupId);
-    void listMessages(QUrl url, QString groupId, QString threadId);
+    void getForum(const int id);
+    void probe();
+    void listGroups();
+    void listThreads(QString groupId);
+    void listMessages(QString groupId, QString threadId);
+    void updateForum();
 
 private slots:
     void listForumsFinished(QList<ForumSubscription*> forums);
@@ -33,12 +39,19 @@ private slots:
     void threadsChanged();
     void messagesChanged();
     void engineStateChanged(UpdateEngine *engine, UpdateEngine::UpdateEngineState newState, UpdateEngine::UpdateEngineState oldState);
+    void parserUpdated(ForumParser *newParser);
+    void progressReport(ForumSubscription *forum, float progress);
+
 
 private:
     void printForum(ForumSubscription *sub);
+    void printForumErrors(ForumSubscription *sub);
+    void copyToCurrentSubscription(const ForumSubscription *tempSub);
+    void performCommand();
 
     SiilihaiProtocol protocol;
     ForumProbe forumProbe;
+    ParserManager parserManager;
     QStringList providers;
     ForumSubscription *m_currentSubscription;
     QString command;
@@ -49,6 +62,9 @@ private:
     ForumGroup *m_groupBeingUpdated;
     QString m_threadId;
     ForumThread *m_threadBeingUpdated;
+    int m_forumId;
+    QUrl m_forumUrl;
+    bool m_success;
 };
 
 #endif // SIILIHAITOOL_H

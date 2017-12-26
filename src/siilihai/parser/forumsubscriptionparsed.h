@@ -29,7 +29,7 @@ public:
     void setParserId(int parserId);
     int parserId() const;
     void setParserEngine(ParserEngine *eng);
-    virtual void copyFrom(ForumSubscription * o);
+    virtual void copyFrom(const ForumSubscription * o);
     ParserEngine *parserEngine() const;
     virtual bool isSane() const;
     virtual QUrl forumUrl() const;

@@ -8,7 +8,9 @@ ForumProbe::ForumProbe(QObject *parent, SiilihaiProtocol *proto) :
     QObject(parent)
   , m_protocol(proto)
   , currentEngine(nullptr)
-  , probedSub(nullptr) {
+  , probedSub(nullptr)
+  , m_isProbing(false)
+{
     QObject::connect(&nam, SIGNAL(finished(QNetworkReply*)),
                      this, SLOT(finishedSlot(QNetworkReply*)));
 }
@@ -25,6 +27,8 @@ void ForumProbe::probeUrl(QUrl urlToProbe, bool noServer) {
     if(noServer) {
         forumGot(nullptr); // Skip server
     } else {
+        m_isProbing = true;
+        emit isProbingChanged(m_isProbing);
         connect(m_protocol, SIGNAL(forumGot(ForumSubscription*)), this, SLOT(forumGot(ForumSubscription*)));
         m_protocol->getForum(url);
     }
@@ -41,9 +45,16 @@ void ForumProbe::probeUrl(int id, bool noServer) {
     if(noServer) {
         forumGot(nullptr); // Skip server
     } else {
+        m_isProbing = true;
+        emit isProbingChanged(m_isProbing);
+
         connect(m_protocol, SIGNAL(forumGot(ForumSubscription*)), this, SLOT(forumGot(ForumSubscription*)));
         m_protocol->getForum(id);
     }
+}
+
+bool ForumProbe::isProbing() const {
+    return m_isProbing;
 }
 
 void ForumProbe::forumGot(ForumSubscription *sub) {
@@ -51,6 +62,8 @@ void ForumProbe::forumGot(ForumSubscription *sub) {
     if(!sub) { // Unknown forum - try to probe for known type
         probeNextType();
     } else { // Forum found from server - just use it
+        m_isProbing = false;
+        emit isProbingChanged(m_isProbing);
         emit probeResults(sub);
     }
 }
@@ -70,12 +83,16 @@ void ForumProbe::engineProbeResults(ForumSubscription *sub) {
             // Dang, we need to figure out a name for the forum
             nam.get(QNetworkRequest(url));
         } else {
+            m_isProbing = false;
+            emit isProbingChanged(m_isProbing);
             emit probeResults(probedSub);
         }
     } else {
         if(typesProbed < FORUM_TYPE_COUNT) {
             probeNextType();
         } else {
+            m_isProbing = false;
+            emit isProbingChanged(m_isProbing);
             emit probeResults(nullptr); // Nope, can't find anything valid
         }
     }
@@ -124,6 +141,9 @@ void ForumProbe::probeNextType()
 // Title reply
 void ForumProbe::finishedSlot(QNetworkReply *reply) {
     Q_ASSERT(probedSub);
+    m_isProbing = false;
+    emit isProbingChanged(m_isProbing);
+
     // no error received?
     if (reply->error() == QNetworkReply::NoError) {
         // Try to get page title

@@ -113,7 +113,7 @@ void DiscourseEngine::replyListThreads(QNetworkReply *reply)
 void DiscourseEngine::replyListMessages(QNetworkReply *reply)
 {
     if (reply->error() != QNetworkReply::NoError) {
-        emit networkFailure("Got error while updating forum");
+        emit networkFailure(reply->errorString());
         return;
     }
     QString docs = QString().fromUtf8(reply->readAll());

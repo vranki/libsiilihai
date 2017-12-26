@@ -43,11 +43,11 @@ void ForumSubscriptionParsed::setParserEngine(ParserEngine *eng) {
     }
 }
 
-void ForumSubscriptionParsed::copyFrom(ForumSubscription * other) {
+void ForumSubscriptionParsed::copyFrom(const ForumSubscription *other) {
     ForumSubscription::copyFrom(other);
-    Q_ASSERT(qobject_cast<ForumSubscriptionParsed*>(other));
-    if(other->provider() == ForumSubscription::FP_PARSER)
-        setParserId(qobject_cast<ForumSubscriptionParsed*>(other)->parserId());
+    const ForumSubscriptionParsed *otherParsed = qobject_cast<ForumSubscriptionParsed const *>(other);
+    Q_ASSERT(otherParsed);
+    setParserId(otherParsed->parserId());
 }
 
 ParserEngine *ForumSubscriptionParsed::parserEngine() const

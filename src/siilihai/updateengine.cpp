@@ -31,13 +31,15 @@ static const QString stateNames[] = {"Unknown", "Missing Parser", "Idle", "Updat
 UpdateEngine::UpdateEngine(QObject *parent, ForumDatabase *fd) :
     QObject(parent)
   , fdb(fd)
-  , updateAll(false)
   , forceUpdate(false)
   , fsubscription(nullptr)
   , currentState(UES_ENGINE_NOT_READY)
   , requestingCredentials(false)
   , updateWhenEngineReady(false)
   , updateOnlyThread(false)
+  , updateOnlyGroup(false)
+  , updateOnlyGroups(false)
+  , m_subscribeNewGroups(false)
   , updateCanceled(true)
   , threadBeingUpdated(nullptr)
   , groupBeingUpdated(nullptr)
@@ -49,8 +51,11 @@ UpdateEngine::~UpdateEngine() {
         subscription()->engineDestroyed();
 }
 
-UpdateEngine *UpdateEngine::newForSubscription(ForumSubscription *fs, ForumDatabase *fdb, ParserManager *pm)
+UpdateEngine *UpdateEngine::newForSubscription(ForumSubscription *fs,
+                                               ForumDatabase *fdb,
+                                               ParserManager *pm)
 {
+    Q_ASSERT(pm);
     UpdateEngine *ue = nullptr;
 
     if(fs->provider() == ForumSubscription::FP_PARSER) {
@@ -59,7 +64,8 @@ UpdateEngine *UpdateEngine::newForSubscription(ForumSubscription *fs, ForumDatab
         ue = pe;
         ue->setSubscription(newFsParsed);
         pe->setParser(pm->getParser(newFsParsed->parserId()));
-        if(!pe->parser()) pe->setParser(pm->getParser(newFsParsed->parserId())); // Load the (possibly old) parser
+        // wat?
+        // if(!pe->parser()) pe->setParser(pm->getParser(newFsParsed->parserId())); // Load the (possibly old) parser
     } else if(fs->provider() == ForumSubscription::FP_TAPATALK) {
         TapaTalkEngine *tte = new TapaTalkEngine(fdb, fdb);
         ue = tte;
@@ -93,8 +99,8 @@ ForumSubscription* UpdateEngine::subscription() const {
 
 void UpdateEngine::subscriptionDeleted() {
     //cancelOperation(); causes trouble
-    disconnect(fsubscription, 0, this, 0);
-    fsubscription = 0;
+    disconnect(fsubscription, nullptr, this, nullptr);
+    fsubscription = nullptr;
     setState(UES_ENGINE_NOT_READY);
 }
 
@@ -110,7 +116,7 @@ void UpdateEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups, ForumSubsc
     Q_ASSERT(!threadBeingUpdated);
 
     bool dbGroupsWasEmpty = fsubscription->isEmpty();
-    if (tempGroups.size() == 0 && fsubscription->size() > 0) {
+    if (tempGroups.isEmpty() && !fsubscription->isEmpty()) {
         networkFailure("Updating group list for " + subscription()->alias()
                        + " failed. \nCheck your network connection.");
         return;
@@ -149,6 +155,8 @@ void UpdateEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups, ForumSubsc
             ForumGroup *newGroup = new ForumGroup(fsubscription, false);
             newGroup->copyFrom(tempGroup);
             newGroup->setChangeset(rand());
+            newGroup->setSubscribed(m_subscribeNewGroups);
+            newGroup->markToBeUpdated(m_subscribeNewGroups);
             // DON'T set lastchange when only updating group list.
             /* Umm, new group is never subscribed & shouldn't be updated
             if(updateAll && newGroup->isSubscribed()) {
@@ -174,7 +182,7 @@ void UpdateEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups, ForumSubsc
         }
     }
 
-    if (updateAll) {
+    if (!updateOnlyGroups) {
         updateNextChangedGroup();
     } else {
         fsubscription->markToBeUpdated(false);
@@ -185,7 +193,6 @@ void UpdateEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups, ForumSubsc
     }
 }
 
-
 void UpdateEngine::listThreadsFinished(QList<ForumThread*> &tempThreads, ForumGroup *group) {
     Q_ASSERT(group);
     // Q_ASSERT(group->isSane()); can be insane in parsermaker
@@ -193,7 +200,6 @@ void UpdateEngine::listThreadsFinished(QList<ForumThread*> &tempThreads, ForumGr
     Q_ASSERT(!groupBeingUpdated);
     Q_ASSERT(!threadBeingUpdated);
     if(updateCanceled) return;
-
     threadsToUpdateQueue.clear();
 
     if(!group->isSubscribed()) { // Unsubscribed while update
@@ -266,7 +272,7 @@ void UpdateEngine::listThreadsFinished(QList<ForumThread*> &tempThreads, ForumGr
 
     group->threadsChanged();
 
-    if(updateAll)
+    if(!updateOnlyGroup)
         updateNextChangedThread();
 }
 
@@ -321,7 +327,7 @@ void UpdateEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages, Foru
     dbThread->commitChanges();
     dbThread->messagesChanged();
     threadBeingUpdated = nullptr;
-    if(updateAll) {
+    if(!updateOnlyThread) {
         updateNextChangedThread();
     } else {
         groupBeingUpdated = nullptr;
@@ -350,14 +356,12 @@ void UpdateEngine::loginFinishedSlot(ForumSubscription *sub, bool success) {
 }
 
 void UpdateEngine::updateNextChangedGroup() {
-    Q_ASSERT(updateAll);
     Q_ASSERT(!subscription()->beingSynced());
     Q_ASSERT(!updateCanceled);
     Q_ASSERT(!threadBeingUpdated);
-    Q_ASSERT(!groupBeingUpdated);
     Q_ASSERT(state() == UES_UPDATING);
 
-    if(!updateOnlyThread) {
+    if(!updateOnlyThread && !updateOnlyGroup) {
         for(ForumGroup *group : subscription()->values()) {
             if(group->needsToBeUpdated() && group->isSubscribed()) {
                 updateGroup(group, forceUpdate);
@@ -366,7 +370,6 @@ void UpdateEngine::updateNextChangedGroup() {
         }
     }
     //  qDebug() << Q_FUNC_INFO << "No more changed groups - end of update.";
-    updateAll = false;
     Q_ASSERT(threadsToUpdateQueue.isEmpty());
     setState(UES_IDLE);
     emit forumUpdated(subscription());
@@ -395,8 +398,10 @@ void UpdateEngine::updateNextChangedThread() {
 void UpdateEngine::cancelOperation() {
     updateCanceled = true;
     if(currentState==UES_IDLE || currentState==UES_ERROR) return;
-    updateAll = false;
-
+    updateOnlyGroups = false;
+    updateOnlyGroup = false;
+    updateOnlyThread = false;
+    m_subscribeNewGroups = false;
     for(ForumGroup *group : subscription()->values())
         group->markToBeUpdated(false);
 
@@ -410,8 +415,12 @@ void UpdateEngine::cancelOperation() {
 }
 
 void UpdateEngine::updateCurrentProgress() {
-    float progress = -1;
-    emit statusChanged(fsubscription, progress);
+    unsigned int groupsUpdated = 0;
+    for(ForumGroup *grp : subscription()->values()) {
+        if(!grp->needsToBeUpdated()) groupsUpdated++;
+    }
+    float progress = groupsUpdated / subscription()->size();
+    emit progressReport(subscription(), progress);
 }
 
 void UpdateEngine::setState(UpdateEngineState newState) {
@@ -500,7 +509,7 @@ bool UpdateEngine::postMessage(ForumGroup *grp, ForumThread *thr, QString subjec
     return false;
 }
 
-void UpdateEngine::updateForum(bool force) {
+void UpdateEngine::updateForum(bool force, bool subscribeNewGroups) {
     Q_ASSERT(fsubscription);
     Q_ASSERT(!fsubscription->beingSynced());
     Q_ASSERT(!fsubscription->scheduledForSync());
@@ -509,8 +518,10 @@ void UpdateEngine::updateForum(bool force) {
 
     forceUpdate = force;
     updateOnlyThread = false;
+    updateOnlyGroup = false;
+    updateOnlyGroups = false; // Update whole forum
     updateCanceled = false;
-    updateAll = true; // Update whole forum
+    m_subscribeNewGroups = subscribeNewGroups;
     authenticationRetries = 0;
     subscription()->clearErrors();
     if(state()==UES_ENGINE_NOT_READY) {
@@ -522,15 +533,20 @@ void UpdateEngine::updateForum(bool force) {
     }
 }
 
-void UpdateEngine::updateGroup(ForumGroup *group, bool force)
+void UpdateEngine::updateGroup(ForumGroup *group, bool force, bool onlyGroup)
 {
     Q_UNUSED(force);
+    Q_ASSERT(group);
+    if(group->subscription()->latestThreads() == 0)
+        qWarning() << Q_FUNC_INFO << "Warning: subscription << " << group->subscription()->alias() << " latest threads is zero! Nothing can be found!";
+
     updateCanceled = false;
+    updateOnlyGroup = onlyGroup;
     doUpdateGroup(group);
 }
 
 
-void UpdateEngine::updateThread(ForumThread *thread, bool force) {
+void UpdateEngine::updateThread(ForumThread *thread, bool force, bool onlyThread) {
     Q_ASSERT(fsubscription);
     Q_ASSERT(thread);
     Q_ASSERT(!thread->group()->subscription()->beingSynced());
@@ -539,9 +555,12 @@ void UpdateEngine::updateThread(ForumThread *thread, bool force) {
     Q_ASSERT(!threadBeingUpdated);
     Q_ASSERT(currentState==UES_IDLE);
 
+    if(thread->group()->subscription()->latestMessages() == 0)
+        qWarning() << Q_FUNC_INFO << "Warning: subscription << " << thread->group()->subscription()->alias() << " latest messages is zero! Nothing can be found!";
     forceUpdate = force;
-    updateAll = true;
-    updateOnlyThread = true;
+    updateOnlyGroups = true;
+    updateOnlyGroup = false;
+    updateOnlyThread = onlyThread;
     updateCanceled = false;
 
     if(force) {
@@ -568,7 +587,8 @@ QString UpdateEngine::stateName(UpdateEngine::UpdateEngineState state)
 }
 
 void UpdateEngine::updateGroupList() {
-    updateAll = false; // Just the group list
+    updateOnlyGroups = true;
+    updateOnlyGroup = false;
     updateOnlyThread = false;
     updateCanceled = false;
     updateWhenEngineReady = true;
@@ -583,6 +603,8 @@ void UpdateEngine::updateGroupList() {
 void UpdateEngine::continueUpdate() {
     if(updateOnlyThread) {
         updateNextChangedThread();
+    } else if (updateOnlyGroup) {
+        // updateNextChangedGroup();
     } else {
         Q_ASSERT(!groupBeingUpdated);
         Q_ASSERT(!threadBeingUpdated);
