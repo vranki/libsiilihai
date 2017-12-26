@@ -2,6 +2,7 @@
 #include <QTimer>
 #include <QCoreApplication>
 #include <QCommandLineParser>
+#include <QDebug>
 #include "siilihaitool.h"
 
 // Output qInfo's in stdout:
