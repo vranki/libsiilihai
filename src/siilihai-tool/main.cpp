@@ -5,14 +5,6 @@
 #include <QtGlobal>
 #include "siilihaitool.h"
 
-// Support for ancient Qt versions (Travis)
-#if QT_VERSION < QT_VERSION_CHECK(5, 5, 0)
-#define qInfo       qDebug
-#define qWarning    qDebug
-#define qFatal      qDebug
-#define qCritical   qDebug
-#endif
-
 // Output qInfo's in stdout:
 void messageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
