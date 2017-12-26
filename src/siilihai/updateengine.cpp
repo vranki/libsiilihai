@@ -47,8 +47,7 @@ UpdateEngine::UpdateEngine(QObject *parent, ForumDatabase *fd) :
 { }
 
 UpdateEngine::~UpdateEngine() {
-    if(subscription())
-        subscription()->engineDestroyed();
+    if(subscription()) subscription()->engineDestroyed();
 }
 
 UpdateEngine *UpdateEngine::newForSubscription(ForumSubscription *fs,
@@ -415,6 +414,8 @@ void UpdateEngine::cancelOperation() {
 }
 
 void UpdateEngine::updateCurrentProgress() {
+    if(!subscription() || subscription()->isEmpty()) return;
+
     unsigned int groupsUpdated = 0;
     for(ForumGroup *grp : subscription()->values()) {
         if(!grp->needsToBeUpdated()) groupsUpdated++;
