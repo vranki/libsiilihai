@@ -48,8 +48,7 @@ UpdateEngine::UpdateEngine(QObject *parent, ForumDatabase *fd) :
 { }
 
 UpdateEngine::~UpdateEngine() {
-    if(subscription())
-        subscription()->engineDestroyed();
+    if(subscription()) subscription()->engineDestroyed();
 }
 
 UpdateEngine *UpdateEngine::newForSubscription(ForumSubscription *fs,

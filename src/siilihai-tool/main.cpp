@@ -2,6 +2,7 @@
 #include <QTimer>
 #include <QCoreApplication>
 #include <QCommandLineParser>
+#include <QtGlobal>
 #include "siilihaitool.h"
 
 // Output qInfo's in stdout:
@@ -25,7 +26,7 @@ int main(int argc, char *argv[])
     parser.addHelpOption();
     parser.addVersionOption();
     parser.addPositionalArgument("command",
-                                 QCoreApplication::translate("main", "One of: list-forums, get-forum, probe, list-groups, list-threads, list-messages"));
+                                 QCoreApplication::translate("main", "One of: list-forums, get-forum, probe, list-groups, list-threads, list-messages, update-forum"));
     QCommandLineOption forumId(QStringList() << "forumid",
                                QCoreApplication::translate("main", "Forum id"),
                                QCoreApplication::translate("main", "integer value"));
