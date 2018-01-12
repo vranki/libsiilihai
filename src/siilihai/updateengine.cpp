@@ -30,11 +30,9 @@ static const QString stateNames[] = {"Unknown", "Missing Parser", "Idle", "Updat
 
 UpdateEngine::UpdateEngine(QObject *parent, ForumDatabase *fd) :
     QObject(parent)
-  , fdb(fd)
   , forceUpdate(false)
-  , fsubscription(nullptr)
-  , currentState(UES_ENGINE_NOT_READY)
   , requestingCredentials(false)
+  , currentState(UES_ENGINE_NOT_READY)
   , updateWhenEngineReady(false)
   , updateOnlyThread(false)
   , updateOnlyGroup(false)
@@ -43,7 +41,10 @@ UpdateEngine::UpdateEngine(QObject *parent, ForumDatabase *fd) :
   , updateCanceled(true)
   , threadBeingUpdated(nullptr)
   , groupBeingUpdated(nullptr)
+  , fsubscription(nullptr)
+  , fdb(fd)
   , authenticationRetries(0)
+  , lastProgressReport(-1)
 { }
 
 UpdateEngine::~UpdateEngine() {
@@ -104,7 +105,7 @@ void UpdateEngine::subscriptionDeleted() {
     setState(UES_ENGINE_NOT_READY);
 }
 
-QNetworkAccessManager * UpdateEngine::networkAccessManager() {
+QNetworkAccessManager* UpdateEngine::networkAccessManager() {
     return &nam;
 }
 
@@ -364,7 +365,7 @@ void UpdateEngine::updateNextChangedGroup() {
     if(!updateOnlyThread && !updateOnlyGroup) {
         for(ForumGroup *group : subscription()->values()) {
             if(group->needsToBeUpdated() && group->isSubscribed()) {
-                updateGroup(group, forceUpdate);
+                updateGroup(group);
                 return;
             }
         }
@@ -402,6 +403,7 @@ void UpdateEngine::cancelOperation() {
     updateOnlyGroup = false;
     updateOnlyThread = false;
     m_subscribeNewGroups = false;
+    forceUpdate = false;
     for(ForumGroup *group : subscription()->values())
         group->markToBeUpdated(false);
 
@@ -412,22 +414,40 @@ void UpdateEngine::cancelOperation() {
     threadBeingUpdated = nullptr;
     groupBeingUpdated = nullptr;
     authenticationRetries = 0;
+    lastProgressReport = -1;
 }
 
 void UpdateEngine::updateCurrentProgress() {
-    unsigned int groupsUpdated = 0;
-    for(ForumGroup *grp : subscription()->values()) {
-        if(!grp->needsToBeUpdated()) groupsUpdated++;
+    float progress = 0;
+    if(state() != UES_UPDATING) {
+        progress = 1;
+    } else {
+        unsigned int subscribedGroups = 0;
+
+        for(ForumGroup *grp : subscription()->values()) {
+            if (grp->isSubscribed()) subscribedGroups++;
+        }
+
+        if(subscribedGroups) {
+            unsigned int groupsUpdated = 0;
+            for(ForumGroup *grp : subscription()->values()) {
+                if(!grp->needsToBeUpdated()) groupsUpdated++;
+            }
+            progress = groupsUpdated / subscribedGroups;
+        }
     }
-    float progress = groupsUpdated / subscription()->size();
-    emit progressReport(subscription(), progress);
+
+    if(lastProgressReport != progress) {
+        lastProgressReport = progress;
+        emit progressReport(subscription(), progress);
+    }
 }
 
 void UpdateEngine::setState(UpdateEngineState newState) {
     if(newState == currentState) return;
     UpdateEngineState oldState = currentState;
     currentState = newState;
-
+    updateCurrentProgress();
     // Caution: subscription may be null!
     if(subscription())
         qDebug() << Q_FUNC_INFO << subscription()->alias() << stateName(oldState) << " -> " << stateName(newState);
@@ -533,9 +553,8 @@ void UpdateEngine::updateForum(bool force, bool subscribeNewGroups) {
     }
 }
 
-void UpdateEngine::updateGroup(ForumGroup *group, bool force, bool onlyGroup)
+void UpdateEngine::updateGroup(ForumGroup *group, bool onlyGroup)
 {
-    Q_UNUSED(force);
     Q_ASSERT(group);
     if(group->subscription()->latestThreads() == 0)
         qWarning() << Q_FUNC_INFO << "Warning: subscription << " << group->subscription()->alias() << " latest threads is zero! Nothing can be found!";
@@ -604,7 +623,7 @@ void UpdateEngine::continueUpdate() {
     if(updateOnlyThread) {
         updateNextChangedThread();
     } else if (updateOnlyGroup) {
-        // updateNextChangedGroup();
+        doUpdateGroup(groupBeingUpdated);
     } else {
         Q_ASSERT(!groupBeingUpdated);
         Q_ASSERT(!threadBeingUpdated);

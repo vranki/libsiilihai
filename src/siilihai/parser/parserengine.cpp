@@ -228,7 +228,6 @@ void ParserEngine::doUpdateGroup(ForumGroup *group) {
     setState(UpdateEngine::UES_UPDATING);
     if(prepareForUse()) return;
     currentListPage = parser()->thread_list_page_start;
-    // listThreads(groupBeingUpdated);
     listThreadsOnNextPage();
 }
 

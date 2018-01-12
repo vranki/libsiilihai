@@ -59,13 +59,14 @@ public:
     // fd can be null
     UpdateEngine(QObject *parent, ForumDatabase *fd);
     virtual ~UpdateEngine();
+    // Returns a new UE for the given forum type.
     static UpdateEngine* newForSubscription(ForumSubscription *fs, ForumDatabase *fdb, ParserManager *pm);
     virtual void setSubscription(ForumSubscription *fs);
 
     // These are the main update functions called by UI. Call only for IDLE engine.
     virtual void updateGroupList();
     virtual void updateForum(bool force=false, bool subscribeNewGroups=false);
-    virtual void updateGroup(ForumGroup *group, bool force=false, bool onlyGroup=false); // onlygroup = only update thread list, no threads
+    virtual void updateGroup(ForumGroup *group, bool onlyGroup=false); // onlygroup = only update thread list, no threads
     virtual void updateThread(ForumThread *thread, bool force=false, bool onlyThread=false); // onlythread = only update this thread, no more
 
     virtual bool supportsPosting(); // Returns true if this engine can post new threads & messages
@@ -112,34 +113,34 @@ protected:
     void setState(UpdateEngineState newState);
     virtual void requestCredentials();
     void continueUpdate(); // Start/continue update which was paused by authentication etc
+    virtual QString engineTypeName()=0; // Engine type as human readable
 
-    // Do the actual work
+    // Do the actual per-provider work
     virtual void doUpdateForum()=0;
     virtual void doUpdateGroup(ForumGroup *group)=0;
     virtual void doUpdateThread(ForumThread *thread)=0;
-    virtual QString engineTypeName()=0; // Engine type as human readable
 
-protected:
     bool forceUpdate; // Update even if no changes
     bool updateOnlyThread; // Only update one thread
     bool updateOnlyGroup; // Only list threads in group, don't list messages
     bool updateOnlyGroups; // Only list groups, don't update them
     bool m_subscribeNewGroups; // Subscribe to all new found groups (useful for testing)
-    bool requestingCredentials;
-    bool updateCanceled;
+    bool requestingCredentials; // Currently requesting creds from user & waiting for them..
+    bool updateCanceled; // If true, ignore all network replies and do nothing.
     int authenticationRetries; // How many times authentication has been tried
-    ForumDatabase *fdb;
     QUrl apiUrl; // Url of the API, without / at end. Usage optional.
     QQueue<ForumThread*> threadsToUpdateQueue;
-    bool updateWhenEngineReady;
-    QNetworkAccessManager nam;
+    bool updateWhenEngineReady; // Cause update when state changes to ready
 
     ForumGroup *groupBeingUpdated; // Can be null if updating only thread
     ForumThread *threadBeingUpdated; // Must be null if not updating a thread
 
+    ForumDatabase *fdb;
+    QNetworkAccessManager nam;
 private:
     ForumSubscription *fsubscription;
     UpdateEngineState currentState;
+    float lastProgressReport;
 };
 
 #endif // UPDATEENGINE_H

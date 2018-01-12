@@ -1,7 +1,14 @@
 #!/bin/bash
 export LD_LIBRARY_PATH=.. 
-./siilihai-tool list-forums
-./siilihai-tool list-groups --forumid=440
-./siilihai-tool list-threads --forumid=440 --group=38
-./siilihai-tool list-messages --forumid=440 --group=38 --thread=730
+
+FORUMID="$(./siilihai-tool list-forums | grep Hacklab | awk '{print $1;}')"
+echo Forum is ${FORUMID}
+
+GROUPID="$(./siilihai-tool list-groups --forumid=${FORUMID} | grep Tampere | awk '{print $1;}')"
+echo Group is ${GROUPID}
+
+THREADID="$(./siilihai-tool list-threads --forumid=${FORUMID} --group=${GROUPID} | grep Esittele | awk '{print $1;}')"
+echo Thread is ${THREADID}
+
+./siilihai-tool list-messages --forumid=${FORUMID} --group=${GROUPID} --thread=${THREADID}
 

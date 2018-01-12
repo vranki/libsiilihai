@@ -138,9 +138,36 @@ void SiilihaiTool::probeResults(ForumSubscription *probedSub) {
 }
 
 void SiilihaiTool::groupListChanged(ForumSubscription *sub) {
-    qInfo() << "Group list:";
+    QTextStream out(stdout);
+    out << "Group list:\n\n";
+    int longestId = 0;
+    int longestName = 0;
+    int longestLc = 0;
     for(ForumGroup *group : sub->values()) {
-        qInfo() << group->id() << ": " << group->name() << group->lastchange();
+        longestId = qMax(group->id().length(), longestId);
+        longestName = qMax(group->displayName().length(), longestName);
+        longestLc = qMax(group->lastchange().length(), longestLc);
+    }
+    out << qSetFieldWidth(longestId)
+        << "Id"
+        << qSetFieldWidth(longestName+1)
+        << "Name"
+        << qSetFieldWidth(longestLc+1)
+        << "Last change"
+        << endl;
+
+    for(ForumGroup *group : sub->values()) {
+        out << qSetFieldWidth(longestId)
+            << group->id()
+            << qSetFieldWidth(0)
+            << " "
+            << qSetFieldWidth(longestName)
+            << group->displayName()
+            << qSetFieldWidth(0)
+            << " "
+            << qSetFieldWidth(longestLc)
+            << group->lastchange()
+            << endl;
     }
     m_groupListReceived = true;
     if(command == "list-groups") {
@@ -150,14 +177,20 @@ void SiilihaiTool::groupListChanged(ForumSubscription *sub) {
 }
 
 void SiilihaiTool::threadsChanged() {
-    qInfo() << "Thread list:";
+    QTextStream out(stdout);
+    out << "Thread list:" << endl;
     Q_ASSERT(m_groupBeingUpdated);
     for(ForumThread *thread : m_groupBeingUpdated->values()) {
-        qInfo() << thread->id() << ": " << thread->name() << thread->lastchange();
+        out << thread->id()
+            << ": "
+            << thread->name()
+            << thread->lastchange()
+            << endl;
     }
-    qInfo() << "\nTotal" << m_groupBeingUpdated->size() << "threads.";
+    out << "\nTotal" << m_groupBeingUpdated->size() << "threads." << endl;
+
     if(m_groupBeingUpdated->size() == m_currentSubscription->latestThreads()) {
-        qInfo() << "Update limit of " << m_currentSubscription->latestThreads() << " threads reached.";
+        out << "Update limit of " << m_currentSubscription->latestThreads() << " threads reached." << endl;
     }
     m_threadListReceived = true;
     if(command == "list-threads") {
@@ -167,14 +200,23 @@ void SiilihaiTool::threadsChanged() {
 }
 
 void SiilihaiTool::messagesChanged() {
-    qInfo() << "Message list:";
+    QTextStream out(stdout);
+    out << "Message list:" << endl;
     Q_ASSERT(m_threadBeingUpdated);
     for(ForumMessage *message : m_threadBeingUpdated->values()) {
-        qDebug() << message->id() << ": " << message->name() << "by" << message->author();
+        out << message->id()
+            << " "
+            << message->name()
+            << " by "
+            << message->author()
+            << endl;
     }
-    qInfo() << "\nTotal" << m_threadBeingUpdated->size() << "messages.";
+    out << endl << "Total " << m_threadBeingUpdated->size() << " messages." << endl;
     if(m_threadBeingUpdated->size() == m_currentSubscription->latestMessages()) {
-        qInfo() << "Update limit of " << m_currentSubscription->latestMessages() << " messages reached.";
+        out << "Update limit of "
+            << m_currentSubscription->latestMessages()
+            << " messages reached."
+            << endl;
     }
     m_messageListReceived = true;
     if(command == "list-messages") {
@@ -205,7 +247,7 @@ void SiilihaiTool::engineStateChanged(UpdateEngine *engine, UpdateEngine::Update
                 m_groupBeingUpdated->setSubscription(m_currentSubscription);
                 m_groupBeingUpdated->setSubscribed(true);
                 connect(m_groupBeingUpdated, SIGNAL(threadsChanged()), this, SLOT(threadsChanged()));
-                updateEngine->updateGroup(m_groupBeingUpdated, true, true);
+                updateEngine->updateGroup(m_groupBeingUpdated, true);
             } else {
                 QCoreApplication::quit();
             }
@@ -225,7 +267,6 @@ void SiilihaiTool::engineStateChanged(UpdateEngine *engine, UpdateEngine::Update
                 QCoreApplication::quit();
             }
         } else if(command == "update-forum") {
-            connect(updateEngine, &UpdateEngine::progressReport, this, &SiilihaiTool::progressReport);
             updateEngine->updateForum();
         }
     }
@@ -243,7 +284,8 @@ void SiilihaiTool::parserUpdated(ForumParser *newParser)
 
 void SiilihaiTool::progressReport(ForumSubscription *forum, float progress)
 {
-    qInfo() << forum->alias() << progress * 100 << "% updated";
+    QTextStream out(stdout);
+    out << forum->alias() << " " << progress * 100 << "% updated" << endl;
 }
 
 void SiilihaiTool::printForum(ForumSubscription *fs) {
@@ -286,6 +328,7 @@ void SiilihaiTool::performCommand()
         connect(updateEngine, SIGNAL(groupListChanged(ForumSubscription*)), this, SLOT(groupListChanged(ForumSubscription*)));
         connect(updateEngine, SIGNAL(stateChanged(UpdateEngine*, UpdateEngine::UpdateEngineState, UpdateEngine::UpdateEngineState)),
                 this, SLOT(engineStateChanged(UpdateEngine*, UpdateEngine::UpdateEngineState, UpdateEngine::UpdateEngineState)));
+        connect(updateEngine, &UpdateEngine::progressReport, this, &SiilihaiTool::progressReport);
         updateEngine->setSubscription(m_currentSubscription);
     }
 }
