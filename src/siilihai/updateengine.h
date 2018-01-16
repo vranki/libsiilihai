@@ -64,8 +64,8 @@ public:
     virtual void setSubscription(ForumSubscription *fs);
 
     // These are the main update functions called by UI. Call only for IDLE engine.
-    virtual void updateGroupList();
-    virtual void updateForum(bool force=false, bool subscribeNewGroups=false);
+    virtual void updateForum(bool force=false); // Recursively update full forum
+    virtual void updateGroupList(); // Update only group list
     virtual void updateGroup(ForumGroup *group, bool onlyGroup=false); // onlygroup = only update thread list, no threads
     virtual void updateThread(ForumThread *thread, bool force=false, bool onlyThread=false); // onlythread = only update this thread, no more
 
@@ -77,6 +77,7 @@ public:
     QNetworkAccessManager *networkAccessManager();
     // @todo add function to reset login state (error, u/p changed or something)
     virtual void probeUrl(QUrl url)=0;
+    virtual void resetState(); // Reset variables to idle/initial state
 
 public slots:
     virtual void cancelOperation();
@@ -124,7 +125,6 @@ protected:
     bool updateOnlyThread; // Only update one thread
     bool updateOnlyGroup; // Only list threads in group, don't list messages
     bool updateOnlyGroups; // Only list groups, don't update them
-    bool m_subscribeNewGroups; // Subscribe to all new found groups (useful for testing)
     bool requestingCredentials; // Currently requesting creds from user & waiting for them..
     bool updateCanceled; // If true, ignore all network replies and do nothing.
     int authenticationRetries; // How many times authentication has been tried

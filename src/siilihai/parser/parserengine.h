@@ -63,10 +63,6 @@ public:
     void performListThreads(QString &html);
     void performListMessages(QString &html);
 
-    virtual void doUpdateForum();
-    virtual void doUpdateGroup(ForumGroup *group);
-    virtual void doUpdateThread(ForumThread *thread);
-
     virtual void probeUrl(QUrl url);
     virtual QString engineTypeName();
 
@@ -75,6 +71,11 @@ public slots:
     virtual void cancelOperation();
     virtual void credentialsEntered(CredentialsRequest* cr);
 
+protected:
+    virtual void doUpdateForum();
+    virtual void doUpdateGroup(ForumGroup *group);
+    virtual void doUpdateThread(ForumThread *thread);
+    virtual void resetState();
 private slots:
     void networkReply(QNetworkReply *reply);
     void authenticationRequired (QNetworkReply * reply, QAuthenticator * authenticator); // Called by NAM
@@ -95,7 +96,7 @@ protected:
     virtual void requestCredentials();
 
 private:
-    enum ParserEngineOperation { PEONoOp=1, PEOLogin, PEOFetchCookie, PEOUpdateForum, PEOUpdateGroup, PEOUpdateThread };
+    enum ParserEngineOperation { PEONoOp=1, PEOLogin, PEOFetchCookie, PEOUpdateForum, PEOUpdateGroup, PEOUpdateThread, PEOEndList };
     bool parserMakerMode(); // Returns true if running in parser maker - less strict sanity tests
     void performLogin(QString &html);
     // Returns the subscription as ForumSubscriptionParsed instance
@@ -110,7 +111,7 @@ private:
     void fetchCookieReply(QNetworkReply *reply);
     void loginReply(QNetworkReply *reply);
 
-    bool prepareForUse(); // get cookie & login if needed
+    bool prepareForUse(); // get cookie & login if needed. Returns true if needs to do stuff first.
     void nextOperation();
     void fetchCookie();
     void listThreadsOnNextPage();
@@ -122,7 +123,6 @@ private:
     QByteArray emptyData, loginData;
     bool cookieFetched, loggedIn, loggingIn;
     ParserEngineOperation operationInProgress;
-    QNetworkCookieJar *cookieJar;
     int currentListPage;
 
     // @todo consider changing to QVectors
@@ -133,6 +133,7 @@ private:
     QString currentMessagesUrl;
     QTimer cookieExpiredTimer;
     bool waitingForAuthentication;
+    bool waitingForCookie;
     QTextCodec *codec; // Text codec to use for reading html.
 };
 

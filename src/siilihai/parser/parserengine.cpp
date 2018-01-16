@@ -31,9 +31,20 @@
 
 static const QString operationNames[] = {"(null)", "NoOp", "Login", "FetchCookie", "ListGroups", "ListThreads", "ListMessages" };
 
-ParserEngine::ParserEngine(QObject *parent, ForumDatabase *fd, ParserManager *pm, QNetworkAccessManager *n) :
-    UpdateEngine(parent, fd), parserManager(pm), nam(n), codec(0) {
-
+ParserEngine::ParserEngine(QObject *parent,
+                           ForumDatabase *fd,
+                           ParserManager *pm,
+                           QNetworkAccessManager *n) :
+    UpdateEngine(parent, fd)
+  , parserManager(pm)
+  , nam(n)
+  , waitingForCookie(false)
+  , codec(nullptr)
+  , updatingParser(false)
+  , currentParser(nullptr)
+  , operationInProgress(PEONoOp)
+{
+    resetState();
     connect(this, SIGNAL(listGroupsFinished(QList<ForumGroup*>&, ForumSubscription *)), this, SLOT(listGroupsFinished(QList<ForumGroup*>&, ForumSubscription *)));
     connect(this, SIGNAL(listThreadsFinished(QList<ForumThread*>&, ForumGroup*)), this, SLOT(listThreadsFinished(QList<ForumThread*>&, ForumGroup*)));
     connect(this, SIGNAL(listMessagesFinished(QList<ForumMessage*>&, ForumThread*, bool)),
@@ -50,28 +61,22 @@ ParserEngine::ParserEngine(QObject *parent, ForumDatabase *fd, ParserManager *pm
     nam->setProxy(QNetworkProxy::applicationProxy());
     connect(nam, SIGNAL(finished(QNetworkReply*)), this, SLOT(networkReply(QNetworkReply*)), Qt::UniqueConnection);
 
-    currentParser = 0;
-    updatingParser = false;
-    operationInProgress = PEONoOp;
-    cookieJar = 0;
-    currentListPage = 0;
+
     setPatternMatcher(new PatternMatcher(this));
-    loggedIn = loggingIn = false;
-    cookieFetched = false;
+
     cookieExpiredTimer.setSingleShot(true);
     cookieExpiredTimer.setInterval(10*60*1000);
-    waitingForAuthentication = false;
+
     connect(&cookieExpiredTimer, SIGNAL(timeout()), this, SLOT(cookieExpired()));
     connect(nam, SIGNAL(authenticationRequired(QNetworkReply *, QAuthenticator *)),
             this, SLOT(authenticationRequired(QNetworkReply *, QAuthenticator *)), Qt::UniqueConnection);
 }
 
-ParserEngine::~ParserEngine() {
-}
+ParserEngine::~ParserEngine() { }
 
 void ParserEngine::setParser(ForumParser *fp) {
     currentParser = fp;
-
+    // Note, parser id can be -1 for parsermaker
     bool updateParser = false;
 
     if(!currentParser) {
@@ -81,7 +86,7 @@ void ParserEngine::setParser(ForumParser *fp) {
         codec = QTextCodec::codecForName(fp->charset.toUtf8());
         if(!codec) codec = QTextCodec::codecForName("utf-8"); // Just to avoid crash in some weird situation
 
-        if(parserAge() > 2) {
+        if(parserAge() > 2 && currentParser->id() > 0) {
             qDebug() << Q_FUNC_INFO << "Parser for "
                      << subscription()->toString()
                      << "is "
@@ -130,41 +135,33 @@ void ParserEngine::updateParserIfError(UpdateEngine *engine, UpdateEngine::Updat
 }
 
 void ParserEngine::cancelOperation() {
+    resetState();
     updateCanceled = true;
-    updateOnlyGroups = false;
-    updateOnlyGroup = false;
-    updateOnlyThread = false;
 
     if(operationInProgress == PEOUpdateForum) {
         QList<ForumGroup*> emptyList;
         emit listGroupsFinished(emptyList, subscription());
-    }
-    if(operationInProgress == PEOUpdateGroup) {
+    } else if(operationInProgress == PEOUpdateGroup) {
         QList<ForumThread*> emptyList;
         ForumGroup *updatedGroup = groupBeingUpdated;
         groupBeingUpdated = nullptr;
         emit listThreadsFinished(emptyList, updatedGroup);
-    }
-
-    if(operationInProgress == PEOUpdateThread) {
+    } else if(operationInProgress == PEOUpdateThread) {
         QList<ForumMessage*> emptyList;
         ForumThread *updatedThread = threadBeingUpdated;
         threadBeingUpdated = nullptr;
         emit listMessagesFinished(emptyList, updatedThread, false);
+    } else if(operationInProgress == PEOLogin) {
+        emit loginFinished(subscription(), false);
     }
 
-    if(operationInProgress == PEOLogin) emit loginFinished(subscription(), false);
-
     operationInProgress = PEONoOp;
-    cookieFetched = false;
-    currentListPage = -1;
     qDeleteAll(foundMessages);
     foundMessages.clear();
     qDeleteAll(foundThreads);
     foundThreads.clear();
     groupBeingUpdated = nullptr;
     threadBeingUpdated = nullptr;
-    waitingForAuthentication = false;
 
     UpdateEngine::cancelOperation();
 }
@@ -198,8 +195,6 @@ void ParserEngine::doUpdateForum() {
     Q_ASSERT(operationInProgress == ParserEngine::PEONoOp || operationInProgress == ParserEngine::PEOUpdateForum);
     operationInProgress = ParserEngine::PEOUpdateForum;
 
-    updateCanceled = false;
-
     if(prepareForUse()) {
         // qDebug() << Q_FUNC_INFO << "Need to fetch cookie etc first, NOT updating yet";
         return;
@@ -220,11 +215,9 @@ void ParserEngine::doUpdateGroup(ForumGroup *group) {
         qWarning() << Q_FUNC_INFO << "Operation " << operationNames[operationInProgress] << " in progress!! Don't command me yet!";
         return;
     }
-    updateCanceled = false;
-
     operationInProgress = PEOUpdateGroup;
     groupBeingUpdated = group;
-    currentMessagesUrl = QString::null;
+    currentMessagesUrl = QString();
     setState(UpdateEngine::UES_UPDATING);
     if(prepareForUse()) return;
     currentListPage = parser()->thread_list_page_start;
@@ -267,6 +260,17 @@ void ParserEngine::doUpdateThread(ForumThread *thread)
     listMessagesOnNextPage();
 }
 
+void ParserEngine::resetState()
+{
+    UpdateEngine::resetState();
+    updatingParser = false;
+    currentListPage = 0;
+    loggedIn = loggingIn = false;
+    cookieFetched = false;
+    waitingForAuthentication = false;
+    waitingForCookie = false;
+}
+
 void ParserEngine::probeUrl(QUrl url)
 {
     Q_UNUSED(url);
@@ -288,7 +292,16 @@ void ParserEngine::networkReply(QNetworkReply *reply) {
     int operationAttribute = reply->request().attribute(QNetworkRequest::User).toInt();
     int forumId = reply->request().attribute(FORUMID_ATTRIBUTE).toInt();
     if(forumId != subscription()->id()) return;
-    qDebug( ) << Q_FUNC_INFO << forumId << operationAttribute;
+    static QString opattrs[] = { "?",
+            "NoOp",
+            "Login",
+            "FetchCookie",
+            "UpdateForum",
+            "UpdateGroup",
+            "UpdateThread"};
+    Q_ASSERT(operationAttribute >= PEONoOp && operationAttribute < PEOEndList);
+    qDebug( ) << Q_FUNC_INFO << forumId << opattrs[operationAttribute];
+
     if(!operationAttribute) {
         qDebug( ) << Q_FUNC_INFO << "Reply " << operationAttribute << " not for me";
         return;
@@ -320,17 +333,20 @@ void ParserEngine::networkReply(QNetworkReply *reply) {
 }
 
 void ParserEngine::fetchCookie() {
+    Q_ASSERT(!waitingForCookie);
     Q_ASSERT(parser()->forum_url.length() > 0);
     if (operationInProgress == PEONoOp)
         return;
     QNetworkRequest req(QUrl(parser()->forum_url));
     setRequestAttributes(req, PEOFetchCookie);
+    waitingForCookie = true;
     nam->post(req, emptyData);
 }
 
-
 void ParserEngine::fetchCookieReply(QNetworkReply *reply) {
+    Q_ASSERT(waitingForCookie);
     if(operationInProgress == PEONoOp) return;
+    waitingForCookie = false;
 
     if (reply->error() != QNetworkReply::NoError) {
         qDebug() << Q_FUNC_INFO << reply->errorString();
@@ -791,6 +807,8 @@ void ParserEngine::authenticationRequired(QNetworkReply * reply, QAuthenticator 
 }
 
 bool ParserEngine::prepareForUse() {
+    if(waitingForCookie) return true;
+
     if (!cookieFetched) {
         fetchCookie();
         return true;

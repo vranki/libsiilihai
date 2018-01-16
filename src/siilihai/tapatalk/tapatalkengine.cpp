@@ -255,7 +255,7 @@ void TapaTalkEngine::replyUpdateGroup(QNetworkReply *reply) {
     }
 
     ForumGroup *groupThatWasBeingUpdated = groupBeingUpdated;
-    groupBeingUpdated = 0;
+    groupBeingUpdated = nullptr;
     listThreadsFinished(threads, groupThatWasBeingUpdated);
     qDeleteAll(threads);
 }
