@@ -47,6 +47,7 @@ class ClientLogic : public QObject
     Q_PROPERTY(CredentialsRequest* currentCredentialsRequest READ currentCredentialsRequest NOTIFY currentCredentialsRequestChanged)
     Q_PROPERTY(bool offline READ offline WRITE setOffline NOTIFY offlineChanged)
     Q_PROPERTY(SiilihaiState state READ state WRITE setState NOTIFY stateChanged)
+    Q_PROPERTY(QStringList errorMessages READ errorMessages NOTIFY errorMessagesChanged)
 
     Q_ENUMS(SiilihaiState)
 public:
@@ -83,6 +84,7 @@ public:
     CredentialsRequest* currentCredentialsRequest() const;
 
     bool offline() const;
+    QStringList errorMessages() const;
 
 public slots:
     virtual void launchSiilihai();
@@ -92,7 +94,7 @@ public slots:
     virtual void cancelClicked();
     virtual void syncFinished(bool success, QString message);
     virtual void subscriptionFound(ForumSubscription* sub);
-    virtual void errorDialog(QString message)=0;
+    virtual void appendMessage(QString message);
     virtual void updateGroupSubscriptions(ForumSubscription *sub); // Call after subscriptions have changed (uploads to server)
     virtual void updateAllParsers();
     virtual void unregisterSiilihai();
@@ -103,6 +105,7 @@ public slots:
     virtual void loginWizardFinished();
     void setOffline(bool newOffline);
     virtual void saveData(); // Save settings and forum db
+    void dismissMessages(); // Call to clear error message list
 
 signals:
     void statusMessageChanged(QString message);
@@ -117,6 +120,7 @@ signals:
     void groupListChanged(ForumSubscription* sub); // Show group subscription dialog or whatever
     void offlineChanged(bool offline);
     void stateChanged(SiilihaiState state);
+    void errorMessagesChanged(QStringList errorMessages);
 
 protected:
     virtual void setState(SiilihaiState newState);
@@ -175,16 +179,17 @@ private:
     QSet<UpdateEngine*> busyUpdateEngines;
     QSet<ForumSubscription*> subscriptionsNotUpdated; // Subs that never have been updated
     UserSettings usettings;
-    bool dbStored;
     QNetworkAccessManager nam;
-    bool endSyncDone;
-    bool firstRun;
     QQueue<CredentialsRequest*> credentialsRequests;
     QString statusMsg; // One-liner describing current status
     QTimer statusMsgTimer; // Hides the message after a short delay
     SubscriptionManagement *m_subscriptionManagement;
-    bool devMode; // Enables some debugging features on UI etc..
     SiilihaiState m_state;
+    QStringList m_errorMessages;
+    bool endSyncDone;
+    bool firstRun;
+    bool devMode; // Enables some debugging features on UI etc..
+    bool dbStored;
 };
 Q_DECLARE_METATYPE(ClientLogic::SiilihaiState)
 

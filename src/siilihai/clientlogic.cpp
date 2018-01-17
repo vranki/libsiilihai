@@ -29,10 +29,9 @@ ClientLogic::ClientLogic(QObject *parent) : QObject(parent)
   , m_subscriptionManagement(nullptr)
   , endSyncDone(false)
   , firstRun(true)
-  , dbStored(false)
   , devMode(false)
+  , dbStored(false)
 {
-    srand ( time(NULL) );
     QNetworkConfigurationManager ncm;
     QNetworkConfiguration config = ncm.defaultConfiguration();
     networkSession = new QNetworkSession(config, this);
@@ -85,9 +84,9 @@ void ClientLogic::launchSiilihai() {
 
     // Create SM only after creating settings, as it needs it.
     m_subscriptionManagement = new SubscriptionManagement(nullptr, &m_protocol, m_settings);
-    connect(m_subscriptionManagement, SIGNAL(forumUnsubscribed(ForumSubscription*)), this, SLOT(unsubscribeForum(ForumSubscription*)));
-    connect(m_subscriptionManagement, SIGNAL(showError(QString)), this, SLOT(errorDialog(QString)));
-    connect(m_subscriptionManagement, SIGNAL(forumAdded(ForumSubscription*)), this, SLOT(forumAdded(ForumSubscription*)));
+    connect(m_subscriptionManagement, &SubscriptionManagement::forumUnsubscribed, this, &ClientLogic::unsubscribeForum);
+    connect(m_subscriptionManagement, &SubscriptionManagement::showError, this, &ClientLogic::appendMessage);
+    connect(m_subscriptionManagement, &SubscriptionManagement::forumAdded, this, &ClientLogic::forumAdded);
     emit subscriptionManagementChanged(m_subscriptionManagement);
 
     firstRun = m_settings->firstRun();
@@ -100,7 +99,7 @@ void ClientLogic::launchSiilihai() {
             QNetworkProxy nproxy(QNetworkProxy::HttpProxy, proxyUrl.host(), proxyUrl.port(0));
             QNetworkProxy::setApplicationProxy(nproxy);
         } else {
-            errorDialog("Warning: http proxy is not valid URL");
+            appendMessage("Warning: http proxy is not valid URL");
         }
     }
 
@@ -126,17 +125,17 @@ void ClientLogic::launchSiilihai() {
     } else {
         int currentSchemaVersion = m_settings->databaseSchema();
         if(m_forumDatabase.schemaVersion() != currentSchemaVersion) {
-            errorDialog("The database schema has been changed. Your forum database will be reset. Sorry. ");
+            appendMessage("The database schema has been changed. Your forum database will be reset. Sorry. ");
             m_forumDatabase.openDatabase(databaseFileName, false);
         } else {
             if(!m_forumDatabase.openDatabase(databaseFileName)) {
-                errorDialog("Could not open Siilihai's forum database file.\n"
-                            "See console for details.");
+                appendMessage("Could not open Siilihai's forum database file.\n"
+                              "See console for details.");
             }
         }
         if(!m_settings->cleanShutdown()) {
-            errorDialog("Siilihai was not able to shut down cleanly last time.\n"
-                        "Sorry if it crashed.");
+            appendMessage("Siilihai was not able to shut down cleanly last time.\n"
+                          "Sorry if it crashed.");
         }
     }
     m_settings->setDatabaseSchema(m_forumDatabase.schemaVersion());
@@ -263,7 +262,7 @@ void ClientLogic::loginFinishedSlot(bool success, QString motd, bool sync) {
         m_settings->sync();
         setState(usettings.syncEnabled() ? SH_STARTSYNCING : SH_READY);
     } else {
-        errorDialog("Login failed. \n" + motd);
+        appendMessage("Login failed. \n" + motd);
         // @todo this happens also on first run if logging in with wrong u/p.
         // using login as network test sucks anyway.
         setState(SH_OFFLINE);
@@ -287,7 +286,7 @@ void ClientLogic::clearStatusMessage() {
 
 void ClientLogic::protocolError(QString message)
 {
-    errorDialog(message);
+    appendMessage(message);
     setState(SH_OFFLINE);
 }
 
@@ -431,7 +430,7 @@ int ClientLogic::busyForumCount() {
 void ClientLogic::syncFinished(bool success, QString message){
     qDebug() << Q_FUNC_INFO << success;
     if (!success) {
-        errorDialog(QString("Syncing status with server failed.\n\n%1").arg(message));
+        appendMessage(QString("Syncing status with server failed.\n\n%1").arg(message));
     }
     if(currentState == SH_STARTSYNCING) {
         while(!subscriptionsNotUpdated.isEmpty()) {
@@ -476,14 +475,14 @@ void ClientLogic::forumAdded(ForumSubscription *fs) {
     Q_ASSERT(fs->id());
 
     if(m_forumDatabase.contains(fs->id())) {
-        errorDialog("You have already subscribed to " + fs->alias());
+        appendMessage("You have already subscribed to " + fs->alias());
     } else {
         ForumSubscription *newFs = ForumSubscription::newForProvider(fs->provider(), &m_forumDatabase, false);
 
         Q_ASSERT(newFs);
         newFs->copyFrom(fs);
         if(!m_forumDatabase.addSubscription(newFs)) { // Emits subscriptionFound
-            errorDialog("Error: Unable to subscribe to forum. Check the log.");
+            appendMessage("Error: Unable to subscribe to forum. Check the log.");
             return;
         }
         fs = nullptr;
@@ -550,7 +549,7 @@ void ClientLogic::forumUpdated(ForumSubscription* forum) {
 
 void ClientLogic::userSettingsReceived(bool success, UserSettings *newSettings) {
     if (!success) {
-        errorDialog("Getting settings failed. Please check network connection.");
+        appendMessage("Getting settings failed. Please check network connection.");
     } else {
         usettings.setSyncEnabled(newSettings->syncEnabled());
         m_settings->setSyncEnabled(usettings.syncEnabled());
@@ -569,7 +568,7 @@ void ClientLogic::moreMessagesRequested(ForumThread* thread) {
 
     thread->setGetMessagesCount(thread->getMessagesCount() + m_settings->showMoreCount());
     thread->commitChanges();
-    engine->updateThread(thread);
+    engine->updateThread(thread, false, true);
 }
 
 void ClientLogic::unsubscribeGroup(ForumGroup *group) {
@@ -660,7 +659,7 @@ void ClientLogic::saveData()
     qDebug() << Q_FUNC_INFO;
     if (m_settings) m_settings->sync();
     if(!m_forumDatabase.storeDatabase()) {
-        errorDialog("Failed to save forum database file");
+        appendMessage("Failed to save forum database file");
     }
 }
 
@@ -717,7 +716,7 @@ void ClientLogic::showStatusMessage(QString message) {
 
 void ClientLogic::forumLoginFinished(ForumSubscription *sub, bool success) {
     if(!success)
-        errorDialog(QString("Login to %1 failed. Please check credentials.").arg(sub->alias()));
+        appendMessage(QString("Login to %1 failed. Please check credentials.").arg(sub->alias()));
 }
 
 // Authenticator can be null!
@@ -818,4 +817,20 @@ void ClientLogic::unsubscribeForum(ForumSubscription* fs) {
     m_forumDatabase.deleteSubscription(fs);
     if(fs->provider() == ForumSubscription::FP_PARSER)
         m_parserManager->deleteParser(qobject_cast<ForumSubscriptionParsed*>(fs)->parserId());
+}
+
+
+void ClientLogic::appendMessage(QString message) {
+    qDebug() << Q_FUNC_INFO << message;
+    m_errorMessages.append(message);
+    emit errorMessagesChanged(m_errorMessages);
+}
+
+void ClientLogic::dismissMessages() {
+    m_errorMessages.clear();
+    emit errorMessagesChanged(m_errorMessages);
+}
+
+QStringList ClientLogic::errorMessages() const {
+    return m_errorMessages;
 }
