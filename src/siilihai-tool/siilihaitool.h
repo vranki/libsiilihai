@@ -28,7 +28,6 @@ public:
     void setForumId(const int id);
     void setForumUrl(const QUrl url);
     bool success();
-signals:
 
 public slots:
     void listForums();
@@ -38,6 +37,7 @@ public slots:
     void listThreads(QString groupId);
     void listMessages(QString groupId, QString threadId);
     void updateForum();
+    void getHttpAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator);
 
 private slots:
     void listForumsFinished(QList<ForumSubscription*> forums);
@@ -49,7 +49,6 @@ private slots:
     void engineStateChanged(UpdateEngine *engine, UpdateEngine::UpdateEngineState newState, UpdateEngine::UpdateEngineState oldState);
     void parserUpdated(ForumParser *newParser);
     void progressReport(ForumSubscription *forum, float progress);
-
 
 private:
     void printForum(ForumSubscription *sub);

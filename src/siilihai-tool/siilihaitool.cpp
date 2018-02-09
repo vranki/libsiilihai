@@ -5,6 +5,7 @@
 #include "siilihai/forumdata/forummessage.h"
 #include "siilihai/updateengine.h"
 #include "siilihai/parser/parserengine.h"
+#include "siilihai/credentialsrequest.h"
 
 SiilihaiTool::SiilihaiTool(QObject *parent) :
     QObject(parent)
@@ -288,6 +289,21 @@ void SiilihaiTool::progressReport(ForumSubscription *forum, float progress)
     out << forum->alias() << " " << progress * 100 << "% updated" << endl;
 }
 
+void SiilihaiTool::getHttpAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator)
+{
+    QTextStream out(stdout);
+    out << "\nHTTP authentication required for " << fsub->alias() << ".\n";
+    out << "Username: ";
+    out.flush();
+    QTextStream in(stdin);
+    QString user = in.readLine();
+    out << "Password: ";
+    out.flush();
+    QString pass = in.readLine();
+    authenticator->setUser(user);
+    authenticator->setPassword(pass);
+}
+
 void SiilihaiTool::printForum(ForumSubscription *fs) {
     if(fs) {
         qInfo() << qSetFieldWidth(3)
@@ -325,10 +341,10 @@ void SiilihaiTool::performCommand()
     } else {
         Q_ASSERT(!updateEngine);
         updateEngine = UpdateEngine::newForSubscription(m_currentSubscription, nullptr, &parserManager);
-        connect(updateEngine, SIGNAL(groupListChanged(ForumSubscription*)), this, SLOT(groupListChanged(ForumSubscription*)));
-        connect(updateEngine, SIGNAL(stateChanged(UpdateEngine*, UpdateEngine::UpdateEngineState, UpdateEngine::UpdateEngineState)),
-                this, SLOT(engineStateChanged(UpdateEngine*, UpdateEngine::UpdateEngineState, UpdateEngine::UpdateEngineState)));
+        connect(updateEngine, &UpdateEngine::groupListChanged, this, &SiilihaiTool::groupListChanged);
+        connect(updateEngine, &UpdateEngine::stateChanged, this, &SiilihaiTool::engineStateChanged);
         connect(updateEngine, &UpdateEngine::progressReport, this, &SiilihaiTool::progressReport);
+        connect(updateEngine, &UpdateEngine::getHttpAuthentication, this, &SiilihaiTool::getHttpAuthentication);
         updateEngine->setSubscription(m_currentSubscription);
     }
 }

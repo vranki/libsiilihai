@@ -9,6 +9,7 @@
 void messageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
     Q_UNUSED(context);
+    Q_UNUSED(type);
     // QTextStream outstream(type == QtInfoMsg ? stdout : stderr, QIODevice::WriteOnly);
     QTextStream outstream(stdout, QIODevice::WriteOnly);
     outstream << msg << endl;

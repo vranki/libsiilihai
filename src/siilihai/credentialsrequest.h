@@ -13,8 +13,7 @@ class CredentialsRequest : public QObject {
     Q_PROPERTY(QString password READ password WRITE setPassword NOTIFY passwordChanged)
 
 public:
-    explicit CredentialsRequest(ForumSubscription *sub);
-    explicit CredentialsRequest(ForumSubscription *sub, QObject *parent);
+    explicit CredentialsRequest(ForumSubscription *sub, QObject *parent=nullptr);
 
     enum credential_types {
         SH_CREDENTIAL_NONE=0,

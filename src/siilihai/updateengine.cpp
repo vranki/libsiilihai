@@ -138,7 +138,7 @@ void UpdateEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups, ForumSubsc
     Q_ASSERT(!threadBeingUpdated);
 
     bool dbGroupsWasEmpty = fsubscription->isEmpty();
-    if (tempGroups.isEmpty() && !fsubscription->isEmpty()) {
+    if (tempGroups.isEmpty()) {
         networkFailure("Updating group list for " + subscription()->alias()
                        + " failed. \nCheck your network connection.");
         return;
@@ -356,7 +356,7 @@ void UpdateEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages, Foru
     }
 }
 
-void UpdateEngine::networkFailure(QString message) {
+void UpdateEngine::networkFailure(const QString &message) {
     if(!updateCanceled)
         subscription()->appendError(new UpdateError("Network error", message));
     setState(UES_ERROR);

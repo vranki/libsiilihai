@@ -89,8 +89,6 @@ signals:
     void listMessagesFinished(QList<ForumMessage*> &foundMessages, ForumThread *thread, bool moreAvailable);
     void loginFinished(ForumSubscription *sub, bool success);
     void receivedHtml(const QString &data);
-    // Asynchronous
-    void getHttpAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator);
 
 protected:
     virtual void requestCredentials();

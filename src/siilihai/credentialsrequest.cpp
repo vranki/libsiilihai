@@ -14,12 +14,6 @@ ForumSubscription *CredentialsRequest::subscription()
     return m_subscription;
 }
 
-CredentialsRequest::CredentialsRequest(ForumSubscription *sub) :
-    QObject(),
-    credentialType(SH_CREDENTIAL_NONE),
-    m_subscription(sub)
-{
-}
 
 void CredentialsRequest::signalCredentialsEntered(bool store) {
     qDebug() << Q_FUNC_INFO << "store:" << store;
