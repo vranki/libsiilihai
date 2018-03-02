@@ -24,7 +24,7 @@
 
 class HttpPost : public QUrlQuery {
 public:
-    HttpPost(QNetworkRequest &req, QVariant userVariant, QString clientKey = QString::null);
+    HttpPost(QNetworkRequest &req, QVariant userVariant, QString clientKey = QString());
     virtual ~HttpPost();
     QByteArray postData();
 };

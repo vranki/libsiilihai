@@ -120,8 +120,8 @@ void SiilihaiProtocol::login(QString user, QString pass) {
 
 void SiilihaiProtocol::replyLogin(QNetworkReply *reply) {
     QString docs = QString().fromUtf8(reply->readAll());
-    QString ck = QString::null;
-    QString motd = QString::null;
+    QString ck;
+    QString motd;
     bool syncEnabled = false;
     if (reply->error() == QNetworkReply::NoError) {
         QDomDocument doc;
@@ -141,7 +141,7 @@ void SiilihaiProtocol::replyLogin(QNetworkReply *reply) {
 // Reply is handled in login
 void SiilihaiProtocol::registerUser(QString user, QString pass, QString email, bool sync) {
     QNetworkRequest req(registerUrl);
-    HttpPost post(req, SPORegisterUser, QString::null);
+    HttpPost post(req, SPORegisterUser, QString());
     post.addQueryItem("username", user);
     post.addQueryItem("password", pass);
     post.addQueryItem("email", email);
@@ -283,7 +283,7 @@ void SiilihaiProtocol::subscribeGroups(ForumSubscription *fs) {
     QDomText t = doc.createTextNode(QString().number(fs->id()));
     forumTag.appendChild(t);
 
-    for(ForumGroup *g : fs->values()) {
+    for(ForumGroup *g : *fs) {
         QDomElement subTag;
         if (g->isSubscribed()) {
             subTag = doc.createElement("subscribe");
@@ -349,7 +349,7 @@ void SiilihaiProtocol::saveParser(const ForumParser *parser) {
 void SiilihaiProtocol::replySaveParser(QNetworkReply *reply) {
     QString docs = QString().fromUtf8(reply->readAll());
     int id = -1;
-    QString msg = QString::null;
+    QString msg;
     if (reply->error() == QNetworkReply::NoError) {
         QDomDocument doc;
         doc.setContent(docs);
@@ -595,61 +595,77 @@ void SiilihaiProtocol::replyDownsync(QNetworkReply *reply) {
     if (reply->error() == QNetworkReply::NoError) {
         QDomDocument doc;
         doc.setContent(docs);
+        // qDebug() << docs;
         QDomElement re = doc.firstChildElement("downsync");
         QDomElement forumElement = re.firstChildElement("forum");
         while(!forumElement.isNull()) {
             int forumid = forumElement.attribute("id").toInt();
             int forumProvider = forumElement.attribute("provider").toInt();
-            ForumSubscription *forum = ForumSubscription::newForProvider((ForumSubscription::ForumProvider) forumProvider, 0, true);
+            ForumSubscription *forum = ForumSubscription::newForProvider(static_cast<ForumSubscription::ForumProvider>(forumProvider), nullptr, true);
+            forum->setId(forumid);
+            Q_ASSERT(forum->isTemp());
             if(forum->provider() == ForumSubscription::FP_PARSER) {
                 ForumSubscriptionParsed *forumParsed = qobject_cast<ForumSubscriptionParsed*> (forum);
                 int forumparser = forumElement.attribute("id").toInt();
                 forumParsed->setParserId(forumparser);
             }
-            forum->setId(forumid);
             QDomElement groupElement = forumElement.firstChildElement("group");
             while(!groupElement.isNull()) {
                 QString groupid = groupElement.attribute("id");
-                ForumGroup group(forum, true);
+                ForumGroup group(nullptr, true);
                 group.setId(groupid);
-                forum->addGroup(&group);
-                QDomElement threadElement = groupElement.firstChildElement("thread");
-                while(!threadElement.isNull()) {
-                    QString threadid = threadElement.attribute("id");
-                    Q_ASSERT(threadid.length()>0);
-                    int threadChangeset = threadElement.attribute("changeset").toInt();
-                    int threadGetMessagesCount = threadElement.attribute("getmessagescount").toInt();
-                    ForumThread thread(&group);
-                    thread.setId(threadid);
-                    thread.setChangeset(threadChangeset);
-                    thread.setGetMessagesCount(threadGetMessagesCount);
-                    thread.setName(UNKNOWN_SUBJECT);
-                    thread.setOrdernum(999);
-                    if(group.contains(thread.id())) {
-                        qDebug() << Q_FUNC_INFO
-                                 << "Warning: group "
-                                 << group.toString()
-                                 << "already contains thread with id"
-                                 << thread.id()
-                                 << "not adding it. Broken parser?";
-                    } else {
-                        group.addThread(&thread);
+                if(forum->contains(group.id())) {
+                    qDebug() << Q_FUNC_INFO
+                             << "Warning: forum " << forum->toString()
+                             << "already contains group"
+                             << group.id() << "! Not adding twice.";
+                } else {
+                    group.setSubscription(forum);
+                    QDomElement threadElement = groupElement.firstChildElement("thread");
+                    while(!threadElement.isNull()) {
+                        QString threadid = threadElement.attribute("id");
+                        Q_ASSERT(threadid.length()>0);
+                        if(group.contains(threadid)) {
+                            qDebug() << Q_FUNC_INFO
+                                     << "Warning: group "
+                                     << group.toString()
+                                     << "already contains thread with id"
+                                     << threadid
+                                     << "not adding it.";
+                        } else {
+                            int threadChangeset = threadElement.attribute("changeset").toInt();
+                            int threadGetMessagesCount = threadElement.attribute("getmessagescount").toInt();
+                            ForumThread thread(nullptr, true);
+                            thread.setId(threadid);
+                            thread.setChangeset(threadChangeset);
+                            thread.setGetMessagesCount(threadGetMessagesCount);
+                            thread.setName(UNKNOWN_SUBJECT);
+                            thread.setOrdernum(999);
+                            thread.setGroup(&group);
+                            emit serverThreadData(&thread);
+                            QDomElement messageElement = threadElement.firstChildElement("message");
+                            while(!messageElement.isNull()) {
+                                QString messageid = messageElement.attribute("id");
+                                if(thread.contains(messageid)) {
+                                    qDebug() << Q_FUNC_INFO
+                                             << "Warning: thread " << thread.toString()
+                                             << "already contains message id"
+                                             << messageid << "! Not adding twice.";
+                                } else {
+                                    ForumMessage msg(nullptr, true);
+                                    msg.setId(messageid);
+                                    msg.setName(UNKNOWN_SUBJECT);
+                                    msg.setBody("Please update forum to get message content.");
+                                    msg.setRead(true, false);
+                                    msg.setOrdernum(999);
+                                    msg.setThread(&thread);
+                                    emit serverMessageData(&msg);
+                                }
+                                messageElement = messageElement.nextSiblingElement("message");
+                            }
+                        }
+                        threadElement = threadElement.nextSiblingElement("thread");
                     }
-                    emit serverThreadData(&thread);
-                    QDomElement messageElement = threadElement.firstChildElement("message");
-                    while(!messageElement.isNull()) {
-                        QString messageid = messageElement.attribute("id");
-                        ForumMessage msg(&thread);
-                        msg.setId(messageid);
-                        msg.setName(UNKNOWN_SUBJECT);
-                        msg.setBody("Please update forum to get message content.");
-                        msg.setRead(true, false);
-                        msg.setOrdernum(999);
-                        thread.addMessage(&msg);
-                        emit serverMessageData(&msg);
-                        messageElement = messageElement.nextSiblingElement("message");
-                    }
-                    threadElement = threadElement.nextSiblingElement("thread");
                 }
                 groupElement = groupElement.nextSiblingElement("group");
             }

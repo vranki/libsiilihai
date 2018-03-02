@@ -2,6 +2,7 @@
 #define SIILIHAISETTINGS_H
 
 #include <QSettings>
+#include <QDateTime>
 #define BASEURL "http://www.siilihai.com/"
 
 class SiilihaiSettings : public QSettings
@@ -17,6 +18,7 @@ class SiilihaiSettings : public QSettings
     Q_PROPERTY(QString httpProxy READ httpProxy WRITE setHttpProxy NOTIFY changed)
     Q_PROPERTY(QString username READ username WRITE setUsername NOTIFY changed)
     Q_PROPERTY(QString password READ password WRITE setPassword NOTIFY changed)
+    Q_PROPERTY(QDateTime lastUpdate READ lastUpdate WRITE setLastUpdate NOTIFY changed)
 
 public:
     explicit SiilihaiSettings(const QString &fileName, Format format, QObject *parent = 0);
@@ -53,8 +55,12 @@ public:
     void setUpdateFailed(int fid, bool failed);
     bool cleanShutdown() const;
 
+    QDateTime lastUpdate() const;
+
 public slots:
     void setCleanShutdown(bool cleanShutdown);
+
+    void setLastUpdate(QDateTime lastUpdate);
 
 signals:
     void changed();

@@ -16,7 +16,6 @@
 #define FORUMSUBSCRIPTION_H_
 #include <QString>
 #include <QObject>
-#include <QMap>
 #include <QList>
 #include <QDebug>
 #include <QUrl>
@@ -43,7 +42,7 @@ class UpdateEngine;
   *
   * @see ForumGroup
   */
-class ForumSubscription : public QObject, public QMap<QString, ForumGroup*>, public UpdateableItem  {
+class ForumSubscription : public QObject, public QList<ForumGroup*>, public UpdateableItem  {
     Q_OBJECT
     Q_PROPERTY(int id READ id WRITE setId NOTIFY changed)
     Q_PROPERTY(QString alias READ alias WRITE setAlias NOTIFY changed)
@@ -77,6 +76,8 @@ public:
     virtual ~ForumSubscription();
     virtual bool isSane() const;
     QString toString() const;
+    ForumGroup* value(const QString & id) const;
+    bool contains(const QString & id) const;
     void setAlias(QString alias);
     void setUsername(QString username);
     void setPassword(QString password);

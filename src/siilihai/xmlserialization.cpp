@@ -11,7 +11,7 @@
 
 void XmlSerialization::serialize(ForumSubscription *sub, QDomElement &parent, QDomDocument &doc) {
     QDomElement subElement = sub->serialize(parent, doc);
-    for(ForumGroup *grp : sub->values())
+    for(ForumGroup *grp : *sub)
         serialize(grp, subElement, doc);
 }
 
@@ -23,7 +23,7 @@ void XmlSerialization::serialize(ForumGroup *grp, QDomElement &parent, QDomDocum
     if(grp->isSubscribed())
         newElement.setAttribute(GRP_SUBSCRIBED, "true");
 
-    for(ForumThread *thread : grp->values())
+    for(ForumThread *thread : *grp)
         serialize(thread, newElement, doc);
 
     parent.appendChild(newElement);
@@ -40,7 +40,7 @@ void XmlSerialization::serialize(ForumThread *thr, QDomElement &parent, QDomDocu
     if(thr->hasMoreMessages())
         newElement.setAttribute(THR_HASMOREMESSAGES, "true");
 
-    for(ForumMessage *msg : thr->values())
+    for(ForumMessage *msg : *thr)
         serialize(msg, newElement, doc);
 
     parent.appendChild(newElement);
@@ -81,7 +81,7 @@ ForumSubscription *XmlSerialization::readSubscription(QDomElement &element, QObj
 void XmlSerialization::appendForumDataItemValues(ForumDataItem *item, QDomElement &parent, QDomDocument &doc) {
     parent.setAttribute(COMMON_ID, item->id());
     appendValue(COMMON_NAME, item->name(), parent, doc);
-    appendValue(COMMON_LASTCHANGE, item->lastchange(), parent, doc);
+    appendValue(COMMON_LASTCHANGE, item->lastChange(), parent, doc);
 }
 
 void XmlSerialization::appendValue(QString name, QString value, QDomElement &parent, QDomDocument &doc) {
@@ -93,7 +93,7 @@ void XmlSerialization::appendValue(QString name, QString value, QDomElement &par
 
 
 ForumGroup* XmlSerialization::readGroup(QDomElement &element, ForumSubscription *parent) {
-    if(element.tagName() != GRP_GROUP) return 0;
+    if(element.tagName() != GRP_GROUP) return nullptr;
 
     ForumGroup *grp = new ForumGroup(parent, false);
     readForumDataItemValues(grp, element);
@@ -167,7 +167,7 @@ ForumMessage* XmlSerialization::readMessage(QDomElement &element, ForumThread *p
 void XmlSerialization::readForumDataItemValues(ForumDataItem *item, QDomElement &element) {
     item->setId(element.attribute(COMMON_ID));
     item->setName(element.firstChildElement(COMMON_NAME).text());
-    item->setLastchange(element.firstChildElement(COMMON_LASTCHANGE).text());
+    item->setLastChange(element.firstChildElement(COMMON_LASTCHANGE).text());
 }
 
 ForumParser *XmlSerialization::readParser(QDomElement &element, QObject *parent) {

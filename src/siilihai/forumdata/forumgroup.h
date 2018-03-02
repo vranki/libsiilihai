@@ -17,7 +17,7 @@
 #define FORUMGROUP_H_
 #include <QString>
 #include <QObject>
-#include <QMap>
+#include <QList>
 #include "forumdataitem.h"
 
 class ForumSubscription;
@@ -25,7 +25,7 @@ class ForumThread;
 /**
   * Represents a single thread in a forum. Contains threads.
   */
-class ForumGroup : public ForumDataItem, public QMap<QString, ForumThread*> {
+class ForumGroup : public ForumDataItem, public QList<ForumThread*> {
     Q_OBJECT
 
     Q_PROPERTY(QString name READ name WRITE setName NOTIFY changed) // Prefer displayName in UI
@@ -42,6 +42,8 @@ public:
     virtual ~ForumGroup();
     void copyFrom(ForumGroup * o);
     virtual QString toString() const;
+    bool contains(const QString & id) const;
+    ForumThread* value(const QString & id) const;
     bool isSane() const;
     ForumSubscription *subscription() const;
     bool isSubscribed() const;

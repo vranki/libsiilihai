@@ -20,25 +20,40 @@
 ForumThread::~ForumThread() { }
 
 ForumThread::ForumThread(QObject *parent, bool temp) : ForumDataItem(parent)
-, _group(nullptr)
-, _changeset(-1)
-, _ordernum(-1)
-, _hasMoreMessages(false)
-, _getMessagesCount(999)
-, _temp(temp)
-, _lastPage(0) {
-    connect(this, SIGNAL(messageRemoved(ForumMessage*)), this, SIGNAL(messagesChanged()));
+  , _ordernum(-1)
+  , _changeset(-1)
+  , _group(nullptr)
+  , _hasMoreMessages(false)
+  , _getMessagesCount(999)
+  , _temp(temp)
+  , _lastPage(0)
+{
+    connect(this, &ForumThread::messageRemoved,
+            this, &ForumThread::messagesChanged);
+    connect(this, &ForumThread::messageAdded,
+            this, &ForumThread::messagesChanged);
 }
 
-void ForumThread::copyFrom(ForumThread * o) {
+void ForumThread::copyFrom(const ForumThread * o) {
     setId(o->id());
     setName(o->name());
-    setLastchange(o->lastchange());
+    setLastChange(o->lastChange());
     setChangeset(o->changeset());
     setOrdernum(o->ordernum());
     setHasMoreMessages(o->hasMoreMessages());
     setGetMessagesCount(o->getMessagesCount());
     setLastPage(o->lastPage());
+}
+
+ForumMessage *ForumThread::value(const QString &id) const {
+    for(ForumMessage *msg : *this) {
+        if(msg->id() == id) return msg;
+    }
+    return nullptr;
+}
+
+bool ForumThread::contains(const QString &id) const {
+    return value(id);
 }
 
 bool ForumThread::operator<(const ForumThread &o) {
@@ -73,6 +88,7 @@ ForumGroup *ForumThread::group() const {
 }
 
 void ForumThread::setGroup(ForumGroup *grp) {
+    Q_ASSERT(!grp || (grp->isTemp() == isTemp()));
     _group = grp;
 }
 
@@ -89,6 +105,7 @@ void ForumThread::setOrdernum(int on) {
     _ordernum = on;
     _propertiesChanged = true;
 }
+
 void ForumThread::setChangeset(int cs) {
     if(cs==_changeset) return;
     _changeset = cs;
@@ -107,7 +124,7 @@ void ForumThread::setGetMessagesCount(int gmc) {
     _propertiesChanged = true;
 }
 
-bool ForumThread::isTemp() {
+bool ForumThread::isTemp() const {
     return _temp;
 }
 
@@ -119,18 +136,27 @@ void ForumThread::emitUnreadCountChanged() {
     emit unreadCountChanged();
 }
 
+void ForumThread::updateMessagesObjectList()
+{
+    _messagesObjectList.clear();
+    for(ForumMessage *msg : *this)
+        _messagesObjectList.append(msg);
+}
+
 void ForumThread::setLastPage(int lp) {
     if(_lastPage == lp) return;
     _lastPage = lp;
     _propertiesChanged = true;
 }
 
-int ForumThread::lastPage() {
+int ForumThread::lastPage() const {
     return _lastPage;
 }
 
-void ForumThread::addMessage(ForumMessage* msg, bool affectsSync) {
+void ForumThread::addMessage(ForumMessage *msg, bool affectsSync) {
     Q_ASSERT(!msg->thread());
+    Q_ASSERT(!contains(msg->id()));
+    Q_ASSERT(msg->isTemp() == isTemp());
     msg->setThread(this);
 
     if(msg->isRead()) {
@@ -143,17 +169,21 @@ void ForumThread::addMessage(ForumMessage* msg, bool affectsSync) {
                 group()->subscription()->incrementUnreadCount(1);
         }
     }
-    Q_ASSERT(!contains(msg->id()));
-    insert(msg->id(), msg);
+    append(msg);
+    // Sort:
+    std::sort(begin(), end(), [](ForumMessage* a, ForumMessage* b) {
+        return a->ordernum() < b->ordernum();
+    });
 #ifdef SANITY_CHECKS
     Q_ASSERT(unreadCount() >= 0);
     Q_ASSERT(unreadCount() <= size());
 #endif
-    _displayName = QString::null;
+    _displayName = QString();
+    updateMessagesObjectList();
     emit messageAdded(msg);
 }
 
-void ForumThread::removeMessage(ForumMessage* msg, bool affectsSync) {
+void ForumThread::removeMessage(ForumMessage *msg, bool affectsSync) {
     Q_ASSERT(msg->thread() == this);
     if(!msg->isRead() && group()->isSubscribed()) {
         incrementUnreadCount(-1);
@@ -163,14 +193,15 @@ void ForumThread::removeMessage(ForumMessage* msg, bool affectsSync) {
     }
     if(affectsSync && msg->isRead()) group()->setHasChanged(true);
     Q_ASSERT(contains(msg->id()));
-    remove(msg->id());
-    _displayName = QString::null;
+    removeOne(msg);
+    _displayName = QString();
+    updateMessagesObjectList();
     emit messageRemoved(msg);
     msg->deleteLater();
 }
 
 bool ForumThread::needsToBeUpdated() const {
-    return _lastchange == NEEDS_UPDATE || UpdateableItem::needsToBeUpdated();
+    return lastChange() == NEEDS_UPDATE || UpdateableItem::needsToBeUpdated();
 }
 
 void ForumThread::markToBeUpdated(bool toBe) {
@@ -180,11 +211,6 @@ void ForumThread::markToBeUpdated(bool toBe) {
     }
 }
 
-QList<QObject *> ForumThread::messages() const
-{
-    QList<QObject*> myMessages;
-    for(auto *msg : values())
-        myMessages.append(qobject_cast<QObject*>(msg));
-
-    return myMessages;
+QObjectList ForumThread::messages() const {
+    return _messagesObjectList;
 }

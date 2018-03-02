@@ -13,6 +13,7 @@
   */
 class ForumDataItem : public QObject, public UpdateableItem {
     Q_OBJECT
+
 public:
     ForumDataItem(QObject * parent);
     virtual QString toString() const=0;
@@ -23,8 +24,8 @@ public:
     const QString &id() const;
     int unreadCount() const;
     virtual void incrementUnreadCount(const int &urc);
-    void setLastchange(QString nlc);
-    QString lastchange() const;
+    void setLastChange(QString nlc);
+    QString lastChange() const;
     void commitChanges();
 protected:
     virtual void emitChanged()=0;

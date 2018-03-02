@@ -26,9 +26,6 @@ ForumSubscription::ForumSubscription(QObject *parent, bool temp, ForumProvider p
     : QObject(parent)
     , _engine(nullptr)
     , _forumId(0)
-    , _alias(QString::null)
-    , _username(QString::null)
-    , _password(QString::null)
     , _latestThreads(20)
     , _latestMessages(20)
     , _authenticated(false)
@@ -64,22 +61,24 @@ ForumSubscription::~ForumSubscription() {
     clearErrors();
 }
 
-void ForumSubscription::addGroup(ForumGroup* grp, bool affectsSync, bool incrementUnreads) {
+void ForumSubscription::addGroup(ForumGroup *grp, bool affectsSync, bool incrementUnreads) {
     Q_ASSERT(!grp->subscription());
+    Q_ASSERT(!contains(grp->id()));
+    Q_ASSERT(grp->isTemp() == isTemp());
     grp->setSubscription(this);
     if(incrementUnreads) incrementUnreadCount(grp->unreadCount());
-    insert(grp->id(), grp);
+    append(grp);
     if(affectsSync) setGroupListChanged();
     emit groupAdded(grp);
 }
 
 void ForumSubscription::removeGroup(ForumGroup* grp, bool affectsSync, bool incrementUnreads) {
     Q_ASSERT(grp->subscription() == this);
+    Q_ASSERT(contains(grp->id()));
     if(incrementUnreads) incrementUnreadCount(-grp->unreadCount());
-    remove(grp->id());
+    removeOne(grp);
 
-    if(affectsSync)
-        setGroupListChanged();
+    if(affectsSync) setGroupListChanged();
     emit groupRemoved(grp);
     grp->deleteLater();
 }
@@ -91,6 +90,19 @@ bool ForumSubscription::isSane() const {
 QString ForumSubscription::toString() const {
     return QString("Subscription to %1 (%2) su %3 bu %4 ss %5 bs %6").arg(_forumId).arg(_alias).arg(_scheduledForUpdate)
             .arg(_beingUpdated).arg(_scheduledForSync).arg(_beingSynced);
+}
+
+ForumGroup *ForumSubscription::value(const QString &id) const
+{
+    for(ForumGroup *grp : *this) {
+        if(grp->id() == id) return grp;
+    }
+    return nullptr;
+}
+
+bool ForumSubscription::contains(const QString &id) const
+{
+    return value(id);
 }
 
 QString ForumSubscription::alias() const {
@@ -196,7 +208,7 @@ void ForumSubscription::setId(int newId)
 }
 
 void ForumSubscription::markRead(bool read) {
-    for(auto group : values())
+    for(auto group : *this)
         group->markRead(read);
 }
 
@@ -382,7 +394,7 @@ QList<QObject *> ForumSubscription::groups() const
 {
     QList<QObject*> myGroups;
 
-    for(auto *grp : values())
+    for(auto *grp : *this)
         myGroups.append(qobject_cast<QObject*>(grp));
 
     return myGroups;
@@ -392,7 +404,7 @@ QList<QObject *> ForumSubscription::subscribedGroups() const
 {
     QList<QObject*> myGroups;
 
-    for(auto *grp : values()) {
+    for(auto *grp : *this) {
         if(grp->isSubscribed()) myGroups.append(qobject_cast<QObject*>(grp));
     }
 

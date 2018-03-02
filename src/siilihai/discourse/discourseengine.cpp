@@ -73,7 +73,7 @@ void DiscourseEngine::replyListGroups(QNetworkReply *reply)
 
         newGroup->setName(catObj.value("name").toString());
         newGroup->setId(QString::number(catObj.value("id").toInt()));
-        newGroup->setLastchange(QString::number(rand()));
+        newGroup->setLastChange(QString::number(rand()));
         newGroup->setChangeset(rand());
         tempGroups.append(newGroup);
     }
@@ -101,7 +101,7 @@ void DiscourseEngine::replyListThreads(QNetworkReply *reply)
         newThread->setId(QString::number(topicObject.value("id").toInt()));
         newThread->setName(topicObject.value("title").toString());
         QDateTime dateTime = QDateTime::fromString(topicObject.value("last_posted_at").toString(), Qt::ISODate);
-        newThread->setLastchange(dateTime.toString());
+        newThread->setLastChange(dateTime.toString());
         newThread->setOrdernum(tempThreads.size());
         tempThreads.append(newThread);
     }
@@ -131,7 +131,7 @@ void DiscourseEngine::replyListMessages(QNetworkReply *reply)
         if(!realname.isEmpty()) username = realname + " (" + username + ")";
         newMessage->setAuthor(username);
         QDateTime dateTime = QDateTime::fromString(postObject.value("updated_at").toString(), Qt::ISODate);
-        newMessage->setLastchange(dateTime.toString());
+        newMessage->setLastChange(dateTime.toString());
         newMessage->setRead(false);
         newMessage->setOrdernum(tempMessages.size());
 

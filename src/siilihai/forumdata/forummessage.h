@@ -33,13 +33,15 @@ class ForumMessage : public ForumDataItem {
     Q_PROPERTY(bool isRead READ isRead WRITE setRead NOTIFY markedRead)
     Q_PROPERTY(QString author READ author WRITE setAuthor NOTIFY changed)
     Q_PROPERTY(QString authorCleaned READ authorCleaned NOTIFY changed)
-    Q_PROPERTY(QString lastchange READ lastchange WRITE setLastchange NOTIFY changed)
+    Q_PROPERTY(QString lastChange READ lastChange WRITE setLastChange NOTIFY changed)
     Q_PROPERTY(QString url READ url NOTIFY changed)
+    Q_PROPERTY(int ordernum READ ordernum WRITE setOrdernum NOTIFY changed)
+    Q_PROPERTY(ForumThread* thread READ thread NOTIFY changed)
 
 public:
     ForumMessage(QObject *parent, bool temp=true);
     virtual ~ForumMessage();
-    void copyFrom(ForumMessage * o);
+    void copyFrom(const ForumMessage *o);
     bool operator<(const ForumMessage &o);
     bool isSane() const;
     virtual QString toString() const;

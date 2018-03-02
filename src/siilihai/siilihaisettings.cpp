@@ -134,9 +134,21 @@ bool SiilihaiSettings::cleanShutdown() const
     return value("clean_shutdown", false).toBool();
 }
 
+QDateTime SiilihaiSettings::lastUpdate() const
+{
+    return value("last_update").toDateTime();
+}
+
 void SiilihaiSettings::setCleanShutdown(bool cleanShutdown)
 {
     setValue("clean_shutdown", cleanShutdown);
+    sync();
+    emit changed();
+}
+
+void SiilihaiSettings::setLastUpdate(QDateTime lastUpdate)
+{
+    setValue("last_update", lastUpdate);
     sync();
     emit changed();
 }

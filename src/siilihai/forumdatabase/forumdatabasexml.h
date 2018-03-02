@@ -14,24 +14,17 @@ public:
     bool openDatabase(QIODevice *source, bool loadContent=true);
     bool openDatabase(QString filename, bool loadContent=true);
 
-    virtual void resetDatabase();
-    virtual int schemaVersion();
-    virtual bool isStored();
-
-    // Subscription related
-    virtual bool addSubscription(ForumSubscription *fs); // Ownership changes!!!
-    virtual void deleteSubscription(ForumSubscription *sub);
+    virtual int schemaVersion() override;
+    virtual bool isStored() override;
+    virtual void resetDatabase() override;
 
 public slots:
-    virtual bool storeDatabase();
+    virtual bool storeDatabase() override;
 
-signals:
-    void subscriptionFound(ForumSubscription *sub);
-    void subscriptionRemoved(ForumSubscription *sub);
-    void databaseStored();
 private:
     bool m_unsaved, m_loaded;
     QString m_databaseFileName;
+
 };
 
 #endif // FORUMDATABASEXML_H

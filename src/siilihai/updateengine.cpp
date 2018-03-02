@@ -117,7 +117,7 @@ void UpdateEngine::resetState() {
     updateWhenEngineReady = false;
 
     if(subscription()) {
-        for(ForumGroup *group : subscription()->values())
+        for(ForumGroup *group : *subscription())
             group->markToBeUpdated(false);
     }
     threadsToUpdateQueue.clear();
@@ -148,7 +148,7 @@ void UpdateEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups, ForumSubsc
     for (ForumGroup *tempGroup : tempGroups) {
         bool foundInDb = false;
         QString tempGroupId = tempGroup->id();
-        for(ForumGroup *dbGroup : fsubscription->values()) {
+        for(ForumGroup *dbGroup : *fsubscription) {
             if (dbGroup->id() == tempGroupId) {
                 foundInDb = true;
 
@@ -158,7 +158,7 @@ void UpdateEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups, ForumSubsc
                     dbGroup->commitChanges();
                 }
                 if((dbGroup->isSubscribed() &&
-                    ((dbGroup->lastchange() != tempGroup->lastchange()) || forceUpdate ||
+                    ((dbGroup->lastChange() != tempGroup->lastChange()) || forceUpdate ||
                      dbGroup->isEmpty() || dbGroup->needsToBeUpdated()))) {
                     dbGroup->markToBeUpdated();
                     // Store the updated version to database
@@ -188,7 +188,7 @@ void UpdateEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups, ForumSubsc
     }
 
     // check for DELETED groups
-    for(ForumGroup *dbGroup : fsubscription->values()) {
+    for(ForumGroup *dbGroup : *fsubscription) {
         bool groupFound = false;
         for(ForumGroup *grp : tempGroups) {
             if (dbGroup->id() == grp->id()) {
@@ -239,12 +239,12 @@ void UpdateEngine::listThreadsFinished(QList<ForumThread*> &tempThreads, ForumGr
         ForumThread *dbThread = fdb ? fdb->getThread(group->subscription()->id(), group->id(), serverThread->id()) : 0;
         if (dbThread) {
             dbThread->setName(serverThread->name());
-            if ((dbThread->lastchange() != serverThread->lastchange()) || forceUpdate ||
+            if ((dbThread->lastChange() != serverThread->lastChange()) || forceUpdate ||
                     dbThread->isEmpty() || dbThread->needsToBeUpdated()) {
                 // Don't update some fields to new values
                 int oldGetMessagesCount = dbThread->getMessagesCount();
                 bool oldHasMoreMessages =  dbThread->hasMoreMessages();
-                dbThread->setLastchange(serverThread->lastchange());
+                dbThread->setLastChange(serverThread->lastChange());
                 dbThread->setOrdernum(serverThread->ordernum());
                 dbThread->setChangeset(serverThread->changeset());
                 dbThread->setGetMessagesCount(oldGetMessagesCount);
@@ -273,7 +273,7 @@ void UpdateEngine::listThreadsFinished(QList<ForumThread*> &tempThreads, ForumGr
     }
     QSet<ForumThread*> deletedThreads;
     // check for DELETED threads
-    for (ForumThread *dbThread : group->values()) { // Iterate all db threads and find if any is missing
+    for (ForumThread *dbThread : *group) { // Iterate all db threads and find if any is missing
         bool threadFound = false;
         for(ForumThread *tempThread : tempThreads) {
             if (dbThread->group()->id() == group->id() && dbThread->id() == tempThread->id()) {
@@ -311,7 +311,7 @@ void UpdateEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages, Foru
 
     for (ForumMessage *tempMessage : tempMessages) {
         bool foundInDb = false;
-        for (ForumMessage *dbMessage : dbThread->values()) {
+        for (ForumMessage *dbMessage : *dbThread) {
             if (dbMessage->id() == tempMessage->id()) {
                 foundInDb = true;
                 bool wasRead = dbMessage->isRead();
@@ -330,7 +330,7 @@ void UpdateEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages, Foru
     }
 
     // check for DELETED threads
-    for(ForumMessage *dbmessage : dbThread->values()) {
+    for(ForumMessage *dbmessage : *dbThread) {
         bool messageFound = false;
         for(ForumMessage *tempMsg : tempMessages) {
             if (dbmessage->id() == tempMsg->id()) {
@@ -356,9 +356,9 @@ void UpdateEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages, Foru
     }
 }
 
-void UpdateEngine::networkFailure(const QString &message) {
+void UpdateEngine::networkFailure(const QString &message, const QString &technical) {
     if(!updateCanceled)
-        subscription()->appendError(new UpdateError("Network error", message));
+        subscription()->appendError(new UpdateError("Network error", message, technical));
     setState(UES_ERROR);
 }
 
@@ -382,7 +382,7 @@ void UpdateEngine::updateNextChangedGroup() {
     Q_ASSERT(state() == UES_UPDATING);
 
     if(!updateOnlyThread && !updateOnlyGroup) {
-        for(ForumGroup *group : subscription()->values()) {
+        for(ForumGroup *group : *subscription()) {
             if(group->needsToBeUpdated() && group->isSubscribed()) {
                 doUpdateGroup(group);
                 return;
@@ -427,13 +427,13 @@ void UpdateEngine::updateCurrentProgress() {
     } else {
         unsigned int subscribedGroups = 0;
 
-        for(ForumGroup *grp : subscription()->values()) {
+        for(ForumGroup *grp : *subscription()) {
             if (grp->isSubscribed()) subscribedGroups++;
         }
 
         if(subscribedGroups) {
             unsigned int groupsUpdated = 0;
-            for(ForumGroup *grp : subscription()->values()) {
+            for(ForumGroup *grp : *subscription()) {
                 if(!grp->needsToBeUpdated()) groupsUpdated++;
             }
             progress = groupsUpdated / subscribedGroups;

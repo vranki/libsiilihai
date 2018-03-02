@@ -463,10 +463,13 @@ void ParserEngine::performListGroups(QString &html) {
         ForumGroup *fg = new ForumGroup(this);
         fg->setId(match["%a"]);
         fg->setName(match["%b"]);
-        fg->setLastchange(match["%c"]);
+        fg->setLastChange(match["%c"]);
         groups.append(fg);
     }
     operationInProgress = PEONoOp;
+    if(groups.isEmpty()) {
+        networkFailure("Couldn't parse any groups in response from server.", html);
+    }
     emit(listGroupsFinished(groups, subscription()));
     qDeleteAll(groups);
 }
@@ -517,7 +520,7 @@ void ParserEngine::performListThreads(QString &html) {
         ForumThread *ft = new ForumThread(this);
         ft->setId(match["%a"]);
         ft->setName(match["%b"]);
-        ft->setLastchange(match["%c"]);
+        ft->setLastChange(match["%c"]);
         // groupBeingUpdated may be null in parser editor.
         ft->setGetMessagesCount(groupBeingUpdated ? groupBeingUpdated->subscription()->latestMessages() : 100);
         ft->setHasMoreMessages(false);
@@ -632,7 +635,7 @@ void ParserEngine::performListMessages(QString &html) {
         QString body = match["%c"];
         fm->setBody(body);
         fm->setAuthor(match["%d"]);
-        fm->setLastchange(match["%e"]);
+        fm->setLastChange(match["%e"]);
         fm->setUrl(parser()->supportsMessageUrl() ? getMessageUrl(fm) : currentMessagesUrl);
         if (fm->isSane()) {
             newMessages.append(fm);
@@ -721,7 +724,7 @@ QString ParserEngine::statusReport() {
 
 QString ParserEngine::getMessageUrl(const ForumMessage *msg) {
     // These can be null in parser manager
-    if(!msg || !groupBeingUpdated || !threadBeingUpdated) return QString::null;
+    if(!msg || !groupBeingUpdated || !threadBeingUpdated) return QString();
     Q_ASSERT(parser());
     QString urlString = parser()->view_message_path;
     urlString = urlString.replace("%g", groupBeingUpdated->id());

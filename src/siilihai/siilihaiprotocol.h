@@ -21,7 +21,6 @@
 #include <QNetworkProxy>
 #include <QNetworkCookieJar>
 #include <QCoreApplication>
-#include <QDomDocument>
 #include <QDebug>
 #include <QHash>
 #include <QList>

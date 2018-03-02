@@ -20,34 +20,40 @@
 #include "forumsubscription.h"
 #include "forummessage.h"
 
-ForumGroup::ForumGroup(QObject *parent, bool temp) : ForumDataItem(parent) {
-    _subscription = 0;
-    _subscribed = false;
-    _changeset = -1;
-    _hasChanged = false;
-    _temp = temp;
-}
+ForumGroup::ForumGroup(QObject *parent, bool temp) :
+    ForumDataItem(parent)
+  ,  _subscription(nullptr)
+  , _subscribed(false)
+  , _changeset(-1)
+  , _hasChanged(false)
+  , _temp(temp)
+{}
 
 void ForumGroup::copyFrom(ForumGroup * o) {
     setId(o->id());
     setName(o->name());
-    setLastchange(o->lastchange());
+    setLastChange(o->lastChange());
     setSubscribed(o->isSubscribed());
     setChangeset(o->changeset());
     setHasChanged(o->hasChanged());
     setHierarchy(o->hierarchy());
 }
 
-ForumGroup::~ForumGroup() {
-}
+ForumGroup::~ForumGroup() { }
 
 void ForumGroup::addThread(ForumThread* thr, bool affectsSync, bool incrementUnreads) {
     Q_ASSERT(!thr->group());
     Q_ASSERT(!contains(thr->id()));
-    thr->setGroup(this);
+    Q_ASSERT(thr->isTemp() == isTemp());
+
     if(incrementUnreads) incrementUnreadCount(thr->unreadCount());
     if(affectsSync) setHasChanged(true);
-    insert(thr->id(), thr);
+    thr->setGroup(this);
+    append(thr);
+    // Sort:
+    std::sort(begin(), end(), [](ForumThread* a, ForumThread* b) {
+        return a->ordernum() < b->ordernum();
+    });
     emit threadAdded(thr);
 }
 
@@ -59,7 +65,7 @@ void ForumGroup::removeThread(ForumThread* thr, bool affectsSync) {
     incrementUnreadCount(-urc);
     if(isSubscribed())
         subscription()->incrementUnreadCount(-urc);
-    remove(thr->id());
+    removeOne(thr);
     emit threadRemoved(thr);
     thr->deleteLater();
 }
@@ -69,6 +75,19 @@ QString ForumGroup::toString() const {
     if(subscription())
         parser = QString().number(subscription()->id());
     return parser + "/" + id() + ": " + name();
+}
+
+bool ForumGroup::contains(const QString &id) const
+{
+    return value(id);
+}
+
+ForumThread *ForumGroup::value(const QString &id) const
+{
+    for(ForumThread* thread : *this) {
+        if(thread->id() == id) return thread;
+    }
+    return nullptr;
 }
 
 bool ForumGroup::isSane() const {
@@ -96,7 +115,7 @@ void ForumGroup::setSubscribed(bool s) {
     // If not subscribed, remove all child threads
     if(!s) {
         while(!isEmpty())
-            removeThread(begin().value(), false);
+            removeThread(last(), false);
     } else {
         subscription()->incrementUnreadCount(unreadCount());
     }
@@ -158,8 +177,8 @@ void ForumGroup::markToBeUpdated(bool toBe) {
 }
 
 void ForumGroup::markRead(bool read) {
-    for(ForumThread *ft : values()) {
-        for(ForumMessage *msg : ft->values()) {
+    for(ForumThread *ft : *this) {
+        for(ForumMessage *msg : *ft) {
             msg->setRead(read);
         }
     }
@@ -171,9 +190,9 @@ QString ForumGroup::hierarchy() const {
 
 QList<QObject *> ForumGroup::threads() const
 {
+    // todo: direct copy?
     QList<QObject*> myThreads;
-    // @todo sort?
-    for(auto *thr : values())
+    for(auto *thr : *this)
         myThreads.append(qobject_cast<QObject*>(thr));
 
     return myThreads;

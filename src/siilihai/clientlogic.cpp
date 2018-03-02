@@ -42,13 +42,21 @@ ClientLogic::ClientLogic(QObject *parent) : QObject(parent)
     connect(&statusMsgTimer, SIGNAL(timeout()), this, SLOT(clearStatusMessage()));
 
     // Make sure Siilihai::subscriptionFound is called first to get ParserEngine
-    connect(&m_forumDatabase, SIGNAL(subscriptionFound(ForumSubscription*)), this, SLOT(subscriptionFound(ForumSubscription*)));
+    connect(&m_forumDatabase, &ForumDatabase::subscriptionFound, this, &ClientLogic::subscriptionFound);
+    connect(&m_forumDatabase, &ForumDatabase::subscriptionRemoved, this, &ClientLogic::subscriptionRemoved);
     connect(&m_forumDatabase, SIGNAL(databaseStored()), this, SLOT(databaseStored()), Qt::QueuedConnection);
     connect(&m_protocol, &SiilihaiProtocol::userSettingsReceived, this, &ClientLogic::userSettingsReceived);
     connect(&m_protocol, &SiilihaiProtocol::loginFinished, this, &ClientLogic::loginFinishedSlot);
     connect(&m_protocol, &SiilihaiProtocol::networkError, this, &ClientLogic::protocolError);
     connect(this, &ClientLogic::offlineChanged, &m_protocol, &SiilihaiProtocol::setOffline);
-    connect(&m_syncmaster, SIGNAL(syncProgress(float, QString)), this, SLOT(syncProgress(float, QString)));
+    connect(&m_syncmaster, &SyncMaster::syncProgress, this, &ClientLogic::syncProgress);
+    connect(&m_syncmaster, &SyncMaster::syncFinished, this, &ClientLogic::syncFinished);
+}
+
+ClientLogic::~ClientLogic()
+{
+    qDebug() << Q_FUNC_INFO;
+    m_forumDatabase.resetDatabase();
 }
 
 QString ClientLogic::statusMessage() const
@@ -65,10 +73,7 @@ bool ClientLogic::developerMode() const {
 }
 
 QString ClientLogic::addReToSubject(QString subject) {
-    if(subject.startsWith("Re:"))
-        return subject;
-    else
-        return "Re: " + subject;
+    return subject.startsWith("Re:") ? subject : "Re: " + subject;
 }
 
 QString ClientLogic::addQuotesToBody(QString body) {
@@ -110,7 +115,6 @@ void ClientLogic::launchSiilihai() {
     m_parserManager->openDatabase(getDataFilePath() + "/siilihai_parsers.xml");
 
     settingsChanged(false);
-    connect(&m_syncmaster, SIGNAL(syncFinished(bool, QString)), this, SLOT(syncFinished(bool, QString)));
 
     // Set SIILIHAI_SERVER env variable to override base url
     QString envBaseUrl = QProcessEnvironment::systemEnvironment().value("SIILIHAI_SERVER");
@@ -173,7 +177,7 @@ void ClientLogic::haltSiilihai() {
         } else {
             qDebug() << Q_FUNC_INFO << "All done - quitting";
             m_settings->setCleanShutdown(true);
-            closeUi();
+            emit closeUi();
         }
     }
 }
@@ -219,7 +223,7 @@ void ClientLogic::settingsChanged(bool byUser) {
     m_settings->sync();
     if(usettings.syncEnabled()) { // Force upsync of everything
         for(ForumSubscription *sub : m_forumDatabase) {
-            for(auto group : sub->values()) {
+            for(auto group : *sub) {
                 group->setHasChanged(true);
             }
         }
@@ -260,7 +264,7 @@ void ClientLogic::loginFinishedSlot(bool success, QString motd, bool sync) {
         usettings.setSyncEnabled(sync);
         m_settings->setSyncEnabled(usettings.syncEnabled());
         m_settings->sync();
-        setState(usettings.syncEnabled() ? SH_STARTSYNCING : SH_READY);
+        setState((usettings.syncEnabled() && timeForUpdate()) ? SH_STARTSYNCING : SH_READY);
     } else {
         appendMessage("Login failed. \n" + motd);
         // @todo this happens also on first run if logging in with wrong u/p.
@@ -326,13 +330,11 @@ void ClientLogic::setState(SiilihaiState newState) {
             for(ForumSubscription *sub : m_forumDatabase) {
                 sub->setScheduledForUpdate(true);
             }
-            connect(&m_syncmaster, SIGNAL(syncFinishedFor(ForumSubscription*)), this, SLOT(updateForum(ForumSubscription*)));
             m_syncmaster.startSync();
         }
     } else if(newState==SH_ENDSYNC) {
         qDebug() << Q_FUNC_INFO << "Endsync";
         showStatusMessage("Synchronizing with server..");
-        disconnect(&m_syncmaster, SIGNAL(syncFinishedFor(ForumSubscription*)), this, SLOT(updateForum(ForumSubscription*)));
         m_syncmaster.endSync();
     } else if(newState==SH_STOREDB) {
         qDebug() << Q_FUNC_INFO << "Storedb";
@@ -340,8 +342,8 @@ void ClientLogic::setState(SiilihaiState newState) {
         dbStored = true;
     } else if(newState==SH_READY) {
         qDebug() << Q_FUNC_INFO << "Ready";
-        if(!usettings.syncEnabled())
-            updateClicked();
+
+        if(timeForUpdate()) updateClicked();
 
         if (m_forumDatabase.isEmpty()) { // Display subscribe dialog if none subscribed
             subscribeForum();
@@ -416,7 +418,6 @@ void ClientLogic::cancelClicked() {
     }
 }
 
-
 int ClientLogic::busyForumCount() {
     int busyForums = 0;
     for(ForumSubscription *sub : m_forumDatabase) {
@@ -428,14 +429,10 @@ int ClientLogic::busyForumCount() {
 }
 
 void ClientLogic::syncFinished(bool success, QString message){
-    qDebug() << Q_FUNC_INFO << success;
     if (!success) {
         appendMessage(QString("Syncing status with server failed.\n\n%1").arg(message));
     }
     if(currentState == SH_STARTSYNCING) {
-        while(!subscriptionsNotUpdated.isEmpty()) {
-            updateForum(*subscriptionsNotUpdated.begin());
-        }
         setState(SH_READY);
     } else if(currentState == SH_ENDSYNC) {
         endSyncDone = true;
@@ -513,15 +510,14 @@ void ClientLogic::createEngineForSubscription(ForumSubscription *newFs) {
     connect(ue, SIGNAL(messagePosted(ForumSubscription*)), this, SLOT(updateClicked(ForumSubscription*)));
 }
 
-void ClientLogic::subscriptionDeleted(QObject* subobj) {
-    ForumSubscription *sub = static_cast<ForumSubscription*> (subobj);
+void ClientLogic::subscriptionRemoved(ForumSubscription *sub) {
     if(!engines.contains(sub)) return; // Possible when quitting
     busyUpdateEngines.remove(engines[sub]);
+    subscriptionsNotUpdated.remove(sub);
     // engines[sub]->cancelOperation(); Don't do this
-    engines[sub]->setSubscription(0);
+    engines[sub]->setSubscription(nullptr);
     engines[sub]->deleteLater();
     engines.remove(sub);
-    subscriptionsNotUpdated.remove(sub);
 }
 
 void ClientLogic::forumUpdated(ForumSubscription* forum) {
@@ -544,6 +540,9 @@ void ClientLogic::forumUpdated(ForumSubscription* forum) {
             nextSub->updateEngine()->updateForum();
             busyForums++;
         }
+    }
+    if(subscriptionsToUpdateLeft.isEmpty()) {
+        m_settings->setLastUpdate(QDateTime::currentDateTime());
     }
 }
 
@@ -609,6 +608,9 @@ void ClientLogic::setDeveloperMode(bool newDm) {
     }
 }
 
+// Empty default implementation
+void ClientLogic::subscribeForum() { }
+
 void ClientLogic::databaseStored() {
     if(currentState==SH_STOREDB)
         haltSiilihai();
@@ -667,8 +669,18 @@ bool ClientLogic::noAccount() {
     return m_settings->noAccount();
 }
 
+bool ClientLogic::timeForUpdate()
+{
+    QDateTime lastUpdate = m_settings->lastUpdate();
+    if(!lastUpdate.isValid())
+        return true;
+    QDateTime now = QDateTime::currentDateTime();
+    qDebug() << Q_FUNC_INFO << "Last update was " << lastUpdate.secsTo(now) / 60
+             << "minutes ago";
+    return lastUpdate.secsTo(now) > 30 * 60; // 30 mins..
+}
+
 void ClientLogic::subscriptionFound(ForumSubscription *sub) {
-    connect(sub, SIGNAL(destroyed(QObject*)), this, SLOT(subscriptionDeleted(QObject*)));
     subscriptionsNotUpdated.insert(sub);
     createEngineForSubscription(sub);
 }
@@ -735,8 +747,8 @@ void ClientLogic::getHttpAuthentication(ForumSubscription *fsub, QAuthenticator 
     if(!authenticator || authenticator->user().isNull() || failed) { // Ask user the credentials
         // Return empty authenticator
         if(authenticator) {
-            authenticator->setUser(QString::null);
-            authenticator->setPassword(QString::null);
+            authenticator->setUser(QString());
+            authenticator->setPassword(QString());
         }
         CredentialsRequest *cr = new CredentialsRequest(fsub, this);
         cr->credentialType = CredentialsRequest::SH_CREDENTIAL_HTTP;
@@ -791,8 +803,8 @@ void ClientLogic::credentialsEntered(bool store) {
         m_settings->remove(QString::number(m_currentCredentialsRequest->subscription()->id()));
         m_settings->endGroup();
 
-        m_currentCredentialsRequest->subscription()->setUsername(QString::null);
-        m_currentCredentialsRequest->subscription()->setPassword(QString::null);
+        m_currentCredentialsRequest->subscription()->setUsername(QString());
+        m_currentCredentialsRequest->subscription()->setPassword(QString());
     }
 
     if(!noAccount())

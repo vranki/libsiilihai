@@ -12,7 +12,7 @@ class UpdateError : public QObject
 public:
     UpdateError();
     UpdateError(const UpdateError &o);
-    UpdateError(QString title, QString description=QString::null, QString technicalData=QString::null);
+    UpdateError(QString title, QString description=QString(), QString technicalData=QString());
     QString title() const;
     QString description() const;
     QString technicalData() const;

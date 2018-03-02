@@ -61,6 +61,7 @@ public:
     };
 
     explicit ClientLogic(QObject *parent = 0);
+    ~ClientLogic();
     QString statusMessage() const;
     SiilihaiState state() const;
     Q_INVOKABLE bool developerMode() const;
@@ -100,7 +101,7 @@ public slots:
     virtual void unregisterSiilihai();
     virtual void aboutToQuit();
     virtual void setDeveloperMode(bool newDm);
-    virtual void subscribeForum()=0; // Display the subscription dialog
+    virtual void subscribeForum(); // Display the subscription dialog
     void loginUser(QString user, QString password);
     virtual void loginWizardFinished();
     void setOffline(bool newOffline);
@@ -121,12 +122,13 @@ signals:
     void offlineChanged(bool offline);
     void stateChanged(SiilihaiState state);
     void errorMessagesChanged(QStringList errorMessages);
-
+    void closeUi(); // Means siilihai is ready to really quit
 protected:
     virtual void setState(SiilihaiState newState);
-    virtual void closeUi()=0;
     virtual void showMainWindow() {}
     virtual bool noAccount(); // True if accountless usage
+    virtual bool timeForUpdate(); // True if enough time passed from last update
+
     SiilihaiSettings *m_settings;
     ForumDatabaseXml m_forumDatabase;
     SiilihaiProtocol m_protocol;
@@ -135,10 +137,10 @@ protected:
     ParserManager *m_parserManager;
 
 protected slots:
-    virtual void subscriptionDeleted(QObject* subobj);
+    virtual void subscriptionRemoved(ForumSubscription *fsub);
     virtual void getHttpAuthentication(ForumSubscription *fsub, QAuthenticator *authenticator);
     virtual void getForumAuthentication(ForumSubscription *fsub);
-    virtual void showStatusMessage(QString message=QString::null);
+    virtual void showStatusMessage(QString message=QString());
     virtual void forumUpdateNeeded(ForumSubscription *sub); // Sends the updated forum info (authentication etc)
     virtual void unsubscribeForum(ForumSubscription* fs);
     void forumAdded(ForumSubscription *fs); // Ownership won't change

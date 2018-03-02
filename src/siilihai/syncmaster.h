@@ -47,11 +47,11 @@ public slots:
     void endSync();
     void cancel();
     void endSyncSingleGroup(ForumGroup *group);
-    void serverGroupStatus(QList<ForumSubscription*> &subs);
+    void serverGroupStatus(const QList<ForumSubscription *> &subs);
     void threadChanged(ForumThread *thread);
     void sendThreadDataFinished(bool success, QString message);
-    void serverThreadData(ForumThread *thread);
-    void serverMessageData(ForumMessage *message);
+    void serverThreadData(const ForumThread *thread);
+    void serverMessageData(const ForumMessage *message);
     void getThreadDataFinished(bool success, QString message);
     void subscribeGroupsFinished(bool success);
     void downsyncFinishedForForum(ForumSubscription *fs);

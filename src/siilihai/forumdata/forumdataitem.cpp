@@ -3,7 +3,6 @@
 
 ForumDataItem::ForumDataItem(QObject * parent) : QObject(parent), UpdateableItem()
 {
-    _name = _id = _displayName = QString::null;
     _unreadCount = 0;
     _propertiesChanged = false;
 }
@@ -22,7 +21,7 @@ void ForumDataItem::setName(QString const &name) {
   if(name == _name) return;
   _name = name;
   _propertiesChanged = true;
-  _displayName = QString::null;
+  _displayName = QString();
 }
 
 const QString & ForumDataItem::name() const {
@@ -36,11 +35,11 @@ const QString &ForumDataItem::displayName() {
     return _displayName;
 }
 
-QString ForumDataItem::lastchange() const {
+QString ForumDataItem::lastChange() const {
     return _lastchange;
 }
 
-void ForumDataItem::setLastchange(QString nlc) {
+void ForumDataItem::setLastChange(QString nlc) {
     if(nlc==_lastchange) return;
     _lastchange = nlc;
     _propertiesChanged = true;

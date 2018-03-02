@@ -20,22 +20,21 @@
 #include "../messageformatting.h"
 
 ForumMessage::ForumMessage(QObject *parent, bool temp) : ForumDataItem(parent)
-, _thread(nullptr)
-, _author("")
-, _body("")
-, _ordernum(-1)
-, _read(true)
-, _temp(temp) { }
+  , _ordernum(-1)
+  , _read(true)
+  , _temp(temp)
+  , _thread(nullptr)
+{ }
 
 ForumMessage::~ForumMessage() { }
 
-void ForumMessage::copyFrom(ForumMessage * o) {
+void ForumMessage::copyFrom(const ForumMessage * o) {
     setId(o->id());
     setOrdernum(o->ordernum());
     setUrl(o->url());
     setName(o->name());
     setAuthor(o->author());
-    setLastchange(o->lastchange());
+    setLastChange(o->lastChange());
     setBody(o->body());
     setRead(o->isRead(), false);
 }
@@ -72,7 +71,7 @@ ForumThread* ForumMessage::thread() const { return _thread; }
 
 void ForumMessage::setThread(ForumThread *thr) {
     _thread = thr;
-    _displayName = QString::null;
+    _displayName = QString();
 }
 
 int ForumMessage::ordernum() const { return _ordernum; }

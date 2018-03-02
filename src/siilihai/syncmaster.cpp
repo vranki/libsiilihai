@@ -21,24 +21,25 @@
 
 SyncMaster::SyncMaster(QObject *parent, ForumDatabase &fd, SiilihaiProtocol &prot) :
     QObject(parent)
+  , canceled(true)
   , fdb(fd)
   , protocol(prot)
-  , canceled(true)
   , errorCount(0) {
-    connect(&protocol, SIGNAL(serverGroupStatus(QList<ForumSubscription*> &)), this,
-            SLOT(serverGroupStatus(QList<ForumSubscription*> &)));
-    connect(&protocol, SIGNAL(serverThreadData(ForumThread*)), this,
-            SLOT(serverThreadData(ForumThread*)));
-    connect(&protocol, SIGNAL(serverMessageData(ForumMessage*)), this,
-            SLOT(serverMessageData(ForumMessage*)));
-    connect(&protocol, SIGNAL(getThreadDataFinished(bool, QString)), this,
-            SLOT(getThreadDataFinished(bool, QString)));
-    connect(&protocol, SIGNAL(subscribeGroupsFinished(bool)), this, SLOT(subscribeGroupsFinished(bool)));
-    connect(&protocol, SIGNAL(downsyncFinishedForForum(ForumSubscription*)), this, SLOT(downsyncFinishedForForum(ForumSubscription*)));
+    connect(&protocol, &SiilihaiProtocol::serverGroupStatus,
+            this, &SyncMaster::serverGroupStatus);
+    connect(&protocol, &SiilihaiProtocol::serverThreadData,
+            this, &SyncMaster::serverThreadData);
+    connect(&protocol, &SiilihaiProtocol::serverMessageData,
+            this, &SyncMaster::serverMessageData);
+    connect(&protocol, &SiilihaiProtocol::getThreadDataFinished,
+            this, &SyncMaster::getThreadDataFinished);
+    connect(&protocol, &SiilihaiProtocol::subscribeGroupsFinished,
+            this, &SyncMaster::subscribeGroupsFinished);
+    connect(&protocol, &SiilihaiProtocol::downsyncFinishedForForum,
+            this, &SyncMaster::downsyncFinishedForForum);
 }
 
-SyncMaster::~SyncMaster() {
-}
+SyncMaster::~SyncMaster() { }
 
 void SyncMaster::startSync() {
     canceled = false;
@@ -63,7 +64,7 @@ void SyncMaster::endSync() {
             fsub->setGroupListChanged(false);
             fsub->setBeingSynced(true);
         }
-        for(ForumGroup *grp : fsub->values()) {
+        for(ForumGroup *grp : *fsub) {
             if(grp->isSubscribed()) totalGroups++;
             if(grp->isSubscribed() && grp->hasChanged()) {
                 groupsToUpload.append(grp);
@@ -75,7 +76,7 @@ void SyncMaster::endSync() {
     processSubscriptions();
 }
 
-void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp objects!
+void SyncMaster::serverGroupStatus(const QList<ForumSubscription*> &subs) { // Temp objects!
     if(canceled) return;
     fdb.checkSanity();
     // Update local subs
@@ -103,10 +104,10 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
             // forum is authenticated but no u/p are known
 
             // Check for unsubscribed groups
-            for(ForumGroup *dbGrp : dbSub->values()) {
+            for(ForumGroup *dbGrp : *dbSub) {
                 bool groupIsSubscribed = false;
                 QString dbGrpId = dbGrp->id();
-                for(ForumGroup *serverGrp : serverSub->values()) {
+                for(ForumGroup *serverGrp : *serverSub) {
                     if(dbGrpId == serverGrp->id())
                         groupIsSubscribed = true;
                 }
@@ -132,7 +133,7 @@ void SyncMaster::serverGroupStatus(QList<ForumSubscription*> &subs) { // Temp ob
 
     // Update group lists
     for(ForumSubscription *serverSub : subs) {
-        for(ForumGroup *serverGrp : serverSub->values()) {
+        for(ForumGroup *serverGrp : *serverSub) {
             Q_ASSERT(serverGrp->subscription()->id() >= 0 || serverGrp->id().length() > 0);
             ForumSubscription *dbSub = fdb.findById(serverGrp->subscription()->id());
             Q_ASSERT(dbSub);
@@ -175,7 +176,7 @@ void SyncMaster::processGroups() {
     fdb.checkSanity();
     if(canceled) return;
     if (groupsToUpload.isEmpty() && groupsToDownload.isEmpty()) {
-        emit syncFinished(true, QString::null);
+        emit syncFinished(true, QString());
         return;
     }
     // Do the uploading
@@ -183,9 +184,9 @@ void SyncMaster::processGroups() {
         ForumGroup *g = groupsToUpload.takeFirst();
         g->subscription()->setBeingSynced(true);
         g->setChangeset(rand());
-        for(ForumThread *thread : g->values()) {
+        for(ForumThread *thread : *g) {
             Q_ASSERT(thread);
-            messagesToUpload.append(thread->values());
+            messagesToUpload.append(*thread);
         }
         connect(&protocol, SIGNAL(sendThreadDataFinished(bool, QString)), this, SLOT(sendThreadDataFinished(bool, QString)));
         protocol.sendThreadData(g, messagesToUpload);
@@ -219,11 +220,13 @@ void SyncMaster::sendThreadDataFinished(bool success, QString message) {
     }
 }
 
-void SyncMaster::serverThreadData(ForumThread *tempThread) { // Thread is temporary object!
+void SyncMaster::serverThreadData(const ForumThread *tempThread) { // Thread is temporary object!
     if(canceled) return;
+    Q_ASSERT(tempThread->group());
+    Q_ASSERT(tempThread->group()->subscription());
     if (tempThread->isSane()) {
-        static ForumGroup *lastGroupBeingSynced=0;
-        ForumGroup *dbGroup = 0;
+        static ForumGroup *lastGroupBeingSynced = nullptr;
+        ForumGroup *dbGroup = nullptr;
         ForumThread *dbThread = fdb.getThread(tempThread->group()->subscription()->id(), tempThread->group()->id(),
                                               tempThread->id());
         if (dbThread) { // Thread already found, merge it
@@ -261,9 +264,13 @@ void SyncMaster::serverThreadData(ForumThread *tempThread) { // Thread is tempor
     fdb.checkSanity();
 }
 
-void SyncMaster::serverMessageData(ForumMessage *tempMessage) { // Temporary object!
+void SyncMaster::serverMessageData(const ForumMessage *tempMessage) { // Temporary object!
     Q_ASSERT(tempMessage);
     if(canceled) return;
+    Q_ASSERT(tempMessage->thread());
+    Q_ASSERT(tempMessage->thread()->group());
+    Q_ASSERT(tempMessage->thread()->group()->subscription());
+
     if (tempMessage->isSane()) {
         ForumMessage *dbMessage = fdb.getMessage(tempMessage->thread()->group()->subscription()->id(),
                                                  tempMessage->thread()->group()->id(), tempMessage->thread()->id(), tempMessage->id());
@@ -275,6 +282,10 @@ void SyncMaster::serverMessageData(ForumMessage *tempMessage) { // Temporary obj
                                                   tempMessage->thread()->id());
             Q_ASSERT(dbThread);
             Q_ASSERT(!dbThread->isTemp());
+
+            // Schedule forum for update, as unknown message appears..
+            dbThread->group()->subscription()->setScheduledForUpdate(true);
+
             ForumMessage *newMessage = new ForumMessage(dbThread, false);
             newMessage->copyFrom(tempMessage);
             newMessage->setRead(true, false);
@@ -296,7 +307,7 @@ void SyncMaster::getThreadDataFinished(bool success, QString message){
     if(canceled) return;
     if(success) {
         for(ForumSubscription *fsub : fdb) {
-            for(ForumGroup *grp : fsub->values()) {
+            for(ForumGroup *grp : *fsub) {
                 grp->commitChanges();
             }
         }
@@ -325,8 +336,8 @@ void SyncMaster::downsyncFinishedForForum(ForumSubscription *fs)
     Q_ASSERT(!dbSubscription->scheduledForSync());
     dbSubscription->setBeingSynced(false);
     // Fix any possible sync errors:
-    for(ForumGroup *grp : dbSubscription->values())
-        for(ForumThread *thr : grp->values())
+    for(ForumGroup *grp : *dbSubscription)
+        for(ForumThread *thr : *grp)
             if(thr->isEmpty()) {
                 qDebug() << Q_FUNC_INFO << "Thread " << thr->toString()
                          << "contains no messages - marking to be updated";
@@ -336,8 +347,7 @@ void SyncMaster::downsyncFinishedForForum(ForumSubscription *fs)
 }
 
 
-void SyncMaster::threadChanged(ForumThread *) {
-}
+void SyncMaster::threadChanged(ForumThread *) { }
 
 void SyncMaster::cancel() {
     // Just to make sure

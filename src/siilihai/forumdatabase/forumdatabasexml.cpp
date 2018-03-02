@@ -15,17 +15,7 @@
 ForumDatabaseXml::ForumDatabaseXml(QObject *parent) :
     ForumDatabase(parent) {
     resetDatabase();
-    m_databaseFileName = QString::null;
-}
-
-void ForumDatabaseXml::resetDatabase(){
-    m_unsaved = false;
-    m_loaded = false;
-    for(ForumSubscription *sub : *this)
-        deleteSubscription(sub);
-    clear();
-    emit subscriptionsChanged();
-    checkSanity();
+    m_databaseFileName = QString();
 }
 
 int ForumDatabaseXml::schemaVersion(){
@@ -56,14 +46,14 @@ bool ForumDatabaseXml::openDatabase(QIODevice *source, bool loadContent) {
                 // Fix unread counts
                 sub->incrementUnreadCount(-sub->unreadCount());
                 Q_ASSERT(sub->unreadCount()==0);
-                for(ForumGroup *grp : sub->values()) {
+                for(ForumGroup *grp : *sub) {
                     grp->incrementUnreadCount(-grp->unreadCount());
                     Q_ASSERT(grp->unreadCount()==0);
                     if(grp->isSubscribed()) {
-                        for(ForumThread *thr : grp->values()) {
+                        for(ForumThread *thr : *grp) {
                             thr->incrementUnreadCount(-thr->unreadCount());
                             Q_ASSERT(thr->unreadCount()==0);
-                            for(ForumMessage *msg : thr->values()) {
+                            for(ForumMessage *msg : *thr) {
                                 if(!msg->isRead()) {
                                     thr->incrementUnreadCount(1);
                                     grp->incrementUnreadCount(1);
@@ -94,28 +84,6 @@ bool ForumDatabaseXml::isStored(){
     return !m_unsaved;
 }
 
-bool ForumDatabaseXml::addSubscription(ForumSubscription *fs){
-    insert(fs->id(), fs);
-    emit subscriptionsChanged();
-    emit subscriptionFound(fs);
-    checkSanity();
-#ifdef SANITY_CHECKS
-    for(ForumGroup *g : fs->values())
-        connect(g, SIGNAL(threadAdded(ForumThread*)), this, SLOT(checkSanity()));
-#endif
-    return true;
-}
-
-void ForumDatabaseXml::deleteSubscription(ForumSubscription *sub) {
-    // Delete the groups first.
-    for(ForumGroup *g : sub->values())
-        sub->removeGroup(g, false, false);
-    // Then delete the whole sub
-    removeAll(sub);
-    emit subscriptionsChanged();
-    emit subscriptionRemoved(sub);
-    sub->deleteLater();
-}
 
 bool ForumDatabaseXml::storeDatabase(){
     checkSanity();
@@ -146,3 +114,11 @@ bool ForumDatabaseXml::storeDatabase(){
     return true;
 }
 
+
+
+void ForumDatabaseXml::resetDatabase()
+{
+    ForumDatabase::resetDatabase();
+    m_unsaved = false;
+    m_loaded = false;
+}

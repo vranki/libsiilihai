@@ -277,7 +277,7 @@ void TapaTalkEngine::getThreads(QDomElement arrayDataElement, QList<ForumThread 
                 ForumThread *newThread = new ForumThread(this, true);
                 newThread->setId(id);
                 newThread->setName(name);
-                newThread->setLastchange(lc);
+                newThread->setLastChange(lc);
                 newThread->setGetMessagesCount(subscription()->latestMessages());
                 newThread->setOrdernum(threads->size());
 
@@ -508,7 +508,7 @@ void TapaTalkEngine::getMessages(QDomElement dataValueElement, QList<ForumMessag
             newMessage->setAuthor(getValueFromStruct(arrayDataValueElement, "post_author_name"));
             newMessage->setName(getValueFromStruct(arrayDataValueElement, "post_title"));
             newMessage->setBody(getValueFromStruct(arrayDataValueElement, "post_content"));
-            newMessage->setLastchange(getValueFromStruct(arrayDataValueElement, "post_time"));
+            newMessage->setLastChange(getValueFromStruct(arrayDataValueElement, "post_time"));
             newMessage->setOrdernum(messages->size());
             newMessage->setRead(false, false);
             convertBodyToHtml(newMessage);
@@ -607,7 +607,7 @@ void TapaTalkEngine::getGroups(QDomElement arrayDataElement, QList<ForumGroup *>
 
             newGroup->setName(groupName);
             newGroup->setId(groupId);
-            newGroup->setLastchange(QString::number(rand()));
+            newGroup->setLastChange(QString::number(rand()));
             newGroup->setChangeset(rand()); // TapaTalk doesn't support last change per group
 
             // newPosts can't work as server doesn't know what we've read
@@ -627,7 +627,7 @@ QString TapaTalkEngine::getValueFromStruct(QDomElement arrayValueElement, QStrin
     if(arrayValueElement.nodeName()!="value") {
         qDebug() << Q_FUNC_INFO << "Error: node name is not 'value'";
         protocolErrorDetected();
-        return QString::null;
+        return QString();
     }
     QDomElement valueElement = findMemberValueElement(arrayValueElement, name);
     if(valueElement.isNull()) return ""; // Avoid warning about null element

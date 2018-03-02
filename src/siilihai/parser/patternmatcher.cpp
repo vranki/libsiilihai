@@ -133,7 +133,7 @@ QList<QHash<QString, QString> > PatternMatcher::findMatches(QString &html) {
     while (pos < htmllength && patternTokens.length() > 0) {
         for (int n = 0; n < patternTokens.length() && pos < htmllength; n++) {
             QString pt = patternTokens[n];
-            QString nextPt = QString::null;
+            QString nextPt;
 
             if(n < patternTokens.length()-1)
                 nextPt = patternTokens[n+1];

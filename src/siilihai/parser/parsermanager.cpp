@@ -54,10 +54,8 @@ void ParserManager::getNextParser() {
 
 void ParserManager::updateParser(int parserId) {
     if(!protocol->offline()) {
-        qDebug() << Q_FUNC_INFO << "Getting parser " << parserId;
         protocol->getParser(parserId);
     } else {
-        qDebug() << Q_FUNC_INFO << "Offline. Queue update of parser " << parserId;
         if(!m_parserUpdateQueue.contains(parserId))
             m_parserUpdateQueue.append(parserId);
     }
