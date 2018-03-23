@@ -263,6 +263,7 @@ void ParserEngine::doUpdateThread(ForumThread *thread)
 void ParserEngine::resetState()
 {
     UpdateEngine::resetState();
+    operationInProgress = PEONoOp;
     updatingParser = false;
     currentListPage = 0;
     loggedIn = loggingIn = false;

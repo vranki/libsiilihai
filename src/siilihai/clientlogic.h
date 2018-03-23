@@ -21,6 +21,7 @@
 #include "subscriptionmanagement.h"
 
 #define MAX_CONCURRENT_UPDATES 2
+#define GET_MORE_MESSAGES_COUNT 30
 
 // State chart:
 //                 ,------>--------.
@@ -78,7 +79,7 @@ public:
      */
     Q_INVOKABLE virtual void settingsChanged(bool byUser);
     Q_INVOKABLE virtual QString getDataFilePath();
-
+    Q_INVOKABLE virtual void getMoreMessages(ForumThread *thread);
     QObject* forumDatabase();
     QObject* settings();
     SubscriptionManagement *subscriptionManagement();
@@ -101,7 +102,6 @@ public slots:
     virtual void unregisterSiilihai();
     virtual void aboutToQuit();
     virtual void setDeveloperMode(bool newDm);
-    virtual void subscribeForum(); // Display the subscription dialog
     void loginUser(QString user, QString password);
     virtual void loginWizardFinished();
     void setOffline(bool newOffline);
@@ -116,6 +116,7 @@ signals:
     void subscriptionManagementChanged(SubscriptionManagement *subscriptionManagement);
     void forumSubscribed(ForumSubscription *sub);
     void showLoginWizard();
+    void showSubscribeForumDialog();
     void loginFinished(bool success, QString motd, bool sync);
     void currentCredentialsRequestChanged(CredentialsRequest* currentCredentialsRequest);
     void groupListChanged(ForumSubscription* sub); // Show group subscription dialog or whatever
@@ -123,6 +124,7 @@ signals:
     void stateChanged(SiilihaiState state);
     void errorMessagesChanged(QStringList errorMessages);
     void closeUi(); // Means siilihai is ready to really quit
+
 protected:
     virtual void setState(SiilihaiState newState);
     virtual void showMainWindow() {}

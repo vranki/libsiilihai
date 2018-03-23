@@ -190,6 +190,17 @@ QString ClientLogic::getDataFilePath() {
 #endif
 }
 
+void ClientLogic::getMoreMessages(ForumThread *thread) {
+    Q_ASSERT(thread);
+    UpdateEngine *ue = thread->group()->subscription()->updateEngine();
+    if(ue->state() == UpdateEngine::UES_IDLE) {
+        thread->setGetMessagesCount(thread->getMessagesCount() + GET_MORE_MESSAGES_COUNT);
+        ue->updateThread(thread, false, true);
+    } else {
+        qWarning() << Q_FUNC_INFO << "Update engine NOT idle, ignoring this..";
+    }
+}
+
 QObject *ClientLogic::forumDatabase()
 {
     return qobject_cast<QObject*> (&m_forumDatabase);
@@ -346,7 +357,7 @@ void ClientLogic::setState(SiilihaiState newState) {
         if(timeForUpdate()) updateClicked();
 
         if (m_forumDatabase.isEmpty()) { // Display subscribe dialog if none subscribed
-            subscribeForum();
+            emit showSubscribeForumDialog();
         }
     }
     emit stateChanged(currentState);
@@ -607,9 +618,6 @@ void ClientLogic::setDeveloperMode(bool newDm) {
         emit developerModeChanged(newDm);
     }
 }
-
-// Empty default implementation
-void ClientLogic::subscribeForum() { }
 
 void ClientLogic::databaseStored() {
     if(currentState==SH_STOREDB)
