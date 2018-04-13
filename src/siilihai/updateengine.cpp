@@ -329,19 +329,23 @@ void UpdateEngine::listMessagesFinished(QList<ForumMessage*> &tempMessages, Foru
         }
     }
 
-    // check for DELETED threads
+    // Find deleted messages
+    QList<ForumMessage*> messagesToDelete;
     for(ForumMessage *dbmessage : *dbThread) {
         bool messageFound = false;
-        for(ForumMessage *tempMsg : tempMessages) {
-            if (dbmessage->id() == tempMsg->id()) {
+        for(ForumMessage *tempMsg : tempMessages)
+            if (dbmessage->id() == tempMsg->id())
                 messageFound = true;
-            }
-        }
         if (!messageFound) { // @todo don't delete, if tempMessages doesn't start from first page!!
             // @todo are ordernums ok then? This is probably causing a bug.
-            dbThread->removeMessage(dbmessage);
+            messagesToDelete.append(dbmessage);
+            Q_ASSERT(dbmessage->thread() == dbThread);
         }
     }
+    // Delete the deleted messages
+    for(ForumMessage *msg : messagesToDelete)
+        msg->thread()->removeMessage(msg);
+
     // update thread
     dbThread->setHasMoreMessages(moreAvailable);
     dbThread->commitChanges();

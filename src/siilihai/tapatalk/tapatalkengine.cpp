@@ -149,7 +149,7 @@ void TapaTalkEngine::probeUrl(QUrl url)
 void TapaTalkEngine::replyProbe(QNetworkReply *reply)
 {
     if (reply->error() != QNetworkReply::NoError) {
-        emit urlProbeResults(0);
+        emit urlProbeResults(nullptr);
         return;
     }
     QString docs = QString().fromUtf8(reply->readAll());
@@ -158,12 +158,12 @@ void TapaTalkEngine::replyProbe(QNetworkReply *reply)
     doc.setContent(docs);
     QDomElement arrayDataElement = doc.firstChildElement("methodResponse");
     if(!arrayDataElement.isNull()) {
-        ForumSubscription sub(0, true, ForumSubscription::FP_TAPATALK);
+        ForumSubscription sub(nullptr, true, ForumSubscription::FP_TAPATALK);
         // sub.setForumUrl(apiUrl);
         // @todo we could figure out forum name here..
         emit urlProbeResults(&sub);
     } else {
-        emit urlProbeResults(0);
+        emit urlProbeResults(nullptr);
     }
 }
 
@@ -222,7 +222,7 @@ void TapaTalkEngine::replyUpdateGroup(QNetworkReply *reply) {
                                                     "Unexpected TapatTalk reply. This is a bug in Siilihai or TapaTalk server. ",
                                                     reply->errorString()));
         ForumGroup *updatedGroup = groupBeingUpdated;
-        groupBeingUpdated = 0; // Update finished so clear this.
+        groupBeingUpdated = nullptr; // Update finished so clear this.
         listThreadsFinished(threads, updatedGroup);
         return;
     }
@@ -393,7 +393,7 @@ void TapaTalkEngine::replyUpdateThread(QNetworkReply *reply) {
         networkFailure(QString("Updating thread %1 failed: %2").arg(threadBeingUpdated->toString()).arg(reply->errorString()));
 
         ForumThread *updatedThread = threadBeingUpdated;
-        threadBeingUpdated=0;
+        threadBeingUpdated = nullptr;
         listMessagesFinished(messages, updatedThread, false);
         return;
     }
