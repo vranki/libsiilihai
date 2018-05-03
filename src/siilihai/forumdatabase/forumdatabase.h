@@ -3,7 +3,7 @@
 
 #include <QObject>
 #include <QList>
-#include "../forumdata/grouplistmodel.h"
+// #include "../forumdata/grouplistmodel.h"
 
 class ForumSubscription;
 class ForumGroup;

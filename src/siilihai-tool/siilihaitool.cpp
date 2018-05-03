@@ -144,10 +144,10 @@ void SiilihaiTool::groupListChanged(ForumSubscription *sub) {
     int longestId = 0;
     int longestName = 0;
     int longestLc = 0;
-    for(ForumGroup *group : sub->values()) {
+    for(ForumGroup *group : *sub) {
         longestId = qMax(group->id().length(), longestId);
         longestName = qMax(group->displayName().length(), longestName);
-        longestLc = qMax(group->lastchange().length(), longestLc);
+        longestLc = qMax(group->lastChange().length(), longestLc);
     }
     out << qSetFieldWidth(longestId)
         << "Id"
@@ -157,7 +157,7 @@ void SiilihaiTool::groupListChanged(ForumSubscription *sub) {
         << "Last change"
         << endl;
 
-    for(ForumGroup *group : sub->values()) {
+    for(ForumGroup *group : *sub) {
         out << qSetFieldWidth(longestId)
             << group->id()
             << qSetFieldWidth(0)
@@ -167,7 +167,7 @@ void SiilihaiTool::groupListChanged(ForumSubscription *sub) {
             << qSetFieldWidth(0)
             << " "
             << qSetFieldWidth(longestLc)
-            << group->lastchange()
+            << group->lastChange()
             << endl;
     }
     m_groupListReceived = true;
@@ -181,11 +181,11 @@ void SiilihaiTool::threadsChanged() {
     QTextStream out(stdout);
     out << "Thread list:" << endl;
     Q_ASSERT(m_groupBeingUpdated);
-    for(ForumThread *thread : m_groupBeingUpdated->values()) {
+    for(ForumThread *thread : *m_groupBeingUpdated) {
         out << thread->id()
             << ": "
             << thread->name()
-            << thread->lastchange()
+            << thread->lastChange()
             << endl;
     }
     out << "\nTotal" << m_groupBeingUpdated->size() << "threads." << endl;
@@ -204,7 +204,7 @@ void SiilihaiTool::messagesChanged() {
     QTextStream out(stdout);
     out << "Message list:" << endl;
     Q_ASSERT(m_threadBeingUpdated);
-    for(ForumMessage *message : m_threadBeingUpdated->values()) {
+    for(ForumMessage *message : *m_threadBeingUpdated) {
         out << message->id()
             << " "
             << message->name()

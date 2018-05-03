@@ -127,11 +127,11 @@ void LibSiilihaiTests::runForumDatabaseTests() {
 
     for (ForumSubscription* fs : fdb) {
         qDebug() << "FS: " << fs->toString() << " @ " << fs;
-        foreach (ForumGroup* fg, fs->values()) {
+        for (ForumGroup* fg : *fs) {
             qDebug() << "\tFG: " << fg->toString() << " @ " << fg;
-            foreach (ForumThread* ft, fg->values()) {
+            for (ForumThread* ft : *fg) {
                 qDebug() << "\t\tFT: " << ft->toString() << " @ " << ft;
-                foreach (ForumMessage* fm, ft->values()) {
+                for (ForumMessage* fm : *ft) {
                     qDebug() << "\t\t\tFM: " << fm->toString() << " @ " << fm;
                 }
             }
