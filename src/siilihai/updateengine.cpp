@@ -172,9 +172,10 @@ void UpdateEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups, ForumSubsc
             }
         }
         if (!foundInDb) {
-            // qDebug() << "Group " << grp->toString() << " not found in db - adding.";
+            qDebug() << "Group " << tempGroup->toString() << " not found in db - adding.";
             groupsChanged = true;
-            ForumGroup *newGroup = new ForumGroup(fsubscription, false);
+            ForumGroup *newGroup = new ForumGroup(fsubscription, fsubscription->isTemp());
+            qDebug() << Q_FUNC_INFO << newGroup->isTemp() << fsubscription->isTemp();
             newGroup->copyFrom(tempGroup);
             newGroup->setChangeset(rand());
             // DON'T set lastchange when only updating group list.
@@ -183,6 +184,7 @@ void UpdateEngine::listGroupsFinished(QList<ForumGroup*> &tempGroups, ForumSubsc
                 newGroup->markToBeUpdated();
             }
             */
+            qDebug() << Q_FUNC_INFO << newGroup->isTemp() << fsubscription->isTemp();
             fsubscription->addGroup(newGroup);
         }
     }
