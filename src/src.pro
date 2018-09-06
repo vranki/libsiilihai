@@ -14,7 +14,7 @@ unix {
 
 QT += core xml network
 QT -= gui
-CONFIG += c++14
+CONFIG += c++11
 
 debug {
 #    message(Debug build - enabling sanity checks)
