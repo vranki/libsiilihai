@@ -171,7 +171,7 @@ void ParserEngine::requestCredentials() {
     if(parser()->login_type==ForumParser::LoginTypeHttpPost) {
         emit getForumAuthentication(subscription());
     } else if(parser()->login_type==ForumParser::LoginTypeHttpAuth) {
-        emit getHttpAuthentication(subscription(), 0);
+        emit getHttpAuthentication(subscription(), nullptr);
     }
 }
 
@@ -275,7 +275,7 @@ void ParserEngine::resetState()
 void ParserEngine::probeUrl(QUrl url)
 {
     Q_UNUSED(url);
-    emit urlProbeResults(0);
+    emit urlProbeResults(nullptr);
 }
 
 QString ParserEngine::engineTypeName()

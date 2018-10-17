@@ -117,11 +117,11 @@ QString ForumSubscription::password() const {
     return _password;
 }
 
-unsigned int ForumSubscription::latestThreads() const {
+int ForumSubscription::latestThreads() const {
     return _latestThreads;
 }
 
-unsigned int ForumSubscription::latestMessages() const {
+int ForumSubscription::latestMessages() const {
     return _latestMessages;
 }
 
@@ -185,7 +185,7 @@ UpdateEngine *ForumSubscription::updateEngine() const {
 }
 
 void ForumSubscription::engineDestroyed() {
-    _engine = 0;
+    _engine = nullptr;
 }
 
 bool ForumSubscription::hasGroupListChanged() const {
@@ -275,7 +275,7 @@ ForumSubscription *ForumSubscription::newForProvider(ForumSubscription::ForumPro
     if(fp==ForumSubscription::FP_DISCOURSE)
         return new ForumSubscriptionDiscourse(parent, temp);
     Q_ASSERT(false);
-    return 0;
+    return nullptr;
 }
 
 QDomElement ForumSubscription::serialize(QDomElement &parent, QDomDocument &doc) {
